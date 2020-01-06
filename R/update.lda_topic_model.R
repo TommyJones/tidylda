@@ -1,0 +1,392 @@
+#' Update methods for topic models
+#' @description \code{update} updates a previously-trained topic model based
+#' on new data or continues training a model with its original data. Useful for 
+#' updates or transfer learning.
+#' @param object An existing trained topic model
+#' @param ... Additional arguments to the call
+#' @export
+update <- function(object, ...) UseMethod("update")
+
+#' Update a Latent Dirichlet Allocation topic model
+#' @description Update an LDA model using collapsed Gibbs sampling. 
+#' @param object a fitted object of class \code{lda_topic_model}.
+#' @param dtm A document term matrix or term co-occurrence matrix of class dgCMatrix.
+#' @param additional_k Integer number of topics to add, defaults to 0.
+#' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
+#'        from the previous model as the prior for words over topics?
+#' @param iterations Integer number of iterations for the Gibbs sampler to run. 
+#' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
+#'        the resulting "phi" and "theta" matrices are an average over all iterations
+#'        greater than \code{burnin}.
+#' @param optimize_alpha Logical. Do you want to optimize alpha every iteration?
+#'        Defaults to \code{FALSE}. See 'details' of documentation for
+#'        \code{\link[textmineR]{FitLdaModel}}for more information.
+#' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
+#'        Useful for assessing convergence. Defaults to \code{FALSE}. 
+#' @param calc_coherence Logical. Do you want to calculate probabilistic coherence of topics
+#'        after the model is trained? Defaults to \code{FALSE}. This calls
+#'        \code{\link[textmineR]{CalcProbCoherence}}.
+#' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
+#'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
+#' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
+#' @param ... Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}
+#' @return Returns an S3 object of class c("lda_topic_model"). 
+#' @details 
+#' prior + counts vs. counts only. Vocab alignment + uniform prior over new words. 
+#'          Adding additional topics. works best with significant vocab overlap
+#' @export
+#' @examples 
+#' \dontrun{
+#' # load a document term matrix
+#' d1 <- nih_sample_dtm[1:50,]
+#' 
+#' d2 <- nih_sample_dtm[51:100,]
+#' 
+#' # fit a model
+#' m <- FitLdaModel(d1, k = 10, 
+#'                  iterations = 200, burnin = 175,
+#'                  optimize_alpha = TRUE, 
+#'                  calc_likelihood = FALSE,
+#'                  calc_coherence = TRUE,
+#'                  calc_r2 = FALSE)
+#' 
+#' # update an existing model by adding documents
+#' m2 <- update(object = m,
+#'              dtm = rbind(d1, d2),
+#'              iterations = 200,
+#'              burnin = 175)
+#'              
+#' # use an old model as a prior for a new model
+#' m3 <- update(object = m,
+#'              dtm = d2, # new documents only
+#'              iterations = 200,
+#'              burnin = 175)
+#'              
+#' # add topics while updating a model by adding documents
+#' m4 <- update(object = m,
+#'              dtm = rbind(d1, d2),
+#'              additional_k = 3,
+#'              iterations = 200,
+#'              burnin = 175)
+#'              
+#' # add topics to an existing model
+#' m5 <- update(object = m,
+#'              dtm = d1, # this is the old data
+#'              additional_k = 3,
+#'              iterations = 200,
+#'              burnin = 175)
+#' 
+#' }
+update.lda_topic_model <- function(object, dtm, additional_k = 0, 
+                                   phi_as_prior = FALSE,
+                                   iterations = NULL, burnin = -1, 
+                                   optimize_alpha = FALSE, calc_likelihood = FALSE, 
+                                   calc_coherence = FALSE, calc_r2 = FALSE, 
+                                   return_data = FALSE, ...) {
+  
+  ### Check inputs are of correct dimensionality ----
+  
+  # object of correct class?
+  if (class(object) != "lda_topic_model")
+    stop("object must be of class lda_topic_model")
+  
+  # iterations and burnin acceptable?
+  if (burnin >= iterations) {
+    stop("burnin must be less than iterations")
+  }
+  
+  # dtm of the correct format?
+  if (! "dgCMatrix" %in% class(dtm)) {
+    message("'dtm' is not of class dgCMatrix, attempting to convert...")
+    
+    dtm <- try(methods::as(dtm, "dgCMatrix", strict = TRUE)) # requires Matrix in namespace
+    
+    if (! "dgCMatrix" %in% class(dtm))
+      stop("conversion failed. Please pass an object of class dgCMatrix for dtm")
+  }
+  
+  # is k formatted correctly?
+  if (! is.numeric(additional_k)){
+    stop("additional_k must be an integer >= 0")
+  } else if (additional_k < 0) {
+    stop("additional_k must be an integer >= 0")
+  }
+  
+  additional_k <- floor(additional_k) # in case somebody is cheeky and passes a decimal
+  
+  # iterations?
+  if (is.null(iterations))
+    stop("You must specify number of iterations")
+  
+  if (! is.logical(calc_coherence))
+    stop("calc_coherence must be TRUE or FALSE")
+  
+  if (! is.logical(calc_r2))
+    stop("calc_r2 must be TRUE or FALSE")
+  
+  if (! is.logical(calc_likelihood))
+    stop("calc_likelihood must be TRUE or FALSE")
+  
+  if (! is.logical(phi_as_prior))
+    stop("phi_as_prior must be TRUE or FALSE")
+  
+  
+  ### Pull out objects used for update ----
+  
+  # format of beta
+  if (phi_as_prior) {
+    
+    beta <- object$phi
+    
+    beta_class <- "matrix"
+    
+    # re-scale so that beta has the same magnitude of the old beta
+    
+    if (is.matrix(object$beta)) {
+      
+      beta <- beta * rowSums(object$beta)
+      
+    } else if (is.vector(object$beta)) {
+      
+      beta <- beta * sum(object$beta)
+      
+    } else if (length(object$beta) == 1) {
+      
+      beta <- beta * (object$beta * ncol(object$phi))
+      
+    } else { # this case shouldn't happen
+      
+      stop("object$beta must be a numeric scalar, a numeric vector of length 
+         'ncol(object$phi)', or a numeric matrix with 'nrow(object$phi)' rows 
+         and 'ncol(object$phi)' columns with no missing  values and at least 
+         one non-zero value.")
+      
+    }
+    
+  } else {
+    
+    if (is.matrix(object$beta)) {
+      
+      beta <- object$beta
+      
+      beta_class <- "matrix"
+      
+    } else if (is.vector(object$beta)) {
+      
+      beta <- t(object$beta + matrix(0, nrow = length(object$beta), ncol = k))
+      
+      beta_class <- "vector"
+      
+    } else if (length(object$beta) == 1) {
+      
+      beta <- matrix(object$beta, nrow = k, ncol = ncol(dtm))
+      
+      beta_class <- "scalar"
+      
+    } else { # this condition should never happen...
+      
+      stop("object$beta must be a numeric scalar, a numeric vector of length 
+         'ncol(object$phi)', or a numeric matrix with 'nrow(object$phi)' rows 
+         and 'ncol(object$phi)' columns with no missing  values and at least 
+         one non-zero value.")
+      
+    }
+    
+  }
+  
+  dimnames(beta) <- dimnames(object$phi)
+  
+  # phi_initial and theta_initial
+  phi_initial <- object$phi
+  
+  theta_initial <- predict.lda_topic_model(object = object,
+                                           newdata = dtm,
+                                           method = "dot")
+  
+  # pull out alpha
+  alpha <- object$alpha
+  
+  ### Vocabulary alignment and new topic (if any) alignment ----
+  
+  # align vocab in intelligent way for adding new vocab
+  v_diff <- setdiff(colnames(dtm), colnames(phi_initial))
+  
+  m_add <- matrix(0, nrow = nrow(phi_initial), ncol = length(v_diff))
+  
+  colnames(m_add) <- v_diff
+  
+  beta <- cbind(beta, m_add+ median(beta)) # uniform prior over new words
+  
+  beta <- beta[, colnames(dtm)]
+  
+  phi_initial <- cbind(phi_initial, m_add + median(phi_initial)) 
+  
+  phi_initial <- phi_initial[, colnames(dtm)] / rowSums(phi_initial[, colnames(dtm)])
+  
+  # add topics to beta and phi_initial
+  # prior for topics inherets from beta, specifically colMeans(beta)
+  # basically means that new topics are an average of old topics. If you used
+  # a scalar or vector for object$beta, then prior for new topics will be 
+  # identical to prior for old topics. If object$beta was a matrix where rows
+  # were not identical (i.e. you seeded specific topics), then your new topics
+  # will have a prior that is the average of all old topics.
+  m_add <- matrix(0, 
+                  nrow = additional_k, 
+                  ncol = ncol(beta))
+  
+  m_add <- t(t(m_add) + colMeans(beta)) 
+  
+  beta <- rbind(beta, m_add) # add new topics to beta
+  
+  phi_initial <- rbind(phi_initial, m_add / rowSums(m_add)) # new topics to phi
+  
+  # add topics to alpha and theta_initial
+  # prior for new topics is uniform, similar to beta, it's the median of alpha
+  # adding new topics to theta_inital is a little more complicated. We take the
+  # median of each row of theta_initial, add that to the new topics and then
+  # reweight so each row still sums to 1.
+  alpha <- c(alpha, rep(median(alpha), additional_k)) # uniform prior for new topics
+  
+  m_add <- apply(theta_initial, 1, function(x){
+    rep(median(x), additional_k)
+  })
+  
+  # handle cases on what m_add could be
+  if (is.matrix(m_add)) { # if we add more than one topic
+    
+    m_add <- t(m_add)
+    
+    colnames(m_add) <- (max(as.numeric(colnames(theta_initial))) + 1):
+      (max(as.numeric(colnames(theta_initial))) + additional_k)
+    
+    theta_initial <- cbind(theta_initial, m_add)
+    
+    theta_initial <- theta_initial / rowSums(theta_initial)
+    
+    
+  } else if (length(m_add) == 0) { # we add no topics and get nothing back
+    
+    # do nothing, actually
+    
+  } else { # we add only one topic and get a vector back
+    
+    theta_initial <- cbind(theta_initial, m_add)
+    
+    theta_initial <- theta_initial / rowSums(theta_initial)
+    
+  }
+  
+  
+  ### get initial counts to feed to gibbs sampler ----
+  counts <- initialize_topic_counts(dtm = dtm, 
+                                    k = nrow(phi_initial),
+                                    alpha = alpha,
+                                    beta = beta,
+                                    phi_initial = phi_initial,
+                                    theta_initial = theta_initial,
+                                    freeze_topics = FALSE) # false because this is an update
+  
+  ### run C++ gibbs sampler ----
+  lda <- fit_lda_c(docs = counts$docs,
+                   Nk = nrow(phi_initial),
+                   alpha = alpha,
+                   beta = beta,
+                   Cd = counts$Cd,
+                   Cv = counts$Cv,
+                   Ck = counts$Ck,
+                   Zd = counts$Zd,
+                   Phi = counts$Cv, # this is actually ignored as freeze_topics = FALSE 
+                   iterations = iterations,
+                   burnin = burnin,
+                   freeze_topics = FALSE, # this stays FALSE for updates 
+                   calc_likelihood = calc_likelihood, 
+                   optimize_alpha = optimize_alpha) 
+  
+
+  
+  ### Format posteriors correctly ----
+  if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
+    
+    phi <- lda$Cv_mean + beta
+    
+    theta <- t(t(lda$Cd_mean) + alpha)
+    
+  } else { # if you didn't use burnin use standard counts (Cd etc.)
+    
+    phi <- lda$Cv + beta
+    
+    theta <- t(t(lda$Cd) + alpha)
+    
+  }
+  
+  phi <- phi / rowSums(phi)
+  
+  phi[is.na(phi)] <- 0 # just in case of a numeric issue
+  
+  theta <- theta / rowSums(theta)
+  
+  theta[is.na(theta)] <- 0 # just in case of a numeric issue
+  
+  colnames(phi) <- colnames(dtm)
+  
+  rownames(phi) <- seq_len(nrow(phi)) 
+  
+  colnames(theta) <- rownames(phi)
+  
+  rownames(theta) <- rownames(dtm)
+  
+  ### collect the results ----
+  gamma <- CalcGamma(phi = phi, theta = theta, 
+                     p_docs = Matrix::rowSums(dtm))
+  
+  names(lda$alpha) <- rownames(phi)
+  
+  colnames(lda$beta) <- colnames(phi)
+  
+  if (beta_class == "scalar") {
+    
+    beta_out <- beta[1, 1]
+    
+  } else if (beta_class == "vector") {
+    
+    beta_out <- beta[1, ]
+    
+  } else if (beta_class == "matrix") {
+    
+    beta_out <- beta
+    
+  } else { # this should be impossible, but science is hard and I am dumb.
+    beta_out <- beta
+    
+    message("something went wrong with 'beta'. This isn't your fault. Please 
+            contact Tommy at jones.thos.w[at]gmail.com and tell him to fix it.")
+  }
+  
+  result <- list(phi = phi,
+                 theta = theta,
+                 gamma = gamma,
+                 alpha = lda$alpha,
+                 beta = beta_out,
+                 log_likelihood = data.frame(iteration = lda$log_likelihood[1,],
+                                             log_likelihood = lda$log_likelihood[2, ])
+  ) # add other things here if necessary
+  
+  class(result) <- "lda_topic_model"
+  
+  ### calculate and add other things ---
+  if (calc_coherence) {
+    result$coherence <- CalcProbCoherence(result$phi, dtm)
+  }
+  
+  if (calc_r2) {
+    result$r2 <- CalcTopicModelR2(dtm, result$phi, result$theta, ...)
+  }
+  
+  if (! calc_likelihood) {
+    result$log_likelihood <- NULL
+  }
+  
+  ### return the final result ----
+  result
+  
+}

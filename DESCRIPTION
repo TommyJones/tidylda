@@ -1,0 +1,31 @@
+Package: tidylda
+Type: Package
+Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
+Version: 0.0.0.999
+Date: 2019-11-10
+Authors@R: c(
+    person("Tommy", "Jones", role = c("aut", "cre"), email = "jones.thos.w@gmail.com")
+    )
+Description: Implements an algorithm for Latent Dirichlet Allocation 
+    using style conventions from the 'tidyverse' and specifically 'tidymodels'. 
+License: MIT + file LICENSE
+URL: https://www.tidylda.com/
+BugReports: https://github.com/TommyJones/tidylda/issues
+LazyData: true
+Depends: 
+    Matrix
+Imports:
+    methods,
+    parallel,
+    Rcpp (>= 1.0.2), 
+    RcppParallel (>= 4.4.4)
+Suggests:
+    textmineR,
+    tidytext
+LinkingTo: Rcpp, 
+    RcppParallel,
+    RcppArmadillo,
+    RcppProgress
+SystemRequirements: GNU make
+RoxygenNote: 6.1.1
+VignetteBuilder: knitr

@@ -135,20 +135,25 @@ predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"),
     # get initial distribution with recursive call to "dot" method
     theta_initial <- predict.lda_topic_model(object = object, newdata = newdata, method = "dot")
     
+    # make sure priors are formatted correctly
+    beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_newdata))
+    
+    alpha <- format_alpha(object$alpha, k = nrow(object$phi))
+    
+    # get initial counts
     lex <- initialize_topic_counts(dtm = dtm_newdata,
                                    k = nrow(object$phi),
-                                   alpha = object$alpha,
-                                   beta = object$beta,
+                                   alpha = alpha$alpha,
+                                   beta = beta$beta,
                                    phi_initial = object$phi,
                                    theta_initial = theta_initial,
                                    freeze_topics = TRUE)
     
-    # pass inputs to C function
+    # pass inputs to C function for prediciton
     theta <- fit_lda_c(docs = lex$docs,
                        Nk = nrow(object$phi),
-                       beta = t(object$beta + matrix(0, nrow = length(object$beta), 
-                                                     ncol = length(object$alpha))),
-                       alpha = object$alpha,
+                       beta = beta$beta,
+                       alpha = alpha$alpha,
                        Cd = lex$Cd,
                        Cv = lex$Cv,
                        Ck = lex$Ck,
@@ -163,11 +168,11 @@ predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"),
     # format posterior prediction
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
 
-      theta <- t(t(theta$Cd_mean) + object$alpha)
+      theta <- t(t(theta$Cd_mean) + theta$alpha)
       
     } else { # if you didn't use burnin use standard counts (Cd etc.)
 
-      theta <- t(t(theta$Cd) + object$alpha)
+      theta <- t(t(theta$Cd) + theta$alpha)
       
     }
 

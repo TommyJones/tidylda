@@ -105,51 +105,9 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
     stop("You must specify number of iterations")
   
   # alpha and beta?
-  if (! is.numeric(alpha) | sum(is.na(alpha)) > 0 | sum(alpha == 0) == length(alpha))
-    stop("alpha must be a numeric scalar or vector of length 'k' with no missing 
-          values and at least one non-zero value")
+  alpha <- format_alpha(alpha = alpha, k = k)
   
-  if (length(alpha) == 1) {
-    alpha <- numeric(k) + alpha
-  } else if (length(alpha) != k){
-    stop("alpha must be a scalar or vector of length 'k'")
-  }
-  
-  if (! is.numeric(beta) | sum(is.na(beta)) > 0 | sum(beta == 0) == length(beta))
-    stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
-         a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
-         values and at least one non-zero value.")
-  
-  if (length(beta) == 1) { # if beta is a scalar
-    
-    beta <- matrix(beta, nrow = k, ncol = ncol(dtm))
-    
-    beta_class <- "scalar"
-    
-  } else if (is.vector(beta)){ # if beta is a vector
-    
-    if (length(beta) != ncol(dtm)) # if you didn't specify this vector right
-      stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
-         a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
-         values and at least one non-zero value.")
-    
-    # otherwise let's carry on...
-    # make beta a matrix to format for C++ funciton
-    beta <- t(beta + matrix(0, nrow = length(beta), ncol = k))
-    
-    beta_class <- "vector"
-    
-  } else if (is.matrix(beta)) { # if beta is a matrix
-    
-    beta_class <- "matrix"
-    
-  } else { # if beta is of an un supported data type
-    
-    stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
-         a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
-         values and at least one non-zero value.")
-    
-  }
+  beta <- format_beta(beta = beta, k = k, Nv = ncol(dtm))
   
   if (! is.logical(calc_coherence))
     stop("calc_coherence must be logical")
@@ -162,14 +120,14 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   
   # other formatting
   counts <- initialize_topic_counts(dtm = dtm, k = 10, 
-                                    alpha = alpha, beta = beta)
+                                    alpha = alpha$alpha, beta = beta$beta)
   
   
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(docs = counts$docs,
                    Nk = k,
-                   alpha = alpha,
-                   beta = beta,
+                   alpha = alpha$alpha,
+                   beta = beta$beta,
                    Cd = counts$Cd,
                    Cv = counts$Cv,
                    Ck = counts$Ck,
@@ -184,15 +142,15 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   ### format posteriors correctly ----
   if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
     
-    phi <- lda$Cv_mean + beta
+    phi <- lda$Cv_mean + lda$beta
     
-    theta <- t(t(lda$Cd_mean) + alpha)
+    theta <- t(t(lda$Cd_mean) + lda$alpha)
     
   } else { # if you didn't use burnin use standard counts (Cd etc.)
     
-    phi <- lda$Cv + beta
+    phi <- lda$Cv + lda$beta
     
-    theta <- t(t(lda$Cd) + alpha)
+    theta <- t(t(lda$Cd) + lda$alpha)
     
   }
   
@@ -213,36 +171,53 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   rownames(theta) <- rownames(dtm)
   
   ### collect the results ----
-  gamma <- CalcGamma(phi = phi, theta = theta, 
-                     p_docs = Matrix::rowSums(dtm))
   
-  names(lda$alpha) <- rownames(phi)
+  # gamma
+  gamma <- textmineR::CalcGamma(phi = phi, theta = theta, 
+                                p_docs = Matrix::rowSums(dtm))
   
+  # beta
   colnames(lda$beta) <- colnames(phi)
   
-  if (beta_class == "scalar") {
+  if (beta$beta_class == "scalar") {
     
-    beta_out <- beta[1, 1]
+    beta_out <- lda$beta[1, 1]
     
-  } else if (beta_class == "vector") {
+  } else if (beta$beta_class == "vector") {
     
-    beta_out <- beta[1, ]
+    beta_out <- lda$beta[1, ]
     
-  } else if (beta_class == "matrix") {
+  } else if (beta$beta_class == "matrix") {
     
-    beta_out <- beta
+    beta_out <- lda$beta
     
   } else { # this should be impossible, but science is hard and I am dumb.
-    beta_out <- beta
+    beta_out <- lda$beta
     
     message("something went wrong with 'beta'. This isn't your fault. Please 
-            contact Tommy at jones.thos.w[at]gmail.com and tell him to fix it.")
+            contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
+            error when you ran 'fit_lda_model'.")
   }
   
+  # alpha
+  
+  if (alpha$alpha_class == "scalar" & !optimize_alpha) {
+    
+    alpha_out <- lda$alpha[1]
+    
+  } else if (alpha$alpha_class == "vector" | optimize_alpha) {
+    
+    alpha_out <- lda$alpha
+    
+    names(alpha_out) <- rownames(phi)
+
+  }
+  
+  # resulting object
   result <- list(phi = phi,
                  theta = theta,
                  gamma = gamma,
-                 alpha = lda$alpha,
+                 alpha = alpha_out,
                  beta = beta_out,
                  log_likelihood = data.frame(iteration = lda$log_likelihood[1,],
                                              log_likelihood = lda$log_likelihood[2, ])
@@ -252,11 +227,11 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   
   ### calculate and add other things ---
   if (calc_coherence) {
-    result$coherence <- CalcProbCoherence(result$phi, dtm)
+    result$coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
   }
   
   if (calc_r2) {
-    result$r2 <- CalcTopicModelR2(dtm, result$phi, result$theta, ...)
+    result$r2 <- textmineR::CalcTopicModelR2(dtm, result$phi, result$theta, ...)
   }
   
   if (! calc_likelihood) {

@@ -21,7 +21,6 @@ Imports:
     methods,
     parallel,
     Rcpp (>= 1.0.2), 
-    RcppParallel (>= 4.4.4),
     stats,
     textmineR
 Suggests:
@@ -29,9 +28,6 @@ Suggests:
     testthat,
     tidytext
 LinkingTo: Rcpp, 
-    RcppParallel,
     RcppArmadillo,
-    RcppProgress
-SystemRequirements: GNU make
 RoxygenNote: 6.1.1
 VignetteBuilder: knitr

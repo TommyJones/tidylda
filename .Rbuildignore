@@ -1,2 +1,11 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^src/*\.o$
+^src/*\.so$
+^src/*\.dll$
+
+^_notes.md$
+^cran-comments.md$
+^\.gitignore$
+
+^R/_sandbox_lda_gibbs2.R$

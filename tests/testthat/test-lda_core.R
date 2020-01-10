@@ -287,16 +287,19 @@ test_that("can update models",{
                  calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
+  
+  expect_named(lda2, names(lda))
+  
+  expect_equal(nrow(lda2$theta), nrow(d2))
+  
+  expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
+  
+  expect_equal(ncol(lda2$phi), ncol(d2))
+  
+  
 })
 
 
-expect_named(lda2, names(lda))
-
-expect_equal(nrow(lda2$theta), nrow(d2))
-
-expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
-
-expect_equal(ncol(lda2$phi), ncol(d2))
 
 
 ### Tests for the summary method ----

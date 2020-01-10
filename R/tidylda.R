@@ -14,6 +14,7 @@ NULL
 #' @import Matrix
 #' @import Rcpp
 #' @import textmineR
+#' @importFrom stats median
 #' @importFrom gtools rdirichlet
 #' @importFrom Rcpp sourceCpp
 #' @importFrom methods as

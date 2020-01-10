@@ -22,11 +22,11 @@ Imports:
     parallel,
     Rcpp (>= 1.0.2), 
     RcppParallel (>= 4.4.4),
+    stats,
     textmineR
 Suggests:
     knitr,
     testthat,
-    textmineR,
     tidytext
 LinkingTo: Rcpp, 
     RcppParallel,

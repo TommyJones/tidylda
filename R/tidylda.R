@@ -10,11 +10,12 @@
 #' @docType package
 NULL
 
-#' @importFrom magrittr %>%
+
 #' @import Matrix
 #' @import Rcpp
+#' @import textmineR
+#' @importFrom gtools rdirichlet
 #' @importFrom Rcpp sourceCpp
-#' @import RcppProgress
 #' @importFrom methods as
 #' @useDynLib "tidylda", .registration=TRUE
 NULL

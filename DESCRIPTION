@@ -13,16 +13,18 @@ Description: Implements an algorithm for Latent Dirichlet Allocation (LDA)
 License: MIT + file LICENSE
 URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
-License: MIT + file LICENSE
 LazyData: true
 Depends: 
     Matrix
 Imports:
+    gtools,
     methods,
     parallel,
     Rcpp (>= 1.0.2), 
-    RcppParallel (>= 4.4.4)
+    RcppParallel (>= 4.4.4),
+    textmineR
 Suggests:
+    knitr,
     testthat,
     textmineR,
     tidytext

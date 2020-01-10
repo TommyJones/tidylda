@@ -41,7 +41,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
 
-\item{...}{Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}}
+\item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
 }
 \value{
 Returns an S3 object of class c("lda_topic_model").

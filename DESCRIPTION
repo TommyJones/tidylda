@@ -18,6 +18,7 @@ LazyData: true
 Depends: 
     Matrix
 Imports:
+    furrr,
     gtools,
     methods,
     parallel,

@@ -15,6 +15,4 @@ This implementation of LDA allows you to:
 * use a previously-trained model as a prior for a new model
 * apply LDA in a transfer-learning paradigm, updating a model's parameters with additional data (or additional iterations)
 
-This may deviate from tidy modeling principles in some ways:
 
-* _Parallelism by default_ - the tidy modeling style guide says to default to sequential execution and let users decide to use parallelism. However, text data is large enough and compute intensive enough that I believe defaulting to sequential execution would greatly dimish the package's usability.

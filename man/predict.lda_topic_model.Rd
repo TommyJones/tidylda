@@ -23,7 +23,7 @@ If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 are an average over all iterations greater than \code{burnin}.
 Behavior is the same as documented in \code{\link[tidylda]{fit_lda_model}}.}
 
-\item{...}{Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}}
+\item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
 }
 \value{
 a "theta" matrix with one row per document and one column per topic

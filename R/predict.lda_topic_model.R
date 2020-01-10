@@ -11,7 +11,7 @@
 #'        If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 #'        are an average over all iterations greater than \code{burnin}.
 #'        Behavior is the same as documented in \code{\link[tidylda]{fit_lda_model}}. 
-#' @param ... Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}
+#' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @examples
 #' \dontrun{
@@ -147,7 +147,8 @@ predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"),
                                    beta = beta$beta,
                                    phi_initial = object$phi,
                                    theta_initial = theta_initial,
-                                   freeze_topics = TRUE)
+                                   freeze_topics = TRUE,
+                                   ...)
     
     # pass inputs to C function for prediciton
     theta <- fit_lda_c(docs = lex$docs,

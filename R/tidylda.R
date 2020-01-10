@@ -13,6 +13,7 @@ NULL
 
 
 #' @import Rcpp
+#' @import furrr
 #' @importFrom textmineR CalcGamma
 #' @importFrom textmineR CalcProbCoherence
 #' @importFrom textmineR CalcTopicModelR2

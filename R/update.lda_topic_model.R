@@ -29,7 +29,7 @@ update <- function(object, ...) UseMethod("update")
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
-#' @param ... Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}
+#' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class c("lda_topic_model"). 
 #' @details 
 #' prior + counts vs. counts only. Vocab alignment + uniform prior over new words. 
@@ -168,7 +168,8 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   
   theta_initial <- predict.lda_topic_model(object = object,
                                            newdata = dtm,
-                                           method = "dot")
+                                           method = "dot",
+                                           ...)
   
   # pull out alpha
   alpha <- format_alpha(alpha = object$alpha,
@@ -252,7 +253,8 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
                                     beta = beta$beta,
                                     phi_initial = phi_initial,
                                     theta_initial = theta_initial,
-                                    freeze_topics = FALSE) # false because this is an update
+                                    freeze_topics = FALSE, # false because this is an update
+                                    ...) 
   
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(docs = counts$docs,
@@ -369,3 +371,4 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   result
   
 }
+

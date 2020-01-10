@@ -109,100 +109,76 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
     stats::rmultinom(n = 1, size = size, prob = prob)
   }
   
-  if (nrow(dtm) <= 3000) { # if a small corpus, do sequential
+  # below makes use of furrr::future_map to allow for parallel processing
+  # in cases where we have more than 3000 documents
+  batches <- seq(1, nrow(dtm), by = 3000)
+  
+  # future::plan(multiprocess) 
+  
+  iterator <- furrr::future_map(.x = batches, .f = function(b){
+    rows <- b:min(b + 2999, nrow(dtm))
     
-    # Cd_start <- sapply(X = Matrix::rowSums(dtm),
-    #                    FUN = cd_sampler)
-    
-    Cd_start <- mapply(FUN = cd_sampler,
-                       size = Matrix::rowSums(dtm),
-                       prob = as.list(data.frame(t(theta_initial)))) 
-    
-    Cd_start <- t(Cd_start)
-    
-  } else { # otherwise do it in parallel
-    
-    batches <- seq(1, nrow(dtm), by = 3000)
-    
-    iterator <- textmineR::TmParallelApply(batches, function(b){
+    if (length(rows) > 1) {
       
-      rows <- b:min(b + 2999, nrow(dtm))
+      size <- Matrix::rowSums(dtm[rows, ])
       
-      if (length(rows) > 1) {
-        
-        size <- Matrix::rowSums(dtm[rows, ])
-        
-        prob <- as.list(data.frame(t(theta_initial[rows, ])))
-        
-      } else {
-        size <- sum(dtm[rows, ])
-        
-        prob <- theta_initial[rows, ]
-      }
+      prob <- as.list(data.frame(t(theta_initial[rows, ])))
       
-      list(size = size, prob = prob)
+    } else {
+      size <- sum(dtm[rows, ])
       
-    }, export = c("dtm", "theta_initial"),
-    ...)
+      prob <- theta_initial[rows, ]
+    }
     
-    Cd_start <- textmineR::TmParallelApply(X = iterator,
-                                           FUN = function(x){
-                                             out <- mapply(FUN = cd_sampler,
-                                                           size = x$size,
-                                                           prob = x$prob)
-                                             
-                                             t(out)
-                                           },
-                                           export = "cd_sampler",
-                                           ...)
-    
-    Cd_start <- do.call(rbind, Cd_start)
-    
-  }
+    list(size = size, prob = prob)
+  }, ...)
+  
+  Cd_start <- furrr::future_map(.x = iterator,
+                                .f = function(x) {
+                                  out <- mapply(FUN = cd_sampler,
+                                                size = x$size,
+                                                prob = x$prob)
+                                  
+                                  t(out)
+                                }, ...)
+  
+  Cd_start <- do.call(rbind, Cd_start)
+
   
   # Initialize objects with that single Gibbs iteration mentioned above
-  if(nrow(dtm) > 3000){  # if we have more than 3,000 docs, do it in parallel
+  # if we have more than 3000 documents, do it in parallel with furrr::future_map
+
+  batches <- seq(1, nrow(dtm), by = 3000)
+  
+  lexicon <- furrr::future_map(.x = batches, 
+                               .f = function(b){
     
-    batches <- seq(1, nrow(dtm), by = 3000)
+    rows <- b:min(b + 2999, nrow(dtm))
     
-    lexicon <- textmineR::TmParallelApply(batches, function(b){
-      
-      rows <- b:min(b + 2999, nrow(dtm))
-      
-      l <- create_lexicon(Cd = Cd_start[rows,],
-                          Phi = phi_initial,
-                          dtm = dtm[rows,],
-                          alpha = alpha,
-                          freeze_topics = freeze_topics)
-      
-    }, 
-    export = c("alpha", "Cd_start", "phi_initial", "dtm", "freeze_topics"),
-    ...)
+    l <- create_lexicon(Cd = Cd_start[rows,],
+                        Phi = phi_initial,
+                        dtm = dtm[rows,],
+                        alpha = alpha,
+                        freeze_topics = freeze_topics)
     
-    # combine 
-    Zd <- Reduce("c", lapply(lexicon, function(l) l$Zd))
-    
-    docs <- Reduce("c", lapply(lexicon, function(l) l$docs))
-    
-    Cv <- Reduce("+", lapply(lexicon, function(l) l$Cv))
-    
-    Ck <- Reduce("+", lapply(lexicon, function(l) l$Ck))
-    
-    Cd <- do.call(rbind, lapply(lexicon, function(l) l$Cd))
-    
-    out <- list(docs = docs,
-                Zd = Zd,
-                Cd = Cd,
-                Cv = Cv,
-                Ck = Ck)
-    
-  }else{ # if we have 3,000 or fewer docs do it sequentially
-    out <- create_lexicon(Cd = Cd_start,
-                          Phi = phi_initial,
-                          dtm = dtm,
-                          alpha = alpha,
-                          freeze_topics = freeze_topics)
-  }
+  }, ...)
+  
+  # combine 
+  Zd <- Reduce("c", lapply(lexicon, function(l) l$Zd))
+  
+  docs <- Reduce("c", lapply(lexicon, function(l) l$docs))
+  
+  Cv <- Reduce("+", lapply(lexicon, function(l) l$Cv))
+  
+  Ck <- Reduce("+", lapply(lexicon, function(l) l$Ck))
+  
+  Cd <- do.call(rbind, lapply(lexicon, function(l) l$Cd))
+  
+  out <- list(docs = docs,
+              Zd = Zd,
+              Cd = Cd,
+              Cv = Cv,
+              Ck = Ck)
   
   out
   

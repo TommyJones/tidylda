@@ -21,7 +21,7 @@
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
-#' @param ... Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}
+#' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class c("lda_topic_model"). 
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 #'   written using the excellent Rcpp package. Some implementation notes follow:
@@ -123,7 +123,8 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   
   # other formatting
   counts <- initialize_topic_counts(dtm = dtm, k = 10, 
-                                    alpha = alpha$alpha, beta = beta$beta)
+                                    alpha = alpha$alpha, beta = beta$beta,
+                                    ...)
   
   
   ### run C++ gibbs sampler ----

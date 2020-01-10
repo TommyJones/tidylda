@@ -155,9 +155,20 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
     
     rows <- b:min(b + 2999, nrow(dtm))
     
-    l <- create_lexicon(Cd = Cd_start[rows,],
+    # if statement to handle single observations
+    if (length(rows) == 1) {
+      cd_tmp <- Cd_start
+      
+      dtm_tmp <- dtm
+    } else {
+      cd_tmp <- Cd_start[rows, ]
+      
+      dtm_tmp <- dtm[rows, ]
+    }
+    
+    l <- create_lexicon(Cd = cd_tmp,
                         Phi = phi_initial,
-                        dtm = dtm[rows,],
+                        dtm = dtm_tmp,
                         alpha = alpha,
                         freeze_topics = freeze_topics)
     

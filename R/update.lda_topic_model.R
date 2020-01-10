@@ -38,17 +38,15 @@ update <- function(object, ...) UseMethod("update")
 #' @examples 
 #' \dontrun{
 #' # load a document term matrix
+#' data(nih_sample_dtm, package = "textmineR")
+#' 
 #' d1 <- nih_sample_dtm[1:50,]
 #' 
 #' d2 <- nih_sample_dtm[51:100,]
 #' 
 #' # fit a model
-#' m <- FitLdaModel(d1, k = 10, 
-#'                  iterations = 200, burnin = 175,
-#'                  optimize_alpha = TRUE, 
-#'                  calc_likelihood = FALSE,
-#'                  calc_coherence = TRUE,
-#'                  calc_r2 = FALSE)
+#' m <- fit_lda_model(d1, k = 10, 
+#'                   iterations = 200, burnin = 175)
 #' 
 #' # update an existing model by adding documents
 #' m2 <- update(object = m,
@@ -59,6 +57,7 @@ update <- function(object, ...) UseMethod("update")
 #' # use an old model as a prior for a new model
 #' m3 <- update(object = m,
 #'              dtm = d2, # new documents only
+#'              phi_as_prior = TRUE,
 #'              iterations = 200,
 #'              burnin = 175)
 #'              
@@ -69,12 +68,6 @@ update <- function(object, ...) UseMethod("update")
 #'              iterations = 200,
 #'              burnin = 175)
 #'              
-#' # add topics to an existing model
-#' m5 <- update(object = m,
-#'              dtm = d1, # this is the old data
-#'              additional_k = 3,
-#'              iterations = 200,
-#'              burnin = 175)
 #' 
 #' }
 update.lda_topic_model <- function(object, dtm, additional_k = 0, 
@@ -136,23 +129,22 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   # format of beta
   if (phi_as_prior) {
     
-    beta <- object$phi
-    
-    beta_class <- "matrix"
+    beta <- list(beta = object$phi,
+                 beta_class = "matrix")
     
     # re-scale so that beta has the same magnitude of the old beta
     
     if (is.matrix(object$beta)) {
       
-      beta <- beta * rowSums(object$beta)
+      beta$beta <- beta$beta * rowSums(object$beta)
       
     } else if (is.vector(object$beta)) {
       
-      beta <- beta * sum(object$beta)
+      beta$beta <- beta$beta * sum(object$beta)
       
     } else if (length(object$beta) == 1) {
       
-      beta <- beta * (object$beta * ncol(object$phi))
+      beta$beta <- beta$beta * (object$beta * ncol(object$phi))
       
     } else { # this case shouldn't happen
       
@@ -165,36 +157,11 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
     
   } else {
     
-    if (is.matrix(object$beta)) {
-      
-      beta <- object$beta
-      
-      beta_class <- "matrix"
-      
-    } else if (is.vector(object$beta)) {
-      
-      beta <- t(object$beta + matrix(0, nrow = length(object$beta), ncol = k))
-      
-      beta_class <- "vector"
-      
-    } else if (length(object$beta) == 1) {
-      
-      beta <- matrix(object$beta, nrow = k, ncol = ncol(dtm))
-      
-      beta_class <- "scalar"
-      
-    } else { # this condition should never happen...
-      
-      stop("object$beta must be a numeric scalar, a numeric vector of length 
-         'ncol(object$phi)', or a numeric matrix with 'nrow(object$phi)' rows 
-         and 'ncol(object$phi)' columns with no missing  values and at least 
-         one non-zero value.")
-      
-    }
+    beta <- format_beta(beta = object$beta, k = nrow(object$phi), Nv = ncol(object$phi))
     
   }
   
-  dimnames(beta) <- dimnames(object$phi)
+  dimnames(beta$beta) <- dimnames(object$phi)
   
   # phi_initial and theta_initial
   phi_initial <- object$phi
@@ -204,7 +171,8 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
                                            method = "dot")
   
   # pull out alpha
-  alpha <- object$alpha
+  alpha <- format_alpha(alpha = object$alpha,
+                        k = nrow(object$phi))
   
   ### Vocabulary alignment and new topic (if any) alignment ----
   
@@ -215,9 +183,9 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   
   colnames(m_add) <- v_diff
   
-  beta <- cbind(beta, m_add+ median(beta)) # uniform prior over new words
+  beta$beta <- cbind(beta$beta, m_add+ median(beta$beta)) # uniform prior over new words
   
-  beta <- beta[, colnames(dtm)]
+  beta$beta <- beta$beta[, colnames(dtm)]
   
   phi_initial <- cbind(phi_initial, m_add + median(phi_initial)) 
   
@@ -232,11 +200,11 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   # will have a prior that is the average of all old topics.
   m_add <- matrix(0, 
                   nrow = additional_k, 
-                  ncol = ncol(beta))
+                  ncol = ncol(beta$beta))
   
-  m_add <- t(t(m_add) + colMeans(beta)) 
+  m_add <- t(t(m_add) + colMeans(beta$beta)) 
   
-  beta <- rbind(beta, m_add) # add new topics to beta
+  beta$beta <- rbind(beta$beta, m_add) # add new topics to beta
   
   phi_initial <- rbind(phi_initial, m_add / rowSums(m_add)) # new topics to phi
   
@@ -245,7 +213,7 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   # adding new topics to theta_inital is a little more complicated. We take the
   # median of each row of theta_initial, add that to the new topics and then
   # reweight so each row still sums to 1.
-  alpha <- c(alpha, rep(median(alpha), additional_k)) # uniform prior for new topics
+  alpha$alpha <- c(alpha$alpha, rep(median(alpha$alpha), additional_k)) # uniform prior for new topics
   
   m_add <- apply(theta_initial, 1, function(x){
     rep(median(x), additional_k)
@@ -280,8 +248,8 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   ### get initial counts to feed to gibbs sampler ----
   counts <- initialize_topic_counts(dtm = dtm, 
                                     k = nrow(phi_initial),
-                                    alpha = alpha,
-                                    beta = beta,
+                                    alpha = alpha$alpha,
+                                    beta = beta$beta,
                                     phi_initial = phi_initial,
                                     theta_initial = theta_initial,
                                     freeze_topics = FALSE) # false because this is an update
@@ -289,8 +257,8 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(docs = counts$docs,
                    Nk = nrow(phi_initial),
-                   alpha = alpha,
-                   beta = beta,
+                   alpha = alpha$alpha,
+                   beta = beta$beta,
                    Cd = counts$Cd,
                    Cv = counts$Cv,
                    Ck = counts$Ck,
@@ -307,15 +275,15 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   ### Format posteriors correctly ----
   if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
     
-    phi <- lda$Cv_mean + beta
+    phi <- lda$Cv_mean + lda$beta
     
-    theta <- t(t(lda$Cd_mean) + alpha)
+    theta <- t(t(lda$Cd_mean) + lda$alpha)
     
   } else { # if you didn't use burnin use standard counts (Cd etc.)
     
-    phi <- lda$Cv + beta
+    phi <- lda$Cv + lda$beta
     
-    theta <- t(t(lda$Cd) + alpha)
+    theta <- t(t(lda$Cd) + lda$alpha)
     
   }
   
@@ -336,36 +304,47 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   rownames(theta) <- rownames(dtm)
   
   ### collect the results ----
-  gamma <- CalcGamma(phi = phi, theta = theta, 
-                     p_docs = Matrix::rowSums(dtm))
+  gamma <- textmineR::CalcGamma(phi = phi, theta = theta, 
+                                p_docs = Matrix::rowSums(dtm))
   
   names(lda$alpha) <- rownames(phi)
   
   colnames(lda$beta) <- colnames(phi)
   
-  if (beta_class == "scalar") {
+  if (beta$beta_class == "scalar") {
     
-    beta_out <- beta[1, 1]
+    beta_out <- lda$beta[1, 1]
     
-  } else if (beta_class == "vector") {
+  } else if (beta$beta_class == "vector") {
     
-    beta_out <- beta[1, ]
+    beta_out <- lda$beta[1, ]
     
-  } else if (beta_class == "matrix") {
+  } else if (beta$beta_class == "matrix") {
     
-    beta_out <- beta
+    beta_out <- lda$beta
     
   } else { # this should be impossible, but science is hard and I am dumb.
-    beta_out <- beta
+    beta_out <- lda$beta
     
     message("something went wrong with 'beta'. This isn't your fault. Please 
-            contact Tommy at jones.thos.w[at]gmail.com and tell him to fix it.")
+            contact Tommy at jones.thos.w[at]gmail.com and tell him that you got
+            this message when you ran 'update.lda_topic_model'.")
   }
+  
+  if (alpha$alpha_class == "scalar" & ! optimize_alpha) {
+    
+    alpha_out <- lda$alpha[1]
+    
+  } else if (alpha$alpha_class == "vector" | optimize_alpha) {
+    
+    alpha_out <- lda$alpha
+    
+  } 
   
   result <- list(phi = phi,
                  theta = theta,
                  gamma = gamma,
-                 alpha = lda$alpha,
+                 alpha = alpha_out,
                  beta = beta_out,
                  log_likelihood = data.frame(iteration = lda$log_likelihood[1,],
                                              log_likelihood = lda$log_likelihood[2, ])
@@ -375,11 +354,11 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   
   ### calculate and add other things ---
   if (calc_coherence) {
-    result$coherence <- CalcProbCoherence(result$phi, dtm)
+    result$coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
   }
   
   if (calc_r2) {
-    result$r2 <- CalcTopicModelR2(dtm, result$phi, result$theta, ...)
+    result$r2 <- textmineR::CalcTopicModelR2(dtm, result$phi, result$theta, ...)
   }
   
   if (! calc_likelihood) {

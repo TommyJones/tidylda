@@ -16,13 +16,13 @@
 #' @examples
 #' \dontrun{
 #' # load some data
-#' data(nih_sample_dtm)
+#' data(nih_sample_dtm, package = "textmineR")
 #' 
 #' # fit a model 
 #' set.seed(12345)
 #' 
-#' m <- FitLdaModel(dtm = nih_sample_dtm[1:20,], k = 5,
-#'                  iterations = 200, burnin = 175)
+#' m <- fit_lda_model(dtm = nih_sample_dtm[1:20,], k = 5,
+#'                    iterations = 200, burnin = 175)
 #'
 #' str(m)
 #' 

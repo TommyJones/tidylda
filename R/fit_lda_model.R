@@ -53,7 +53,7 @@
 #'   
 #' @examples 
 #' # load some data
-#' data(nih_sample_dtm)
+#' data(nih_sample_dtm, package = "textmineR")
 #' 
 #' # fit a model 
 #' set.seed(12345)
@@ -95,6 +95,9 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   }
   
   # is k formatted correctly?
+  if (k < 2)
+    stop("k must be 2 or greater")
+  
   if (! is.numeric(k))
     stop("k must be an integer")
   

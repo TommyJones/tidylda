@@ -70,9 +70,9 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   
   The log likelihood calculation is the same that can be found on page 9 of
   \url{https://arxiv.org/pdf/1510.08628.pdf}. The only difference is that the
-  version in \code{\link[textmineR]{textmineR}} allows \code{beta} to be a
+  version in \code{\link[tidylda]{fit_lda_model}} allows \code{beta} to be a
   vector or matrix. (Vector used in this function, matrix used for model
-  updates in \code{\link[textmineR]{update.lda_topic_model}}. At present, the 
+  updates in \code{\link[tidylda]{update.lda_topic_model}}. At present, the 
   log likelihood function appears to be ok for assessing convergence. i.e. It 
   has the right shape. However, it is, as of this writing, returning positive
   numbers, rather than the expected negative numbers. Looking into that, but 

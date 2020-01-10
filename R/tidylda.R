@@ -11,9 +11,16 @@
 NULL
 
 
-#' @import Matrix
+
 #' @import Rcpp
-#' @import textmineR
+#' @importFrom textmineR CalcGamma
+#' @importFrom textmineR CalcProbCoherence
+#' @importFrom textmineR CalcTopicModelR2
+#' @importFrom textmineR TmParallelApply
+#' @importFrom Matrix colSums
+#' @importFrom Matrix rowSums
+#' @importFrom Matrix rbind2
+#' @importFrom Matrix cbind2
 #' @importFrom gtools rdirichlet
 #' @importFrom methods as
 #' @importFrom Rcpp sourceCpp

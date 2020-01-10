@@ -10,7 +10,7 @@
 #' @param burnin If \code{method = "gibbs"}, an integer number of burnin iterations. 
 #'        If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 #'        are an average over all iterations greater than \code{burnin}.
-#'        Behavior is the same as documented in \code{\link[textmineR]{FitLdaTopicModel}}. 
+#'        Behavior is the same as documented in \code{\link[tidylda]{fit_lda_model}}. 
 #' @param ... Other arguments to be passed to \code{\link[textmineR]{TmParallelApply}}
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @examples

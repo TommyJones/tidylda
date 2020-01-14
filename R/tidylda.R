@@ -2,11 +2,11 @@
 #'
 #' Latent Dirichlet Allocation Using 'tidyverse' Conventions
 #'
-#' Implements the WarpLDA algorithm for Latent Dirichlet Allocation 
+#' Implements an algorithm for Latent Dirichlet Allocation (LDA)
 #' using style conventions from the 'tidyverse' and specifically 'tidymodels'. 
-#' Designed to work seamlessly with 'textmineR'.
-#'
-#' @name tidylda-package
+#' Also implements several novel features for LDA such as guided models and 
+#' transfer learning.
+#' @name tidylda
 #' @docType package
 NULL
 

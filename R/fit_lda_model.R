@@ -15,9 +15,6 @@
 #'        Defaults to \code{FALSE}. See 'details' below for more information.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{FALSE}. 
-#' @param calc_coherence Logical. Do you want to calculate probabilistic coherence of topics
-#'        after the model is trained? Defaults to \code{FALSE}. This calls
-#'        \code{\link[textmineR]{CalcProbCoherence}}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
@@ -74,8 +71,7 @@
 #' @export
 fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 0.05, 
                           optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                          calc_coherence = FALSE, calc_r2 = FALSE, 
-                          return_data = FALSE, ...) {
+                          calc_r2 = FALSE, return_data = FALSE, ...) {
   
   ### check validity of inputs ----
   
@@ -230,14 +226,44 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   class(result) <- "lda_topic_model"
   
   ### calculate and add other things ---
-  if (calc_coherence) {
-    result$coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
-  }
   
+  # probabilistic coherence with default M = 5
+  coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
+  
+  # prevalence of each topic, weighted by terms
+  prevalence <- Matrix::rowSums(dtm) * result$theta
+  
+  prevalence <- colSums(prevalence) / sum(prevalence)
+  
+  prevalence <- round(prevalence * 100, 2)
+  
+  # top 3 terms
+  top_terms <- t(textmineR::GetTopTerms(result$phi, 3))
+  
+  top_terms <- apply(top_terms, 1, function(x){
+    paste(c(x, "..."), collapse = ", ")
+  })
+  
+  # combine into a summary
+  result$summary <- data.frame(topic = as.numeric(rownames(result$phi)),
+                               prevalence = prevalence,
+                               coherence = coherence,
+                               top_terms = top_terms,
+                               stringsAsFactors = FALSE)
+  
+  result$summary <- tibble::as_tibble(result$summary)
+  
+  # get arguments for auditiability
+  result$other_call_args <- list(iterations = iterations, 
+                                 burnin = burnin,
+                                 optimize_alpha = optimize_alpha)
+  
+  # goodness of fit
   if (calc_r2) {
     result$r2 <- textmineR::CalcTopicModelR2(dtm, result$phi, result$theta, ...)
   }
   
+  # a little cleanup here
   if (! calc_likelihood) {
     result$log_likelihood <- NULL
   }

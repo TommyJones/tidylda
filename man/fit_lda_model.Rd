@@ -6,7 +6,7 @@
 \usage{
 fit_lda_model(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1,
   beta = 0.05, optimize_alpha = FALSE, calc_likelihood = FALSE,
-  calc_coherence = FALSE, calc_r2 = FALSE, return_data = FALSE, ...)
+  calc_r2 = FALSE, return_data = FALSE, ...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -31,10 +31,6 @@ Defaults to \code{FALSE}. See 'details' below for more information.}
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
 Useful for assessing convergence. Defaults to \code{FALSE}.}
-
-\item{calc_coherence}{Logical. Do you want to calculate probabilistic coherence of topics
-after the model is trained? Defaults to \code{FALSE}. This calls
-\code{\link[textmineR]{CalcProbCoherence}}.}
 
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}

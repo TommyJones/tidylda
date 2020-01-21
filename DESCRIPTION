@@ -24,7 +24,8 @@ Imports:
     parallel,
     Rcpp (>= 1.0.2), 
     stats,
-    textmineR
+    textmineR,
+    tibble
 Suggests:
     knitr,
     testthat,

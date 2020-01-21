@@ -6,7 +6,7 @@ Latent Dirichlet Allocation Using 'tidyverse' Conventions
 
 Copyright 2019 by Thomas W. Jones
 
-Implements an algorithim for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/index.html). 
+Implements an algorithim for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). 
     
 This implementation of LDA allows you to:
 

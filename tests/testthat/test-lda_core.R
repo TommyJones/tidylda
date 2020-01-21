@@ -294,5 +294,22 @@ test_that("can update models",{
 
 ### Tests for the print method ----
 
-
+test_that("print.tidylda_model behaves as expected",{
+  
+  # no error
+  print(lda)
+  
+  # assignment creates a new object of class tidylda_model
+  m <- print(lda)
+  
+  expect_true("tidylda_model" %in% class(m))
+  
+  expect_named(m, names(lda))
+  
+  # can modify digits
+  m2 <- fit_tidylda(dtm = d1, k = 5, iterations = 20, calc_r2 = TRUE)
+  
+  print(m2, digits = 2)
+  
+})
 

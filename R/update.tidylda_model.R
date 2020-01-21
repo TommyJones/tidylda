@@ -4,6 +4,7 @@
 #' updates or transfer learning.
 #' @param object An existing trained topic model
 #' @param ... Additional arguments to the call
+#' @export
 update <- function(object, ...) UseMethod("update")
 
 #' Update a Latent Dirichlet Allocation topic model
@@ -22,6 +23,8 @@ update <- function(object, ...) UseMethod("update")
 #'        \code{\link[textmineR]{FitLdaModel}}for more information.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{FALSE}. 
+#' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
+#'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class c("tidylda_model"). 
@@ -68,7 +71,7 @@ update.tidylda_model <- function(object, dtm, additional_k = 0,
                                    phi_as_prior = FALSE,
                                    iterations = NULL, burnin = -1, 
                                    optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                                   return_data = FALSE, ...) {
+                                   calc_r2 = FALSE, return_data = FALSE, ...) {
   
   ### Check inputs are of correct dimensionality ----
   
@@ -347,6 +350,14 @@ update.tidylda_model <- function(object, dtm, additional_k = 0,
                                      phi = result$phi,
                                      dtm = dtm)
   
+  # goodness of fit
+  if (calc_r2) {
+    result$r2 <- textmineR::CalcTopicModelR2(dtm = dtm, 
+                                             phi = result$phi, 
+                                             theta = result$theta, ...)
+  }
+  
+  # a little cleanup here
   if (! calc_likelihood) {
     result$log_likelihood <- NULL
   }

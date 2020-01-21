@@ -6,7 +6,7 @@
 \usage{
 \method{update}{tidylda_model}(object, dtm, additional_k = 0,
   phi_as_prior = FALSE, iterations = NULL, burnin = -1,
-  optimize_alpha = FALSE, calc_likelihood = FALSE,
+  optimize_alpha = FALSE, calc_likelihood = FALSE, calc_r2 = FALSE,
   return_data = FALSE, ...)
 }
 \arguments{
@@ -31,6 +31,9 @@ Defaults to \code{FALSE}. See 'details' of documentation for
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
 Useful for assessing convergence. Defaults to \code{FALSE}.}
+
+\item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
+Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
 

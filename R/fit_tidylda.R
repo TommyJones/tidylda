@@ -225,16 +225,18 @@ fit_tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, bet
   ### calculate and add other things ---
   
   result$summary <- summarize_topics(phi = result$phi, theta = result$theta,
-                                     dtm = result$dtm)
+                                     dtm = dtm)
   
   # get arguments for auditiability
-  result$other_call_args <- list(iterations = iterations, 
-                                 burnin = burnin,
-                                 optimize_alpha = optimize_alpha)
+  # result$other_call_args <- list(iterations = iterations, 
+  #                                burnin = burnin,
+  #                                optimize_alpha = optimize_alpha)
   
   # goodness of fit
   if (calc_r2) {
-    result$r2 <- textmineR::CalcTopicModelR2(dtm, result$phi, result$theta, ...)
+    result$r2 <- textmineR::CalcTopicModelR2(dtm = dtm, 
+                                             phi = result$phi, 
+                                             theta = result$theta, ...)
   }
   
   # a little cleanup here

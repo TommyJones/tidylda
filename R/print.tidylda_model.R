@@ -37,13 +37,13 @@ print.tidylda_model <- function(x, digits = max(3L, getOption("digits") - 3L), .
   
   cat("The most prevalent topics are:\n")
   
-  tibble:::print.tbl(s[order(s$prevalence, decreasing = TRUE), ])
+  print(s[order(s$prevalence, decreasing = TRUE), ])
   
   cat("\n")
   
   cat("The most coherent topics are:\n")
   
-  tibble:::print.tbl(s[order(s$coherence, decreasing = TRUE), ])
+  print(s[order(s$coherence, decreasing = TRUE), ])
   
 
   

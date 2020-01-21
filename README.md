@@ -1,6 +1,6 @@
+[![Travis-CI Build Status](https://travis-ci.org/TommyJones/tidylda.svg?branch=master)](https://travis-ci.org/TommyJones/tidylda)
+[![Coverage Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/master.svg)](https://codecov.io/github/tommyjones/tidylda?branch=master)
 
-Note: As of this writing this package is in development and will not run on its own.
-I'm going to fold some of this into the next update for [textmineR](https://github.com/tommyjones/textminer) before concentrating on making this its own package.
 
 Latent Dirichlet Allocation Using 'tidyverse' Conventions
 

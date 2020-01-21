@@ -200,7 +200,7 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
 summarize_topics <- function(theta, phi, dtm){
   
   # probabilistic coherence with default M = 5
-  coherence <- textmineR::CalcProbCoherence(phi, dtm)
+  coherence <- textmineR::CalcProbCoherence(phi = phi, dtm = dtm)
   
   # prevalence of each topic, weighted by terms
   prevalence <- Matrix::rowSums(dtm) * theta

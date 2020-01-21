@@ -29,7 +29,6 @@ test_that("can fit lda models without error", {
                   alpha = 0.1, beta = 0.05,
                   optimize_alpha = TRUE,
                   calc_likelihood = FALSE,
-                  calc_coherence = FALSE,
                   calc_r2 = FALSE,
                   return_data = FALSE)
   , regexp = "k must be 2 or greater")
@@ -43,7 +42,6 @@ test_that("can fit lda models without error", {
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = FALSE,
                        calc_likelihood = TRUE,
-                       calc_coherence = FALSE,
                        calc_r2 = FALSE,
                        return_data = FALSE)
   
@@ -75,7 +73,6 @@ test_that("can fit lda models without error", {
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = TRUE,
                        calc_likelihood = TRUE,
-                       calc_coherence = FALSE,
                        calc_r2 = FALSE,
                        return_data = FALSE)
   
@@ -88,7 +85,6 @@ test_that("can fit lda models without error", {
                        alpha = rep(0.1, 4), beta = rep(0.05, ncol(d1)),
                        optimize_alpha = TRUE,
                        calc_likelihood = TRUE,
-                       calc_coherence = FALSE,
                        calc_r2 = FALSE,
                        return_data = FALSE)
   
@@ -103,7 +99,6 @@ test_that("can fit lda models without error", {
                        alpha = 0.1, beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
                        optimize_alpha = FALSE,
                        calc_likelihood = FALSE,
-                       calc_coherence = FALSE,
                        calc_r2 = FALSE,
                        return_data = FALSE)
 
@@ -121,7 +116,6 @@ lda <- fit_lda_model(dtm = d1,
                      alpha = 0.1, beta = 0.05,
                      optimize_alpha = TRUE,
                      calc_likelihood = FALSE,
-                     calc_coherence = FALSE,
                      calc_r2 = FALSE,
                      return_data = FALSE)
 
@@ -179,7 +173,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -203,7 +196,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -224,7 +216,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -245,7 +236,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -266,7 +256,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -288,7 +277,6 @@ test_that("can update models",{
                  burnin = 10,
                  optimize_alpha = TRUE,
                  calc_likelihood = FALSE,
-                 calc_coherence = FALSE,
                  calc_r2 = FALSE,
                  return_data = FALSE)
   
@@ -302,12 +290,6 @@ test_that("can update models",{
   
   
 })
-
-
-
-
-### Tests for the summary method ----
-
 
 
 ### Tests for the print method ----

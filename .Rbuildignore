@@ -4,6 +4,8 @@
 ^src/*\.so$
 ^src/*\.dll$
 
+^.travis.yml$
+
 ^_notes.md$
 ^cran-comments.md$
 ^\.gitignore$

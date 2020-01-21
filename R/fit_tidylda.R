@@ -19,7 +19,7 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
-#' @return Returns an S3 object of class c("lda_topic_model"). 
+#' @return Returns an S3 object of class \code{tidylda_model}. 
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 #'   written using the excellent Rcpp package. Some implementation notes follow:
 #'   
@@ -40,9 +40,9 @@
 #'   
 #'   The log likelihood calculation is the same that can be found on page 9 of
 #'   \url{https://arxiv.org/pdf/1510.08628.pdf}. The only difference is that the
-#'   version in \code{\link[tidylda]{fit_lda_model}} allows \code{beta} to be a
+#'   version in \code{\link[tidylda]{fit_tidylda}} allows \code{beta} to be a
 #'   vector or matrix. (Vector used in this function, matrix used for model
-#'   updates in \code{\link[tidylda]{update.lda_topic_model}}. At present, the 
+#'   updates in \code{\link[tidylda]{update.tidylda_model}}. At present, the 
 #'   log likelihood function appears to be ok for assessing convergence. i.e. It 
 #'   has the right shape. However, it is, as of this writing, returning positive
 #'   numbers, rather than the expected negative numbers. Looking into that, but 
@@ -54,7 +54,7 @@
 #' 
 #' # fit a model 
 #' set.seed(12345)
-#' m <- fit_lda_model(dtm = nih_sample_dtm[1:20,], k = 5,
+#' m <- fit_tidylda(dtm = nih_sample_dtm[1:20,], k = 5,
 #'                  iterations = 200, burnin = 175)
 #'
 #' str(m)
@@ -69,7 +69,7 @@
 #' # compare the methods
 #' barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
 #' @export
-fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 0.05, 
+fit_tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 0.05, 
                           optimize_alpha = FALSE, calc_likelihood = FALSE, 
                           calc_r2 = FALSE, return_data = FALSE, ...) {
   
@@ -193,7 +193,7 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
     
     message("something went wrong with 'beta'. This isn't your fault. Please 
             contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
-            error when you ran 'fit_lda_model'.")
+            error when you ran 'fit_tidylda'.")
   }
   
   # alpha
@@ -220,35 +220,12 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
                                              log_likelihood = lda$log_likelihood[2, ])
                  ) # add other things here if necessary
   
-  class(result) <- "lda_topic_model"
+  class(result) <- "tidylda_model"
   
   ### calculate and add other things ---
   
-  # probabilistic coherence with default M = 5
-  coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
-  
-  # prevalence of each topic, weighted by terms
-  prevalence <- Matrix::rowSums(dtm) * result$theta
-  
-  prevalence <- colSums(prevalence) / sum(prevalence)
-  
-  prevalence <- round(prevalence * 100, 2)
-  
-  # top 3 terms
-  top_terms <- t(textmineR::GetTopTerms(result$phi, 3))
-  
-  top_terms <- apply(top_terms, 1, function(x){
-    paste(c(x, "..."), collapse = ", ")
-  })
-  
-  # combine into a summary
-  result$summary <- data.frame(topic = as.numeric(rownames(result$phi)),
-                               prevalence = prevalence,
-                               coherence = coherence,
-                               top_terms = top_terms,
-                               stringsAsFactors = FALSE)
-  
-  result$summary <- tibble::as_tibble(result$summary)
+  result$summary <- summarize_topics(phi = result$phi, theta = result$theta,
+                                     dtm = result$dtm)
   
   # get arguments for auditiability
   result$other_call_args <- list(iterations = iterations, 

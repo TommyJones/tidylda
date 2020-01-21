@@ -8,7 +8,7 @@ update <- function(object, ...) UseMethod("update")
 
 #' Update a Latent Dirichlet Allocation topic model
 #' @description Update an LDA model using collapsed Gibbs sampling. 
-#' @param object a fitted object of class \code{lda_topic_model}.
+#' @param object a fitted object of class \code{tidylda_model}.
 #' @param dtm A document term matrix or term co-occurrence matrix of class dgCMatrix.
 #' @param additional_k Integer number of topics to add, defaults to 0.
 #' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
@@ -22,14 +22,9 @@ update <- function(object, ...) UseMethod("update")
 #'        \code{\link[textmineR]{FitLdaModel}}for more information.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{FALSE}. 
-#' @param calc_coherence Logical. Do you want to calculate probabilistic coherence of topics
-#'        after the model is trained? Defaults to \code{FALSE}. This calls
-#'        \code{\link[textmineR]{CalcProbCoherence}}.
-#' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
-#'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
-#' @return Returns an S3 object of class c("lda_topic_model"). 
+#' @return Returns an S3 object of class c("tidylda_model"). 
 #' @details 
 #' prior + counts vs. counts only. Vocab alignment + uniform prior over new words. 
 #'          Adding additional topics. works best with significant vocab overlap
@@ -44,7 +39,7 @@ update <- function(object, ...) UseMethod("update")
 #' d2 <- nih_sample_dtm[51:100,]
 #' 
 #' # fit a model
-#' m <- fit_lda_model(d1, k = 10, 
+#' m <- fit_tidylda(d1, k = 10, 
 #'                   iterations = 200, burnin = 175)
 #' 
 #' # update an existing model by adding documents
@@ -69,18 +64,17 @@ update <- function(object, ...) UseMethod("update")
 #'              
 #' 
 #' }
-update.lda_topic_model <- function(object, dtm, additional_k = 0, 
+update.tidylda_model <- function(object, dtm, additional_k = 0, 
                                    phi_as_prior = FALSE,
                                    iterations = NULL, burnin = -1, 
                                    optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                                   calc_coherence = FALSE, calc_r2 = FALSE, 
                                    return_data = FALSE, ...) {
   
   ### Check inputs are of correct dimensionality ----
   
   # object of correct class?
-  if (class(object) != "lda_topic_model")
-    stop("object must be of class lda_topic_model")
+  if (class(object) != "tidylda_model")
+    stop("object must be of class tidylda_model")
   
   # iterations and burnin acceptable?
   if (burnin >= iterations) {
@@ -109,12 +103,6 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   # iterations?
   if (is.null(iterations))
     stop("You must specify number of iterations")
-  
-  if (! is.logical(calc_coherence))
-    stop("calc_coherence must be TRUE or FALSE")
-  
-  if (! is.logical(calc_r2))
-    stop("calc_r2 must be TRUE or FALSE")
   
   if (! is.logical(calc_likelihood))
     stop("calc_likelihood must be TRUE or FALSE")
@@ -165,7 +153,7 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
   # phi_initial and theta_initial
   phi_initial <- object$phi
   
-  theta_initial <- predict.lda_topic_model(object = object,
+  theta_initial <- predict.tidylda_model(object = object,
                                            newdata = dtm,
                                            method = "dot",
                                            ...)
@@ -329,7 +317,7 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
     
     message("something went wrong with 'beta'. This isn't your fault. Please 
             contact Tommy at jones.thos.w[at]gmail.com and tell him that you got
-            this message when you ran 'update.lda_topic_model'.")
+            this message when you ran 'update.tidylda_model'.")
   }
   
   if (alpha$alpha_class == "scalar" & ! optimize_alpha) {
@@ -351,16 +339,13 @@ update.lda_topic_model <- function(object, dtm, additional_k = 0,
                                              log_likelihood = lda$log_likelihood[2, ])
   ) # add other things here if necessary
   
-  class(result) <- "lda_topic_model"
+  class(result) <- "tidylda_model"
   
   ### calculate and add other things ---
-  if (calc_coherence) {
-    result$coherence <- textmineR::CalcProbCoherence(result$phi, dtm)
-  }
-  
-  if (calc_r2) {
-    result$r2 <- textmineR::CalcTopicModelR2(dtm, result$phi, result$theta, ...)
-  }
+
+  result$summary <- summarize_topics(theta = result$theta,
+                                     phi = result$phi,
+                                     dtm = dtm)
   
   if (! calc_likelihood) {
     result$log_likelihood <- NULL

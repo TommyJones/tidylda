@@ -1,7 +1,7 @@
 ### Predict method for LDA objects
 #' Get predictions from a Latent Dirichlet Allocation model
 #' @description Obtains predictions of topics for new documents from a fitted LDA model
-#' @param object a fitted object of class \code{lda_topic_model}
+#' @param object a fitted object of class \code{tidylda_model}
 #' @param newdata a DTM or TCM of class \code{dgCMatrix} or a numeric vector
 #' @param method one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 #'        and \code{iterations} must be specified.
@@ -10,7 +10,7 @@
 #' @param burnin If \code{method = "gibbs"}, an integer number of burnin iterations. 
 #'        If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 #'        are an average over all iterations greater than \code{burnin}.
-#'        Behavior is the same as documented in \code{\link[tidylda]{fit_lda_model}}. 
+#'        Behavior is the same as documented in \code{\link[tidylda]{fit_tidylda}}. 
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @examples
@@ -21,7 +21,7 @@
 #' # fit a model 
 #' set.seed(12345)
 #' 
-#' m <- fit_lda_model(dtm = nih_sample_dtm[1:20,], k = 5,
+#' m <- fit_tidylda(dtm = nih_sample_dtm[1:20,], k = 5,
 #'                    iterations = 200, burnin = 175)
 #'
 #' str(m)
@@ -37,7 +37,7 @@
 #' barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
 #' }
 #' @export
-predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"), 
+predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"), 
                                     iterations = NULL, burnin = -1, ...) {
   
   ### Check inputs ----
@@ -54,8 +54,8 @@ predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"),
   }
   
   
-  if (class(object) != "lda_topic_model") {
-    stop("object must be a topic model object of class lda_topic_model")
+  if (class(object) != "tidylda_model") {
+    stop("object must be a topic model object of class tidylda_model")
   }
   
   if (sum(c("dgCMatrix", "numeric") %in% class(newdata)) < 1) {
@@ -133,7 +133,7 @@ predict.lda_topic_model <- function(object, newdata, method = c("gibbs", "dot"),
     # format inputs
     
     # get initial distribution with recursive call to "dot" method
-    theta_initial <- predict.lda_topic_model(object = object, newdata = newdata, method = "dot")
+    theta_initial <- predict.tidylda_model(object = object, newdata = newdata, method = "dot")
     
     # make sure priors are formatted correctly
     beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_newdata))

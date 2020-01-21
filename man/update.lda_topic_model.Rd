@@ -6,8 +6,7 @@
 \usage{
 \method{update}{lda_topic_model}(object, dtm, additional_k = 0,
   phi_as_prior = FALSE, iterations = NULL, burnin = -1,
-  optimize_alpha = FALSE, calc_likelihood = FALSE,
-  calc_coherence = FALSE, calc_r2 = FALSE, return_data = FALSE, ...)
+  optimize_alpha = FALSE, calc_r2 = FALSE, return_data = FALSE, ...)
 }
 \arguments{
 \item{object}{a fitted object of class \code{lda_topic_model}.}
@@ -29,19 +28,12 @@ greater than \code{burnin}.}
 Defaults to \code{FALSE}. See 'details' of documentation for
 \code{\link[textmineR]{FitLdaModel}}for more information.}
 
-\item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
-Useful for assessing convergence. Defaults to \code{FALSE}.}
-
-\item{calc_coherence}{Logical. Do you want to calculate probabilistic coherence of topics
-after the model is trained? Defaults to \code{FALSE}. This calls
-\code{\link[textmineR]{CalcProbCoherence}}.}
-
-\item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
-Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
-
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
 
 \item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
+
+\item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
+Useful for assessing convergence. Defaults to \code{FALSE}.}
 }
 \value{
 Returns an S3 object of class c("lda_topic_model").

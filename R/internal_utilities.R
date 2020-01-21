@@ -195,4 +195,38 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
   
 }
 
+### summarize a topic model consistently across methods/functions ----
+
+summarize_topics <- function(theta, phi, dtm){
+  
+  # probabilistic coherence with default M = 5
+  coherence <- textmineR::CalcProbCoherence(phi, dtm)
+  
+  # prevalence of each topic, weighted by terms
+  prevalence <- Matrix::rowSums(dtm) * theta
+  
+  prevalence <- colSums(prevalence) / sum(prevalence)
+  
+  prevalence <- round(prevalence * 100, 2)
+  
+  # top 3 terms
+  top_terms <- t(textmineR::GetTopTerms(phi, 3))
+  
+  top_terms <- apply(top_terms, 1, function(x){
+    paste(c(x, "..."), collapse = ", ")
+  })
+  
+  # combine into a summary
+  summary <- data.frame(topic = as.numeric(rownames(phi)),
+                               prevalence = prevalence,
+                               coherence = coherence,
+                               top_terms = top_terms,
+                               stringsAsFactors = FALSE)
+  
+  summary <- tibble::as_tibble(summary)
+  
+  summary
+  
+}
+
 

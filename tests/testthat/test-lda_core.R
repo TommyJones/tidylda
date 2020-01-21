@@ -23,7 +23,7 @@ test_that("can fit lda models without error", {
   
   # expected errors here
   expect_error(
-    fit_lda_model(dtm = d1, 
+    fit_tidylda(dtm = d1, 
                   k = 1, 
                   iterations = 20, burnin = 10,
                   alpha = 0.1, beta = 0.05,
@@ -36,7 +36,7 @@ test_that("can fit lda models without error", {
   # if any of the below throw an error, you've got a problem...
   
   # scalar priors without optimizing alpha
-  lda <- fit_lda_model(dtm = d1, 
+  lda <- fit_tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
@@ -50,7 +50,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$beta, 1)
   
   # while we're here... check dimensions and names of objects
-  expect_s3_class(lda, "lda_topic_model")
+  expect_s3_class(lda, "tidylda_model")
   
   expect_named(lda, c("phi", "theta", "gamma", "alpha", "beta", "log_likelihood"))
   
@@ -67,7 +67,7 @@ test_that("can fit lda models without error", {
   expect_setequal(rownames(lda$theta), rownames(d1))
   
   # scalar priors optimizing alpha
-  lda <- fit_lda_model(dtm = d1, 
+  lda <- fit_tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
@@ -79,7 +79,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$alpha, 4)
   
   # vector priors
-  lda <- fit_lda_model(dtm = d1, 
+  lda <- fit_tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = rep(0.1, 4), beta = rep(0.05, ncol(d1)),
@@ -93,7 +93,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$beta, ncol(d1))
   
   # beta as matrix prior
-  lda <- fit_lda_model(dtm = d1, 
+  lda <- fit_tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
@@ -110,7 +110,7 @@ test_that("can fit lda models without error", {
 ### Tests for predictions ----
 
 # make this model available for the remaining tests
-lda <- fit_lda_model(dtm = d1, 
+lda <- fit_tidylda(dtm = d1, 
                      k = 4, 
                      iterations = 20, burnin = 10,
                      alpha = 0.1, beta = 0.05,

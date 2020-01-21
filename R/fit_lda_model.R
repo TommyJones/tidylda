@@ -108,9 +108,6 @@ fit_lda_model <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, b
   
   beta <- format_beta(beta = beta, k = k, Nv = ncol(dtm))
   
-  if (! is.logical(calc_coherence))
-    stop("calc_coherence must be logical")
-  
   if (! is.logical(calc_r2))
     stop("calc_r2 must be logical")
   

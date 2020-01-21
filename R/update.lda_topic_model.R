@@ -4,7 +4,6 @@
 #' updates or transfer learning.
 #' @param object An existing trained topic model
 #' @param ... Additional arguments to the call
-#' @export
 update <- function(object, ...) UseMethod("update")
 
 #' Update a Latent Dirichlet Allocation topic model

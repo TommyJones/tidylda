@@ -52,8 +52,6 @@ test_that("can fit lda models without error", {
   # while we're here... check dimensions and names of objects
   expect_s3_class(lda, "tidylda_model")
   
-  expect_named(lda, c("phi", "theta", "gamma", "alpha", "beta", "log_likelihood", "summary"))
-  
   expect_equal(sum(dim(lda$phi) == c(4, ncol(d1))), 2)
   
   expect_equal(sum(dim(lda$phi) == dim(lda$gamma)), 2)

@@ -73,6 +73,9 @@ fit_tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, bet
                           optimize_alpha = FALSE, calc_likelihood = FALSE, 
                           calc_r2 = FALSE, return_data = FALSE, ...) {
   
+  # first, get the call for reproducibility
+  mc <- match.call()
+  
   ### check validity of inputs ----
   
   # iterations and burnin acceptable?
@@ -142,7 +145,8 @@ fit_tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, bet
                            is_prediction = FALSE, 
                            alpha = alpha, beta = beta, 
                            optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
-                           calc_likelihood = calc_likelihood, ...)
+                           calc_likelihood = calc_likelihood, 
+                           call = mc, ...)
   
   ### return the result ----
   

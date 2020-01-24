@@ -73,6 +73,9 @@ update.tidylda_model <- function(object, dtm, additional_k = 0,
                                    optimize_alpha = FALSE, calc_likelihood = FALSE, 
                                    calc_r2 = FALSE, return_data = FALSE, ...) {
   
+  # first, get the call for reproducibility
+  mc <- match.call()
+  
   ### Check inputs are of correct dimensionality ----
   
   # object of correct class?
@@ -269,7 +272,8 @@ update.tidylda_model <- function(object, dtm, additional_k = 0,
                            is_prediction = FALSE, 
                            alpha = alpha, beta = beta, 
                            optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
-                           calc_likelihood = calc_likelihood, ...)
+                           calc_likelihood = calc_likelihood, 
+                           call = mc, ...)
   
   ### return the result ----
   result

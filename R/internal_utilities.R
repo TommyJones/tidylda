@@ -234,7 +234,7 @@ summarize_topics <- function(theta, phi, dtm){
 format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE, 
                            alpha = NULL, beta = NULL, 
                            optimize_alpha, calc_r2 = NULL, 
-                           calc_likelihood = NULL, 
+                           calc_likelihood = NULL, call = NULL,
                            ...) {
   
   ### format theta ----
@@ -351,6 +351,9 @@ format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE,
                                                phi = result$phi, 
                                                theta = result$theta, ...)
     }
+    
+    # call
+    result$call <- call
     
     # a little cleanup here
     if (! calc_likelihood) {

@@ -136,116 +136,15 @@ fit_tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, bet
                    calc_likelihood = calc_likelihood, 
                    optimize_alpha = optimize_alpha) 
   
-  ### format posteriors correctly ----
-  if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-    
-    phi <- lda$Cv_mean + lda$beta
-    
-    theta <- t(t(lda$Cd_mean) + lda$alpha)
-    
-  } else { # if you didn't use burnin use standard counts (Cd etc.)
-    
-    phi <- lda$Cv + lda$beta
-    
-    theta <- t(t(lda$Cd) + lda$alpha)
-    
-  }
-  
-  phi <- phi / rowSums(phi)
-  
-  phi[is.na(phi)] <- 0 # just in case of a numeric issue
-  
-  theta <- theta / rowSums(theta)
-  
-  theta[is.na(theta)] <- 0 # just in case of a numeric issue
-  
-  colnames(phi) <- colnames(dtm)
-  
-  rownames(phi) <- seq_len(k) # changed from previous: paste0("t_", seq_len(Nk))
-  
-  colnames(theta) <- rownames(phi)
-  
-  rownames(theta) <- rownames(dtm)
-  
-  ### collect the results ----
-  
-  # gamma
-  gamma <- textmineR::CalcGamma(phi = phi, theta = theta, 
-                                p_docs = Matrix::rowSums(dtm))
-  
-  # beta
-  colnames(lda$beta) <- colnames(phi)
-  
-  if (beta$beta_class == "scalar") {
-    
-    beta_out <- lda$beta[1, 1]
-    
-  } else if (beta$beta_class == "vector") {
-    
-    beta_out <- lda$beta[1, ]
-    
-  } else if (beta$beta_class == "matrix") {
-    
-    beta_out <- lda$beta
-    
-  } else { # this should be impossible, but science is hard and I am dumb.
-    beta_out <- lda$beta
-    
-    message("something went wrong with 'beta'. This isn't your fault. Please 
-            contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
-            error when you ran 'fit_tidylda'.")
-  }
-  
-  # alpha
-  
-  if (alpha$alpha_class == "scalar" & !optimize_alpha) {
-    
-    alpha_out <- lda$alpha[1]
-    
-  } else if (alpha$alpha_class == "vector" | optimize_alpha) {
-    
-    alpha_out <- lda$alpha
-    
-    names(alpha_out) <- rownames(phi)
+  ### format the output ----
 
-  }
+  result <- format_raw_lda(lda = lda, dtm = dtm, burnin = burnin, 
+                           is_prediction = FALSE, 
+                           alpha = alpha, beta = beta, 
+                           optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
+                           calc_likelihood = calc_likelihood, ...)
   
-  # resulting object
-  result <- list(phi = phi,
-                 theta = theta,
-                 gamma = gamma,
-                 alpha = alpha_out,
-                 beta = beta_out,
-                 log_likelihood = data.frame(iteration = lda$log_likelihood[1,],
-                                             log_likelihood = lda$log_likelihood[2, ])
-                 ) # add other things here if necessary
-  
-  class(result) <- "tidylda_model"
-  
-  ### calculate and add other things ---
-  
-  result$summary <- summarize_topics(phi = result$phi, theta = result$theta,
-                                     dtm = dtm)
-  
-  # get arguments for auditiability
-  # result$other_call_args <- list(iterations = iterations, 
-  #                                burnin = burnin,
-  #                                optimize_alpha = optimize_alpha)
-  
-  # goodness of fit
-  if (calc_r2) {
-    result$r2 <- textmineR::CalcTopicModelR2(dtm = dtm, 
-                                             phi = result$phi, 
-                                             theta = result$theta, ...)
-  }
-  
-  # a little cleanup here
-  if (! calc_likelihood) {
-    result$log_likelihood <- NULL
-  }
-  
-  ### return the final result ----
-  result
+  ### return the result ----
   
 }
 

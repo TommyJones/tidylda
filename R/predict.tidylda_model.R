@@ -129,6 +129,10 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
     result <- as.matrix(result)
     result[is.na(result)] <- 0
     
+    rownames(result) <- rownames(dtm_newdata)
+    colnames(result) <- rownames(object$phi)
+    
+    
   } else { # gibbs method
     # format inputs
     
@@ -151,7 +155,7 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
                                    ...)
     
     # pass inputs to C function for prediciton
-    theta <- fit_lda_c(docs = lex$docs,
+    lda <- fit_lda_c(docs = lex$docs,
                        Nk = nrow(object$phi),
                        beta = beta$beta,
                        alpha = alpha$alpha,
@@ -167,27 +171,13 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
                        optimize_alpha = FALSE)
     
     # format posterior prediction
-    if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-
-      theta <- t(t(theta$Cd_mean) + theta$alpha)
-      
-    } else { # if you didn't use burnin use standard counts (Cd etc.)
-
-      theta <- t(t(theta$Cd) + theta$alpha)
-      
-    }
-
-    theta <- theta / rowSums(theta, na.rm = TRUE)
+    result <- format_raw_lda(lda = lda, dtm = dtm_newdata, 
+                             burnin = burnin, is_prediction = TRUE, ...)
     
-    theta[ is.na(theta) ] <- 0
-    
-    result <- theta
   }
   
   # return result
   
-  rownames(result) <- rownames(dtm_newdata)
-  colnames(result) <- rownames(object$phi)
   
   result
   

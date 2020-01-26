@@ -4,8 +4,7 @@
 \alias{print.tidylda_model}
 \title{Print Method for tidylda_model}
 \usage{
-\method{print}{tidylda_model}(x, digits = max(3L, getOption("digits") -
-  3L), ...)
+\method{print}{tidylda_model}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{an object of class \code{tidylda_model}}

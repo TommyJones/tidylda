@@ -3,7 +3,6 @@
 \docType{package}
 \name{tidylda}
 \alias{tidylda}
-\alias{tidylda-package}
 \title{tidylda}
 \description{
 Latent Dirichlet Allocation Using 'tidyverse' Conventions

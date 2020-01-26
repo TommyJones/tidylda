@@ -4,9 +4,19 @@
 \alias{fit_tidylda}
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
-fit_tidylda(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1,
-  beta = 0.05, optimize_alpha = FALSE, calc_likelihood = FALSE,
-  calc_r2 = FALSE, return_data = FALSE, ...)
+fit_tidylda(
+  dtm,
+  k,
+  iterations = NULL,
+  burnin = -1,
+  alpha = 0.1,
+  beta = 0.05,
+  optimize_alpha = FALSE,
+  calc_likelihood = FALSE,
+  calc_r2 = FALSE,
+  return_data = FALSE,
+  ...
+)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}

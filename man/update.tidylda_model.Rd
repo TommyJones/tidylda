@@ -4,20 +4,24 @@
 \alias{update.tidylda_model}
 \title{Update a Latent Dirichlet Allocation topic model}
 \usage{
-\method{update}{tidylda_model}(object, dtm, additional_k = 0,
-  phi_as_prior = FALSE, iterations = NULL, burnin = -1,
-  optimize_alpha = FALSE, calc_likelihood = FALSE, calc_r2 = FALSE,
-  return_data = FALSE, ...)
+\method{update}{tidylda_model}(
+  object,
+  dtm,
+  iterations = NULL,
+  burnin = -1,
+  optimize_alpha = FALSE,
+  calc_likelihood = FALSE,
+  calc_r2 = FALSE,
+  return_data = FALSE,
+  additional_k = 0,
+  phi_as_prior = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{a fitted object of class \code{tidylda_model}.}
 
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
-
-\item{additional_k}{Integer number of topics to add, defaults to 0.}
-
-\item{phi_as_prior}{Logical. Do you want to replace \code{beta} with \code{phi}
-from the previous model as the prior for words over topics?}
 
 \item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
 
@@ -36,6 +40,11 @@ Useful for assessing convergence. Defaults to \code{FALSE}.}
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
+
+\item{additional_k}{Integer number of topics to add, defaults to 0.}
+
+\item{phi_as_prior}{Logical. Do you want to replace \code{beta} with \code{phi}
+from the previous model as the prior for words over topics?}
 
 \item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
 }

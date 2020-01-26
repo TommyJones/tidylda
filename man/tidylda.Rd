@@ -3,13 +3,11 @@
 \docType{package}
 \name{tidylda}
 \alias{tidylda}
-\title{tidylda}
+\title{Latent Dirichlet Allocation Using 'tidyverse' Conventions}
 \description{
-Latent Dirichlet Allocation Using 'tidyverse' Conventions
-}
-\details{
 Implements an algorithm for Latent Dirichlet Allocation (LDA)
-using style conventions from the 'tidyverse' and specifically 'tidymodels'. 
-Also implements several novel features for LDA such as guided models and 
-transfer learning.
+  using style conventions from the 'tidyverse' and specifically 'tidymodels'. 
+  Also implements several novel features for LDA such as guided models and 
+  transfer learning.
 }
+\keyword{internal}

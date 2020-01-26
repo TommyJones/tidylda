@@ -19,6 +19,6 @@ create_lexicon(Cd, Phi, dtm, alpha, freeze_topics)
 }
 \description{
 One run of the Gibbs sampler and other magic to initialize some objects.
-  Works in concert with \code{\link[tidlyd]{initialize_topic_counts}}.
+  Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
 }
 \keyword{internal}

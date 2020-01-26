@@ -15,7 +15,7 @@ using namespace Rcpp;
 //' @keywords internal
 //' @description
 //'   One run of the Gibbs sampler and other magic to initialize some objects.
-//'   Works in concert with \code{\link[tidlyd]{initialize_topic_counts}}.
+//'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
 //' @param Cd IntegerMatrix denoting counts of topics in documents
 //' @param Phi NumericMatrix denoting probability of words in topics
 //' @param dtm arma::sp_mat document term matrix

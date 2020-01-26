@@ -11,9 +11,6 @@ update <- function(object, ...) UseMethod("update")
 #' @description Update an LDA model using collapsed Gibbs sampling. 
 #' @param object a fitted object of class \code{tidylda_model}.
 #' @param dtm A document term matrix or term co-occurrence matrix of class dgCMatrix.
-#' @param additional_k Integer number of topics to add, defaults to 0.
-#' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
-#'        from the previous model as the prior for words over topics?
 #' @param iterations Integer number of iterations for the Gibbs sampler to run. 
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
 #'        the resulting "phi" and "theta" matrices are an average over all iterations
@@ -26,6 +23,9 @@ update <- function(object, ...) UseMethod("update")
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
+#' @param additional_k Integer number of topics to add, defaults to 0.
+#' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
+#'        from the previous model as the prior for words over topics?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class c("tidylda_model"). 
 #' @details 
@@ -67,11 +67,10 @@ update <- function(object, ...) UseMethod("update")
 #'              
 #' 
 #' }
-update.tidylda_model <- function(object, dtm, additional_k = 0, 
-                                   phi_as_prior = FALSE,
-                                   iterations = NULL, burnin = -1, 
+update.tidylda_model <- function(object, dtm, iterations = NULL, burnin = -1, 
                                    optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                                   calc_r2 = FALSE, return_data = FALSE, ...) {
+                                   calc_r2 = FALSE, return_data = FALSE, 
+                                   additional_k = 0, phi_as_prior = FALSE, ...) {
   
   # first, get the call for reproducibility
   mc <- match.call()

@@ -15,4 +15,5 @@ In addition this implementation of LDA allows you to:
 * use a previously-trained model as a prior for a new model
 * apply LDA in a transfer-learning paradigm, updating a model's parameters with additional data (or additional iterations)
 
+Note that the seeding of topics and transfer learning are **experimental** for now. They are almost-surely useful but their behaviors have not been optimized or well-studied. Caveat emptor!
 

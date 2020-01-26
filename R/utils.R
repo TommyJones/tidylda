@@ -112,7 +112,10 @@ format_alpha <- function(alpha, k) {
 #'   we can't initialize topics with a uniform-random start. This function prepares
 #'   data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
 #'   Gibbs iteration to populate topic counts (and other objects) used during the
-#'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}.
+#'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that 
+#'   you aren't using fancy seeding or transfer learning, this makes a random
+#'   initialization by sampling from Dirichlet distributions paramaterized by 
+#'   priors \code{alpha} and \code{beta}.
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
 #' @param k the number of topics 
 #' @param alpha the numeric vector prior for topics over documents as formatted
@@ -273,8 +276,38 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
   
 }
 
-### summarize a topic model consistently across methods/functions ----
-
+#' Summarize a topic model consistently across methods/functions
+#' @keywords internal
+#' @description
+#'   Summarizes topics in a model. Called by \code{\link[tidylda]{fit_tidylda}}
+#'   and \code{\link[tidylda]{update.tidylda_model}} and used to augment
+#'   \code{\link[tidylda]{print.tidylda_model}}.
+#' @param theta numeric matrix whose rows represent P(topic|document)
+#' @param phi numeric matrix whose rows represent P(token|topic)
+#' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
+#' @return 
+#'   Returns a \code{\link[tibble]{tibble}} with the following columns: 
+#'   \code{topic} is the integer row number of \code{phi}. 
+#'   \code{prevalence} is the frequency of each topic throughout the corpus it 
+#'     was trained on normalized so that it sums to 100. 
+#'   \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
+#'     using the default 5 most-probable terms in each topic.
+#'   \code{top_terms} displays the top 3 most-probable terms in each topic.   
+#' @note
+#'   \code{prevalence} should be proportional to P(topic). It is calculated by 
+#'   weighting on document length. So, topics prevalent in longer documents get 
+#'   more weight than topics prevalent in shorter documents. It is calculated
+#'   by 
+#'   
+#'   \code{prevalence <- rowSums(dtm) * theta \%>\% colSums()}
+#'     
+#'   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
+#'   
+#'   An alternative calculation (not implemented here) might have been
+#'    
+#'   \code{prevalence <- colSums(dtm) * t(phi) \%>\% colSums()}
+#'   
+#'   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
 summarize_topics <- function(theta, phi, dtm){
   
   # probabilistic coherence with default M = 5
@@ -296,10 +329,10 @@ summarize_topics <- function(theta, phi, dtm){
   
   # combine into a summary
   summary <- data.frame(topic = as.numeric(rownames(phi)),
-                               prevalence = prevalence,
-                               coherence = coherence,
-                               top_terms = top_terms,
-                               stringsAsFactors = FALSE)
+                        prevalence = prevalence,
+                        coherence = coherence,
+                        top_terms = top_terms,
+                        stringsAsFactors = FALSE)
   
   summary <- tibble::as_tibble(summary)
   
@@ -307,11 +340,83 @@ summarize_topics <- function(theta, phi, dtm){
   
 }
 
-### format the outputs of fit_lda_c consistently ----
-
+#' Format the outputs of \code{\link[tidylda]{fit_lda_c}} consistently
+#' @keywords internal
+#' @description
+#'   Since all three of \code{\link[tidylda]{fit_tidylda}}, 
+#'   \code{\link[tidylda]{update.tidylda_model}}, and 
+#'   \code{\link[tidylda]{predict.tidylda_model}} call \code{\link[tidylda]{fit_lda_c}},
+#'   we need a way to format the resulting posteriors and other user-facing
+#'   objects consistently. This function does that.
+#' @param lda list output of \code{\link[tidylda]{fit_lda_c}}
+#' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}
+#' @param burnin integer number of burnin iterations. 
+#' @param is_prediction is this for a prediction (as opposed to initial fitting,
+#'   or update)? Defaults to \code{FALSE}
+#' @param alpha output of \code{\link[tidylda]{format_alpha}}
+#' @param beta output of \code{\link[tidylda]{format_beta}}
+#' @param optimize_alpha did you optimize \code{alpha} when making a call to 
+#'   \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
+#'   argument is ignored.
+#' @param calc_r2 did the user want to calculate R-squared when calculating the
+#'   the model? If \code{is_prediction = TRUE}, this argument is ignored.
+#' @param calc_likelihood did you calculate the log likelihood when making a call
+#'   to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
+#'   rgument is ignored.
+#' @param call the result of calling \code{\link[base]{match.call}} at the top of 
+#'   \code{\link[tidylda]{fit_tidylda}}.
+#' @return
+#'   Returns an S3 object of class \code{tidylda_model} with the following slots:
+#'   
+#'   \code{phi} is a numeric matrix whose rows are the posterior estimates 
+#'     of P(token|topic)
+#'   
+#'   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
+#'     P(topic|document)
+#'   
+#'   \code{gamma} is a numeric matrix whose rows are the posterior estimates of
+#'     P(topic|token). This is calculated by making a call to 
+#'     \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
+#'     \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is 
+#'     proportional to \code{Matrix::rowSums(dtm)}).
+#'   
+#'   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
+#'     is \code{FALSE}, \code{alpha} is what the user passed when calling 
+#'     \code{\link[tidylda]{fit_tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
+#'     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a 
+#'     call to \code{\link[tidylda]{fit_lda_c}}.
+#'   
+#'   \code{beta} is the prior for tokens over topics. This is what the user passed 
+#'     when calling \code{\link[tidylda]{fit_tidylda}}.
+#'   
+#'   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
+#'   
+#'   \code{call} is the result of \code{\link[base]{match.call}} called at the top
+#'     of \code{\link[tidylda]{fit_tidylda}}
+#'   
+#'   \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are 
+#'     the iteration and log likelihood at that iteration. This slot is only populated
+#'     if \code{calc_likelihood = TRUE}
+#'   
+#'   \code{r2} is a numeric scalar resuting from a call to 
+#'     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
+#'     \code{calc_r2 = TRUE}
+#' @note
+#'   In general, the arguments of this function should be what the user passed
+#'   when calling \code{\link[tidylda]{fit_tidylda}}. 
+#'   
+#'   \code{burnin} is used only to determine whether or not burn in iterations 
+#'   were used when fitting the model. If \code{burnin > -1} then posteriors 
+#'   are calculated using \code{lda$Cd_mean} and \code{lda$Cv_mean} respectively. 
+#'   Otherwise, posteriors are calculated using \code{lda$Cd_mean} and 
+#'   \code{lda$Cv_mean}.
+#'   
+#'   The class of \code{call} isn't checked. It's just passed through to the 
+#'   object returned by this function. Might be useful if you are using this
+#'   function for troubleshooting or something. 
 format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE, 
                            alpha = NULL, beta = NULL, 
-                           optimize_alpha, calc_r2 = NULL, 
+                           optimize_alpha = NULL, calc_r2 = NULL, 
                            calc_likelihood = NULL, call = NULL,
                            ...) {
   
@@ -407,8 +512,8 @@ format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE,
                    gamma = gamma,
                    alpha = alpha_out,
                    beta = beta_out,
-                   log_likelihood = data.frame(iteration = lda$log_likelihood[1,],
-                                               log_likelihood = lda$log_likelihood[2, ])
+                   log_likelihood = tibble(data.frame(iteration = lda$log_likelihood[1,],
+                                               log_likelihood = lda$log_likelihood[2, ]))
     ) # add other things here if necessary
     
     class(result) <- "tidylda_model"

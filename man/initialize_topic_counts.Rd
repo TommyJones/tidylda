@@ -65,7 +65,10 @@ Implementing seeded (or guided) LDA models and transfer learning means that
   we can't initialize topics with a uniform-random start. This function prepares
   data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
   Gibbs iteration to populate topic counts (and other objects) used during the
-  main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}.
+  main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that 
+  you aren't using fancy seeding or transfer learning, this makes a random
+  initialization by sampling from Dirichlet distributions paramaterized by 
+  priors \code{alpha} and \code{beta}.
 }
 \note{
 All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing

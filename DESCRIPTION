@@ -2,9 +2,12 @@ Package: tidylda
 Type: Package
 Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
 Version: 0.0.0.999
-Date: 2020-01-10
 Authors@R: c(
-    person("Tommy", "Jones", role = c("aut", "cre"), email = "jones.thos.w@gmail.com")
+    person(given = "Tommy", 
+           family = "Jones", 
+           role = c("aut", "cre"), 
+           email = "jones.thos.w@gmail.com",
+           comment = c(ORCID = "0000-0001-6457-2452"))
     )
 Description: Implements an algorithm for Latent Dirichlet Allocation (LDA)
     using style conventions from the 'tidyverse' and specifically 'tidymodels'. 

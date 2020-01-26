@@ -1,7 +1,25 @@
-# internal functions:
+################################################################################
+# Functions in this file are internal to tidylda
+################################################################################
 
-### Makes sure beta is formatted correctly for input to C functions for LDA ----
-
+#' Format \code{beta} For Input into \code{fit_lda_c}
+#' @keywords internal
+#' @description
+#'   There are a bunch of ways users could format \code{beta} but the C++ Gibbs
+#'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
+#'   approprate formatting. It also returns errors if the user input a malformatted
+#'   \code{beta}.
+#' @param beta the prior for words over topics. Can be a numeric scalar, numeric 
+#'   vector, or numeric matrix.
+#' @param k the number of topics.
+#' @param Nv the total size of the vocabulary as inherited from \code{ncol(dtm)}
+#'   in \code{\link[tidylda]{fit_tidylda}}.
+#' @return 
+#'   Returns a list with two elements: \code{beta} and \code{beta_class}. 
+#'   \code{beta} is the post-formatted versionof \code{beta} in the form of a 
+#'   \code{k} by \code{Nv} numeric matrix. \code{beta_class} is a character 
+#'   denoting whether or not the user-supplied \code{beta} was a "scalar", 
+#'   "vector", or "matrix".
 format_beta <- function(beta, k, Nv) {
   
   if (! is.numeric(beta) | sum(is.na(beta)) > 0 | sum(beta == 0) == length(beta))
@@ -45,7 +63,22 @@ format_beta <- function(beta, k, Nv) {
        beta_class = beta_class)
 }
 
-### Makes sure alpha is formatted correctly for input to C functions for LDA ----
+#' Format \code{alpha} For Input into \code{fit_lda_c}
+#' @keywords internal
+#' @description
+#'   There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
+#'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
+#'   approprate formatting. It also returns errors if the user input a malformatted
+#'   \code{alpha}.
+#' @param alpha the prior for topics over documents. Can be a numeric scalar or 
+#'   numeric vector.
+#' @param k the number of topics.
+#' @return 
+#'   Returns a list with two elements: \code{alpha} and \code{alpha_class}. 
+#'   \code{alpha} is the post-formatted version of \code{alpha} in the form of a 
+#'   \code{k}-length numeric vector. \code{alpha_class} is a character 
+#'   denoting whether or not the user-supplied \code{alpha} was a "scalar" or
+#'   "vector".
 format_alpha <- function(alpha, k) {
   
   if (! is.numeric(alpha) | sum(is.na(alpha)) > 0 | sum(alpha == 0) == length(alpha))
@@ -72,7 +105,52 @@ format_alpha <- function(alpha, k) {
   
 }
 
-### Initialize topic counts for gibbs sampling ----
+#' Initialize topic counts for gibbs sampling
+#' @keywords internal
+#' @description
+#'   Implementing seeded (or guided) LDA models and transfer learning means that
+#'   we can't initialize topics with a uniform-random start. This function prepares
+#'   data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
+#'   Gibbs iteration to populate topic counts (and other objects) used during the
+#'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}.
+#' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
+#' @param k the number of topics 
+#' @param alpha the numeric vector prior for topics over documents as formatted
+#'   by \code{\link[tidylda]{format_alpha}}
+#' @param beta the numeric matrix prior for topics over documents as formatted
+#'   by \code{\link[tidylda]{format_beta}}
+#' @param phi_initial if specified, a numeric matrix for the probability of tokens
+#'   in topics. Must be specified for predictions or updates as called by
+#'   \code{\link[tidylda]{predict.tidylda_model}} or \code{\link[tidylda]{update.tidylda_model}}
+#'   respectively.
+#' @param theta_initial if specified, a numeric matrix for the probability of
+#'   topics in documents. Must be specified for updates as called by 
+#'   \code{\link[tidylda]{update.tidylda_model}}
+#' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
+#'   This is \code{TRUE} for predictions.
+#' @param ... other items to be passed to \code{\link[furrr]{future_map}}
+#' @return 
+#'   Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv}, 
+#'   and \code{Ck}. All of these are used by \code{\link[tidylda]{fit_lda_c}}.
+#'   
+#'   \code{docs} is a list with one element per document. Each element is a vector
+#'   of integers of length \code{sum(dtm[j,])} for the j-th document. The integer
+#'   entries correspond to the zero-index column of the \code{dtm}.
+#'   
+#'   \code{Zd} is a list of similar format as \code{docs}. The difference is that
+#'   the integer values correspond to the zero-index for topics.
+#'   
+#'   \code{Cd} is a matrix of integers denoting how many times each topic has
+#'   been sampled in each document.
+#'   
+#'   \code{Cv} is similar to \code{Cd} but it counts how many times each topic
+#'   has been sampled for each token.
+#'   
+#'   \code{Ck} is an integer vector denoting how many times each topic has been
+#'   sampled overall. 
+#' @note
+#'   All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing
+#'   over Zd in various ways.
 initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL, 
                                     theta_initial = NULL, freeze_topics = FALSE, 
                                     ...) {

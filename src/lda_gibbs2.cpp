@@ -11,7 +11,16 @@
 #define ARMA_64BIT_WORD
 using namespace Rcpp;
 
-// Make a lexicon for looping over in the gibbs sampler
+//' Make a lexicon for looping over in the gibbs sampler
+//' @keywords internal
+//' @description
+//'   One run of the Gibbs sampler and other magic to initialize some objects.
+//'   Works in concert with \code{\link[tidlyd]{initialize_topic_counts}}.
+//' @param Cd IntegerMatrix denoting counts of topics in documents
+//' @param Phi NumericMatrix denoting probability of words in topics
+//' @param dtm arma::sp_mat document term matrix
+//' @param alpha NumericVector prior for topics over documents
+//' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
 List create_lexicon(IntegerMatrix &Cd, 
                     NumericMatrix &Phi, 
@@ -132,8 +141,26 @@ List create_lexicon(IntegerMatrix &Cd,
   
 }
 
-// main lda function
-// assumes that count matrices are handed to it
+//' Main C++ Gibbs sampler for Latent Dirichlet Allocation
+//' @keywords internal
+//' @description
+//'   This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
+//' @param docs List with one element for each document and one entry for each token
+//'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
+//' @param Nk int number of topics
+//' @param beta NumericMatrix for prior of tokens over topics
+//' @param alpha NumericVector prior for topics over documents
+//' @param Cd IntegerMatrix denoting counts of topics in documents
+//' @param Cv IntegerMatrix denoting counts of tokens in topics
+//' @param Ck IntegerVector denoting counts of topics across all tokens
+//' @param Zd List with one element for each document and one entry for each token
+//'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
+//' @param Phi NumericMatrix denoting probability of tokens in topics
+//' @param iterations int number of gibbs iterations to run in total
+//' @param burnin int number of burn in iterations
+//' @param freeze_topics bool if making predictions, set to \code{TRUE}
+//' @param calc_likelihood bool do you want to calculate the log likelihood each iteration?
+//' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
 List fit_lda_c(List &docs,
                int &Nk,
@@ -151,7 +178,7 @@ List fit_lda_c(List &docs,
                bool &optimize_alpha) {
   
   // ***********************************************************************
-  // Check quality of inputs to minimize risk of crashing the program
+  // TODO Check quality of inputs to minimize risk of crashing the program
   // ***********************************************************************
   
   

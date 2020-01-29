@@ -23,7 +23,7 @@ test_that("can fit lda models without error", {
   
   # expected errors here
   expect_error(
-    fit_tidylda(dtm = d1, 
+    tidylda(dtm = d1, 
                   k = 1, 
                   iterations = 20, burnin = 10,
                   alpha = 0.1, beta = 0.05,
@@ -36,7 +36,7 @@ test_that("can fit lda models without error", {
   # if any of the below throw an error, you've got a problem...
   
   # scalar priors without optimizing alpha
-  lda <- fit_tidylda(dtm = d1, 
+  lda <- tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
@@ -65,7 +65,7 @@ test_that("can fit lda models without error", {
   expect_setequal(rownames(lda$theta), rownames(d1))
   
   # scalar priors optimizing alpha
-  lda <- fit_tidylda(dtm = d1, 
+  lda <- tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
@@ -77,7 +77,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$alpha, 4)
   
   # vector priors
-  lda <- fit_tidylda(dtm = d1, 
+  lda <- tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = rep(0.1, 4), beta = rep(0.05, ncol(d1)),
@@ -91,7 +91,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$beta, ncol(d1))
   
   # beta as matrix prior
-  lda <- fit_tidylda(dtm = d1, 
+  lda <- tidylda(dtm = d1, 
                        k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
@@ -108,7 +108,7 @@ test_that("can fit lda models without error", {
 ### Tests for predictions ----
 
 # make this model available for the remaining tests
-lda <- fit_tidylda(dtm = d1, 
+lda <- tidylda(dtm = d1, 
                      k = 4, 
                      iterations = 20, burnin = 10,
                      alpha = 0.1, beta = 0.05,
@@ -305,7 +305,7 @@ test_that("print.tidylda behaves as expected",{
   expect_named(m, names(lda))
   
   # can modify digits
-  m2 <- fit_tidylda(dtm = d1, k = 5, iterations = 20, calc_r2 = TRUE)
+  m2 <- tidylda(dtm = d1, k = 5, iterations = 20, calc_r2 = TRUE)
   
   print(m2, digits = 2)
   

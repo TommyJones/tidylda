@@ -68,7 +68,7 @@ d1 <- nih_sample_dtm[1:50,]
 d2 <- nih_sample_dtm[51:100,]
 
 # fit a model
-m <- fit_tidylda(d1, k = 10, 
+m <- tidylda(d1, k = 10, 
                   iterations = 200, burnin = 175)
 
 # update an existing model by adding documents

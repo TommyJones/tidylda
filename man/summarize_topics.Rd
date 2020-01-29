@@ -23,7 +23,7 @@ Returns a \code{\link[tibble]{tibble}} with the following columns:
   \code{top_terms} displays the top 3 most-probable terms in each topic.
 }
 \description{
-Summarizes topics in a model. Called by \code{\link[tidylda]{fit_tidylda}}
+Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
   and \code{\link[tidylda]{update.tidylda}} and used to augment
   \code{\link[tidylda]{print.tidylda}}.
 }

@@ -13,7 +13,7 @@
 #'   vector, or numeric matrix.
 #' @param k the number of topics.
 #' @param Nv the total size of the vocabulary as inherited from \code{ncol(dtm)}
-#'   in \code{\link[tidylda]{fit_tidylda}}.
+#'   in \code{\link[tidylda]{tidylda}}.
 #' @return 
 #'   Returns a list with two elements: \code{beta} and \code{beta_class}. 
 #'   \code{beta} is the post-formatted versionof \code{beta} in the form of a 
@@ -279,7 +279,7 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
 #' Summarize a topic model consistently across methods/functions
 #' @keywords internal
 #' @description
-#'   Summarizes topics in a model. Called by \code{\link[tidylda]{fit_tidylda}}
+#'   Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
 #'   and \code{\link[tidylda]{update.tidylda}} and used to augment
 #'   \code{\link[tidylda]{print.tidylda}}.
 #' @param theta numeric matrix whose rows represent P(topic|document)
@@ -343,7 +343,7 @@ summarize_topics <- function(theta, phi, dtm){
 #' Format the outputs of \code{\link[tidylda]{fit_lda_c}} consistently
 #' @keywords internal
 #' @description
-#'   Since all three of \code{\link[tidylda]{fit_tidylda}}, 
+#'   Since all three of \code{\link[tidylda]{tidylda}}, 
 #'   \code{\link[tidylda]{update.tidylda}}, and 
 #'   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
 #'   we need a way to format the resulting posteriors and other user-facing
@@ -364,7 +364,7 @@ summarize_topics <- function(theta, phi, dtm){
 #'   to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
 #'   rgument is ignored.
 #' @param call the result of calling \code{\link[base]{match.call}} at the top of 
-#'   \code{\link[tidylda]{fit_tidylda}}.
+#'   \code{\link[tidylda]{tidylda}}.
 #' @return
 #'   Returns an S3 object of class \code{tidylda} with the following slots:
 #'   
@@ -382,17 +382,17 @@ summarize_topics <- function(theta, phi, dtm){
 #'   
 #'   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
 #'     is \code{FALSE}, \code{alpha} is what the user passed when calling 
-#'     \code{\link[tidylda]{fit_tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
+#'     \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
 #'     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a 
 #'     call to \code{\link[tidylda]{fit_lda_c}}.
 #'   
 #'   \code{beta} is the prior for tokens over topics. This is what the user passed 
-#'     when calling \code{\link[tidylda]{fit_tidylda}}.
+#'     when calling \code{\link[tidylda]{tidylda}}.
 #'   
 #'   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
 #'   
 #'   \code{call} is the result of \code{\link[base]{match.call}} called at the top
-#'     of \code{\link[tidylda]{fit_tidylda}}
+#'     of \code{\link[tidylda]{tidylda}}
 #'   
 #'   \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are 
 #'     the iteration and log likelihood at that iteration. This slot is only populated
@@ -403,7 +403,7 @@ summarize_topics <- function(theta, phi, dtm){
 #'     \code{calc_r2 = TRUE}
 #' @note
 #'   In general, the arguments of this function should be what the user passed
-#'   when calling \code{\link[tidylda]{fit_tidylda}}. 
+#'   when calling \code{\link[tidylda]{tidylda}}. 
 #'   
 #'   \code{burnin} is used only to determine whether or not burn in iterations 
 #'   were used when fitting the model. If \code{burnin > -1} then posteriors 
@@ -489,7 +489,7 @@ new_tidylda <- function(lda, dtm, burnin, is_prediction = FALSE,
       
       message("something went wrong with 'beta'. This isn't your fault. Please 
             contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
-            error when you ran 'fit_tidylda'.")
+            error when you ran 'tidylda'.")
     }
     
     # alpha

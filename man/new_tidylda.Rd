@@ -44,7 +44,7 @@ to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
 rgument is ignored.}
 
 \item{call}{the result of calling \code{\link[base]{match.call}} at the top of 
-\code{\link[tidylda]{fit_tidylda}}.}
+\code{\link[tidylda]{tidylda}}.}
 }
 \value{
 Returns an S3 object of class \code{tidylda} with the following slots:
@@ -63,17 +63,17 @@ Returns an S3 object of class \code{tidylda} with the following slots:
   
   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
     is \code{FALSE}, \code{alpha} is what the user passed when calling 
-    \code{\link[tidylda]{fit_tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
+    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a 
     call to \code{\link[tidylda]{fit_lda_c}}.
   
   \code{beta} is the prior for tokens over topics. This is what the user passed 
-    when calling \code{\link[tidylda]{fit_tidylda}}.
+    when calling \code{\link[tidylda]{tidylda}}.
   
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
   
   \code{call} is the result of \code{\link[base]{match.call}} called at the top
-    of \code{\link[tidylda]{fit_tidylda}}
+    of \code{\link[tidylda]{tidylda}}
   
   \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are 
     the iteration and log likelihood at that iteration. This slot is only populated
@@ -84,7 +84,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
     \code{calc_r2 = TRUE}
 }
 \description{
-Since all three of \code{\link[tidylda]{fit_tidylda}}, 
+Since all three of \code{\link[tidylda]{tidylda}}, 
   \code{\link[tidylda]{update.tidylda}}, and 
   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
   we need a way to format the resulting posteriors and other user-facing
@@ -92,7 +92,7 @@ Since all three of \code{\link[tidylda]{fit_tidylda}},
 }
 \note{
 In general, the arguments of this function should be what the user passed
-  when calling \code{\link[tidylda]{fit_tidylda}}. 
+  when calling \code{\link[tidylda]{tidylda}}. 
   
   \code{burnin} is used only to determine whether or not burn in iterations 
   were used when fitting the model. If \code{burnin > -1} then posteriors 

@@ -13,7 +13,7 @@ vector, or numeric matrix.}
 \item{k}{the number of topics.}
 
 \item{Nv}{the total size of the vocabulary as inherited from \code{ncol(dtm)}
-in \code{\link[tidylda]{fit_tidylda}}.}
+in \code{\link[tidylda]{tidylda}}.}
 }
 \value{
 Returns a list with two elements: \code{beta} and \code{beta_class}. 

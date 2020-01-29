@@ -7,7 +7,7 @@
 #' \dontrun{
 #' dtm <- textmineR::nih_sample_dtm
 #' 
-#' lda <- fit_tidylda(dtm = dtm, k = 10, iterations = 100)
+#' lda <- tidylda(dtm = dtm, k = 10, iterations = 100)
 #' 
 #' print(lda)
 #' 

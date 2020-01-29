@@ -27,7 +27,7 @@ for the Gibbs sampler to run. A future version may include automatic stopping cr
 \item{burnin}{If \code{method = "gibbs"}, an integer number of burnin iterations. 
 If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 are an average over all iterations greater than \code{burnin}.
-Behavior is the same as documented in \code{\link[tidylda]{fit_tidylda}}.}
+Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.}
 
 \item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
 }
@@ -45,7 +45,7 @@ data(nih_sample_dtm, package = "textmineR")
 # fit a model 
 set.seed(12345)
 
-m <- fit_tidylda(dtm = nih_sample_dtm[1:20,], k = 5,
+m <- tidylda(dtm = nih_sample_dtm[1:20,], k = 5,
                    iterations = 200, burnin = 175)
 
 str(m)

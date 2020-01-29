@@ -3,7 +3,7 @@
 S3method(predict,tidylda)
 S3method(print,tidylda)
 S3method(update,tidylda)
-export(fit_tidylda)
+export(tidylda)
 export(update)
 import(Rcpp)
 import(furrr)

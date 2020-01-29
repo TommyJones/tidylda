@@ -512,8 +512,8 @@ new_tidylda <- function(lda, dtm, burnin, is_prediction = FALSE,
                    gamma = gamma,
                    alpha = alpha_out,
                    beta = beta_out,
-                   log_likelihood = tibble(data.frame(iteration = lda$log_likelihood[1,],
-                                               log_likelihood = lda$log_likelihood[2, ]))
+                   log_likelihood = as_tibble(data.frame(iteration = lda$log_likelihood[1,],
+                                                         log_likelihood = lda$log_likelihood[2, ]))
     ) # add other things here if necessary
     
     class(result) <- "tidylda"

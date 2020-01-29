@@ -50,7 +50,7 @@ test_that("can fit lda models without error", {
   expect_length(lda$beta, 1)
   
   # while we're here... check dimensions and names of objects
-  expect_s3_class(lda, "tidylda_model")
+  expect_s3_class(lda, "tidylda")
   
   expect_equal(sum(dim(lda$phi) == c(4, ncol(d1))), 2)
   
@@ -292,15 +292,15 @@ test_that("can update models",{
 
 ### Tests for the print method ----
 
-test_that("print.tidylda_model behaves as expected",{
+test_that("print.tidylda behaves as expected",{
   
   # no error
   print(lda)
   
-  # assignment creates a new object of class tidylda_model
+  # assignment creates a new object of class tidylda
   m <- print(lda)
   
-  expect_true("tidylda_model" %in% class(m))
+  expect_true("tidylda" %in% class(m))
   
   expect_named(m, names(lda))
   

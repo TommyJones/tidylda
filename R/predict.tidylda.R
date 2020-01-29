@@ -1,7 +1,7 @@
 ### Predict method for LDA objects
 #' Get predictions from a Latent Dirichlet Allocation model
 #' @description Obtains predictions of topics for new documents from a fitted LDA model
-#' @param object a fitted object of class \code{tidylda_model}
+#' @param object a fitted object of class \code{tidylda}
 #' @param newdata a DTM or TCM of class \code{dgCMatrix} or a numeric vector
 #' @param method one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 #'        and \code{iterations} must be specified.
@@ -37,8 +37,8 @@
 #' barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
 #' }
 #' @export
-predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"), 
-                                    iterations = NULL, burnin = -1, ...) {
+predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"), 
+                            iterations = NULL, burnin = -1, ...) {
   
   ### Check inputs ----
   if (method[1] == "gibbs") {
@@ -54,8 +54,8 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
   }
   
   
-  if (class(object) != "tidylda_model") {
-    stop("object must be a topic model object of class tidylda_model")
+  if (class(object) != "tidylda") {
+    stop("object must be a topic model object of class tidylda")
   }
   
   if (sum(c("dgCMatrix", "numeric") %in% class(newdata)) < 1) {
@@ -137,7 +137,7 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
     # format inputs
     
     # get initial distribution with recursive call to "dot" method
-    theta_initial <- predict.tidylda_model(object = object, newdata = newdata, method = "dot")
+    theta_initial <- predict.tidylda(object = object, newdata = newdata, method = "dot")
     
     # make sure priors are formatted correctly
     beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_newdata))
@@ -171,8 +171,8 @@ predict.tidylda_model <- function(object, newdata, method = c("gibbs", "dot"),
                        optimize_alpha = FALSE)
     
     # format posterior prediction
-    result <- format_raw_lda(lda = lda, dtm = dtm_newdata, 
-                             burnin = burnin, is_prediction = TRUE, ...)
+    result <- new_tidylda(lda = lda, dtm = dtm_newdata, 
+                          burnin = burnin, is_prediction = TRUE, ...)
     
   }
   

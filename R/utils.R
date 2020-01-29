@@ -124,11 +124,11 @@ format_alpha <- function(alpha, k) {
 #'   by \code{\link[tidylda]{format_beta}}
 #' @param phi_initial if specified, a numeric matrix for the probability of tokens
 #'   in topics. Must be specified for predictions or updates as called by
-#'   \code{\link[tidylda]{predict.tidylda_model}} or \code{\link[tidylda]{update.tidylda_model}}
+#'   \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{update.tidylda}}
 #'   respectively.
 #' @param theta_initial if specified, a numeric matrix for the probability of
 #'   topics in documents. Must be specified for updates as called by 
-#'   \code{\link[tidylda]{update.tidylda_model}}
+#'   \code{\link[tidylda]{update.tidylda}}
 #' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
 #'   This is \code{TRUE} for predictions.
 #' @param ... other items to be passed to \code{\link[furrr]{future_map}}
@@ -280,8 +280,8 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
 #' @keywords internal
 #' @description
 #'   Summarizes topics in a model. Called by \code{\link[tidylda]{fit_tidylda}}
-#'   and \code{\link[tidylda]{update.tidylda_model}} and used to augment
-#'   \code{\link[tidylda]{print.tidylda_model}}.
+#'   and \code{\link[tidylda]{update.tidylda}} and used to augment
+#'   \code{\link[tidylda]{print.tidylda}}.
 #' @param theta numeric matrix whose rows represent P(topic|document)
 #' @param phi numeric matrix whose rows represent P(token|topic)
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
@@ -344,8 +344,8 @@ summarize_topics <- function(theta, phi, dtm){
 #' @keywords internal
 #' @description
 #'   Since all three of \code{\link[tidylda]{fit_tidylda}}, 
-#'   \code{\link[tidylda]{update.tidylda_model}}, and 
-#'   \code{\link[tidylda]{predict.tidylda_model}} call \code{\link[tidylda]{fit_lda_c}},
+#'   \code{\link[tidylda]{update.tidylda}}, and 
+#'   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
 #'   we need a way to format the resulting posteriors and other user-facing
 #'   objects consistently. This function does that.
 #' @param lda list output of \code{\link[tidylda]{fit_lda_c}}
@@ -366,7 +366,7 @@ summarize_topics <- function(theta, phi, dtm){
 #' @param call the result of calling \code{\link[base]{match.call}} at the top of 
 #'   \code{\link[tidylda]{fit_tidylda}}.
 #' @return
-#'   Returns an S3 object of class \code{tidylda_model} with the following slots:
+#'   Returns an S3 object of class \code{tidylda} with the following slots:
 #'   
 #'   \code{phi} is a numeric matrix whose rows are the posterior estimates 
 #'     of P(token|topic)
@@ -414,7 +414,7 @@ summarize_topics <- function(theta, phi, dtm){
 #'   The class of \code{call} isn't checked. It's just passed through to the 
 #'   object returned by this function. Might be useful if you are using this
 #'   function for troubleshooting or something. 
-format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE, 
+new_tidylda <- function(lda, dtm, burnin, is_prediction = FALSE, 
                            alpha = NULL, beta = NULL, 
                            optimize_alpha = NULL, calc_r2 = NULL, 
                            calc_likelihood = NULL, call = NULL,
@@ -516,7 +516,7 @@ format_raw_lda <- function(lda, dtm, burnin, is_prediction = FALSE,
                                                log_likelihood = lda$log_likelihood[2, ]))
     ) # add other things here if necessary
     
-    class(result) <- "tidylda_model"
+    class(result) <- "tidylda"
     
     ### calculate and add other things ---
     

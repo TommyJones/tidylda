@@ -9,7 +9,7 @@ update <- function(object, ...) UseMethod("update")
 
 #' Update a Latent Dirichlet Allocation topic model
 #' @description Update an LDA model using collapsed Gibbs sampling. 
-#' @param object a fitted object of class \code{tidylda_model}.
+#' @param object a fitted object of class \code{tidylda}.
 #' @param dtm A document term matrix or term co-occurrence matrix of class dgCMatrix.
 #' @param iterations Integer number of iterations for the Gibbs sampler to run. 
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
@@ -27,7 +27,7 @@ update <- function(object, ...) UseMethod("update")
 #' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
 #'        from the previous model as the prior for words over topics?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
-#' @return Returns an S3 object of class c("tidylda_model"). 
+#' @return Returns an S3 object of class c("tidylda"). 
 #' @details 
 #' prior + counts vs. counts only. Vocab alignment + uniform prior over new words. 
 #'          Adding additional topics. works best with significant vocab overlap
@@ -67,10 +67,10 @@ update <- function(object, ...) UseMethod("update")
 #'              
 #' 
 #' }
-update.tidylda_model <- function(object, dtm, iterations = NULL, burnin = -1, 
-                                   optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                                   calc_r2 = FALSE, return_data = FALSE, 
-                                   additional_k = 0, phi_as_prior = FALSE, ...) {
+update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1, 
+                           optimize_alpha = FALSE, calc_likelihood = FALSE, 
+                           calc_r2 = FALSE, return_data = FALSE, 
+                           additional_k = 0, phi_as_prior = FALSE, ...) {
   
   # first, get the call for reproducibility
   mc <- match.call()
@@ -78,8 +78,8 @@ update.tidylda_model <- function(object, dtm, iterations = NULL, burnin = -1,
   ### Check inputs are of correct dimensionality ----
   
   # object of correct class?
-  if (class(object) != "tidylda_model")
-    stop("object must be of class tidylda_model")
+  if (class(object) != "tidylda")
+    stop("object must be of class tidylda")
   
   # iterations and burnin acceptable?
   if (burnin >= iterations) {
@@ -158,7 +158,7 @@ update.tidylda_model <- function(object, dtm, iterations = NULL, burnin = -1,
   # phi_initial and theta_initial
   phi_initial <- object$phi
   
-  theta_initial <- predict.tidylda_model(object = object,
+  theta_initial <- predict.tidylda(object = object,
                                            newdata = dtm,
                                            method = "dot",
                                            ...)
@@ -267,12 +267,12 @@ update.tidylda_model <- function(object, dtm, iterations = NULL, burnin = -1,
 
   
   ### Format output correctly ----
-  result <- format_raw_lda(lda = lda, dtm = dtm, burnin = burnin, 
-                           is_prediction = FALSE, 
-                           alpha = alpha, beta = beta, 
-                           optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
-                           calc_likelihood = calc_likelihood, 
-                           call = mc, ...)
+  result <- new_tidylda(lda = lda, dtm = dtm, burnin = burnin, 
+                        is_prediction = FALSE, 
+                        alpha = alpha, beta = beta, 
+                        optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
+                        calc_likelihood = calc_likelihood, 
+                        call = mc, ...)
   
   ### return the result ----
   result

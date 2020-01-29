@@ -28,12 +28,12 @@ by \code{\link[tidylda]{format_beta}}}
 
 \item{phi_initial}{if specified, a numeric matrix for the probability of tokens
 in topics. Must be specified for predictions or updates as called by
-\code{\link[tidylda]{predict.tidylda_model}} or \code{\link[tidylda]{update.tidylda_model}}
+\code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{update.tidylda}}
 respectively.}
 
 \item{theta_initial}{if specified, a numeric matrix for the probability of
 topics in documents. Must be specified for updates as called by 
-\code{\link[tidylda]{update.tidylda_model}}}
+\code{\link[tidylda]{update.tidylda}}}
 
 \item{freeze_topics}{if \code{TRUE} does not update counts of tokens in topics.
 This is \code{TRUE} for predictions.}

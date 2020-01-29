@@ -1,6 +1,6 @@
-#' Print Method for tidylda_model
-#' @description Print a summary for objects of class \code{tidylda_model}
-#' @param x an object of class \code{tidylda_model}
+#' Print Method for tidylda
+#' @description Print a summary for objects of class \code{tidylda}
+#' @param x an object of class \code{tidylda}
 #' @param digits minimal numer of significant digits
 #' @param ... further arguments passed to or from other methods
 #' @examples 
@@ -16,14 +16,12 @@
 #' print(lda, digits = 2)
 #' }
 #' @export
-print.tidylda_model <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+print.tidylda <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 
   # make this fail elegantly for legacy topic model objects
   
   ### check consistency of inputs ----
-  if (class(x) != "tidylda_model")
-    stop("'x' must be of class tidylda_model")
-  
+
 
   ### assemble a bunch of stuff to print back at you
   

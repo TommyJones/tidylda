@@ -24,8 +24,8 @@ Returns a \code{\link[tibble]{tibble}} with the following columns:
 }
 \description{
 Summarizes topics in a model. Called by \code{\link[tidylda]{fit_tidylda}}
-  and \code{\link[tidylda]{update.tidylda_model}} and used to augment
-  \code{\link[tidylda]{print.tidylda_model}}.
+  and \code{\link[tidylda]{update.tidylda}} and used to augment
+  \code{\link[tidylda]{print.tidylda}}.
 }
 \note{
 \code{prevalence} should be proportional to P(topic). It is calculated by 

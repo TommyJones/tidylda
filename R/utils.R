@@ -414,11 +414,11 @@ summarize_topics <- function(theta, phi, dtm){
 #'   The class of \code{call} isn't checked. It's just passed through to the 
 #'   object returned by this function. Might be useful if you are using this
 #'   function for troubleshooting or something. 
-new_tidylda <- function(lda, dtm, burnin, is_prediction = FALSE, 
-                           alpha = NULL, beta = NULL, 
-                           optimize_alpha = NULL, calc_r2 = NULL, 
-                           calc_likelihood = NULL, call = NULL,
-                           ...) {
+format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE, 
+                                   alpha = NULL, beta = NULL, 
+                                   optimize_alpha = NULL, calc_r2 = NULL, 
+                                   calc_likelihood = NULL, call = NULL,
+                                   ...) {
   
   ### format theta ----
   if (burnin > -1) {

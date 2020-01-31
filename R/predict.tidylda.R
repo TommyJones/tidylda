@@ -171,8 +171,8 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
                        optimize_alpha = FALSE)
     
     # format posterior prediction
-    result <- new_tidylda(lda = lda, dtm = dtm_newdata, 
-                          burnin = burnin, is_prediction = TRUE, ...)
+    result <- format_raw_lda_outputs(lda = lda, dtm = dtm_newdata, 
+                                     burnin = burnin, is_prediction = TRUE, ...)
     
   }
   

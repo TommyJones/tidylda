@@ -141,12 +141,12 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
   
   ### format the output ----
 
-  result <- new_tidylda(lda = lda, dtm = dtm, burnin = burnin, 
-                        is_prediction = FALSE, 
-                        alpha = alpha, beta = beta, 
-                        optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
-                        calc_likelihood = calc_likelihood, 
-                        call = mc, ...)
+  result <- format_raw_lda_outputs(lda = lda, dtm = dtm, burnin = burnin, 
+                                   is_prediction = FALSE, 
+                                   alpha = alpha, beta = beta, 
+                                   optimize_alpha = optimize_alpha, calc_r2 = calc_r2, 
+                                   calc_likelihood = calc_likelihood, 
+                                   call = mc, ...)
   
   ### return the result ----
   

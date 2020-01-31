@@ -1,8 +1,4 @@
-# Notes to tommy:
-# test parallelism. Do we get # of cores expected? Can we force sequential? etc?
-
-
-context("tidylda tests")
+context("tidylda core tests")
 
 ### Define some common objects ----
 

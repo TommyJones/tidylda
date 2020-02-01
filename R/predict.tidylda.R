@@ -53,11 +53,6 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
     
   }
   
-  
-  if (class(object) != "tidylda") {
-    stop("object must be a topic model object of class tidylda")
-  }
-  
   if (sum(c("dgCMatrix", "numeric") %in% class(newdata)) < 1) {
     stop("newdata must be a matrix of class dgCMatrix or a numeric vector")
   }

@@ -3,6 +3,8 @@
 \name{tidylda}
 \alias{tidylda}
 \alias{tidylda.dgCMatrix}
+\alias{tidylda.matrix}
+\alias{tidylda.Matrix}
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
 tidylda(
@@ -19,7 +21,11 @@ tidylda(
   ...
 )
 
-\method{tidylda}{dgCMatrix}(...)
+\method{tidylda}{dgCMatrix}(dtm, ...)
+
+\method{tidylda}{matrix}(dtm, ...)
+
+\method{tidylda}{Matrix}(dtm, ...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -99,6 +105,11 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 \section{Methods (by class)}{
 \itemize{
 \item \code{dgCMatrix}: tidylda fit method for \code{dgCMatrix}
+
+\item \code{matrix}: tidylda fit method for \code{matrix}
+
+\item \code{Matrix}: tidylda fit method for matrices from the 
+\code{\link[Matrix]{Matrix}} package.
 }}
 
 \examples{

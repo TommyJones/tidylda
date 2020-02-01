@@ -88,7 +88,32 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
 
 #' @describeIn tidylda tidylda fit method for \code{dgCMatrix}
 #' @export
-tidylda.dgCMatrix <- function(...) tidylda_bridge(...)
+tidylda.dgCMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+
+#' @describeIn tidylda tidylda fit method for \code{matrix}
+#' @export
+tidylda.matrix <- function(dtm, ...){
+  
+  # convert to dgcmatrix
+  dtm <- methods::as(dtm, "dgCMatrix", strict = TRUE)
+  
+  # run
+  tidylda_bridge(dtm = dtm, ...)
+}
+
+#' @describeIn tidylda tidylda fit method for matrices from the 
+#'   \code{\link[Matrix]{Matrix}} package.
+#' @export
+tidylda.Matrix <- function(dtm, ...){
+  
+  # convert to dgcmatrix
+  dtm <- methods::as(dtm, "dgCMatrix", strict = TRUE)
+  
+  # run
+  tidylda_bridge(dtm = dtm, ...)
+}
+
+
 
 #' Bridge function for fitting \code{tidylda} topic models
 #' @keywords internal
@@ -96,7 +121,6 @@ tidylda.dgCMatrix <- function(...) tidylda_bridge(...)
 #'   Takes in arguments from various \code{tidylda} S3 methods and fits the 
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
-#'
 tidylda_bridge <- function(...) {
   
   # first, get the call for reproducibility
@@ -110,7 +134,7 @@ tidylda_bridge <- function(...) {
   }
   
   # dtm of the correct format?
-  if (! "dgCMatrix" %in% class(dtm)) {
+  if (! inherits(dtm, "dgCMatrix")) {
     message("dtm is not of class dgCMatrix, attempting to convert...")
     
     dtm <- try(methods::as(dtm, "dgCMatrix", strict = TRUE)) # requires Matrix in namespace

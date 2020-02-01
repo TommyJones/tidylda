@@ -21,18 +21,18 @@ LazyData: true
 Depends: 
     Matrix
 Imports:
+    generics,
     gtools,
     methods,
     Rcpp (>= 1.0.2), 
     stats,
-    textmineR
+    textmineR,
+    tibble
 Suggests:
     furrr,
-    generics,
     parallel,
     knitr,
     testthat,
-    tibble,
     tidytext
 LinkingTo: Rcpp, 
     RcppArmadillo,

@@ -12,8 +12,6 @@ NULL
 
 
 #' @import Rcpp
-#' @import furrr
-#' @import tibble
 #' @importFrom generics augment
 #' @importFrom generics glance
 #' @importFrom generics tidy
@@ -28,6 +26,7 @@ NULL
 #' @importFrom textmineR CalcGamma
 #' @importFrom textmineR CalcProbCoherence
 #' @importFrom textmineR CalcTopicModelR2
+#' @importFrom tibble as_tibble
 #' @useDynLib "tidylda", .registration=TRUE
 NULL
 

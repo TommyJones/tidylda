@@ -158,6 +158,9 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
   if (! is.logical(return_data))
     stop("return_data must be logical")
   
+  if (! is.logical(optimize_alpha))
+    stop("optimize_alpha must be logical")
+  
   
   ### format inputs ----
   

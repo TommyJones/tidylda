@@ -70,8 +70,16 @@
 #' barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
 #' @export
 tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 0.05, 
-                          optimize_alpha = FALSE, calc_likelihood = FALSE, 
-                          calc_r2 = FALSE, return_data = FALSE, ...) {
+                    optimize_alpha = FALSE, calc_likelihood = FALSE, 
+                    calc_r2 = FALSE, return_data = FALSE, ...) {
+  
+  UseMethod("tidylda")
+  
+}
+
+#' @describeIn tidylda tidylda fit method for \code{dgCMatrix}
+#' @export
+tidylda.dgCMatrix <- function(dtm, ...) {
   
   # first, get the call for reproducibility
   mc <- match.call()
@@ -140,7 +148,7 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                    optimize_alpha = optimize_alpha) 
   
   ### format the output ----
-
+  
   result <- format_raw_lda_outputs(lda = lda, dtm = dtm, burnin = burnin, 
                                    is_prediction = FALSE, 
                                    alpha = alpha, beta = beta, 
@@ -149,6 +157,5 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                                    call = mc, ...)
   
   ### return the result ----
-  
+  result
 }
-

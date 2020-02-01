@@ -2,6 +2,7 @@
 % Please edit documentation in R/tidylda-fit-methods.R
 \name{tidylda}
 \alias{tidylda}
+\alias{tidylda.dgCMatrix}
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
 tidylda(
@@ -17,6 +18,8 @@ tidylda(
   return_data = FALSE,
   ...
 )
+
+\method{tidylda}{dgCMatrix}(dtm, ...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -84,6 +87,11 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   numbers, rather than the expected negative numbers. Looking into that, but 
   in the meantime caveat emptor once again.
 }
+\section{Methods (by class)}{
+\itemize{
+\item \code{dgCMatrix}: tidylda fit method for \code{dgCMatrix}
+}}
+
 \examples{
 # load some data
 data(nih_sample_dtm, package = "textmineR")

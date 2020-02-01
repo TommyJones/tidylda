@@ -117,15 +117,8 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
     stop("burnin must be less than iterations")
   }
   
-  # dtm of the correct format?
-  if (! "dgCMatrix" %in% class(dtm)) {
-    message("'dtm' is not of class dgCMatrix, attempting to convert...")
-    
-    dtm <- try(methods::as(dtm, "dgCMatrix", strict = TRUE)) # requires Matrix in namespace
-    
-    if (! "dgCMatrix" %in% class(dtm))
-      stop("conversion failed. Please pass an object of class dgCMatrix for dtm")
-  }
+  # Ensure dtm is of class dgCMatrix
+  dtm <- convert_dtm(dtm = dtm)
   
   # is k formatted correctly?
   if (! is.numeric(additional_k)){

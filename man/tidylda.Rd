@@ -5,6 +5,9 @@
 \alias{tidylda.dgCMatrix}
 \alias{tidylda.matrix}
 \alias{tidylda.Matrix}
+\alias{tidylda.dfm}
+\alias{tidylda.simple_triplet_matrix}
+\alias{tidylda.DocumentTermMatrix}
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
 tidylda(
@@ -26,6 +29,12 @@ tidylda(
 \method{tidylda}{matrix}(dtm, ...)
 
 \method{tidylda}{Matrix}(dtm, ...)
+
+\method{tidylda}{dfm}(dtm, ...)
+
+\method{tidylda}{simple_triplet_matrix}(dtm, ...)
+
+\method{tidylda}{DocumentTermMatrix}(dtm, ...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -106,10 +115,15 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 \itemize{
 \item \code{dgCMatrix}: tidylda fit method for \code{dgCMatrix}
 
-\item \code{matrix}: tidylda fit method for \code{matrix}
+\item \code{matrix}: tidylda fit method for \code{\link[base]{matrix}}
 
-\item \code{Matrix}: tidylda fit method for matrices from the 
-\code{\link[Matrix]{Matrix}} package.
+\item \code{Matrix}: tidylda fit method for  \code{\link[Matrix]{Matrix}}
+
+\item \code{dfm}: tidylda fit method for \code{\link[quanteda]{dfm}}
+
+\item \code{simple_triplet_matrix}: tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
+
+\item \code{DocumentTermMatrix}: tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
 }}
 
 \examples{

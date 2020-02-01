@@ -90,29 +90,20 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
 #' @export
 tidylda.dgCMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
 
-#' @describeIn tidylda tidylda fit method for \code{matrix}
-#' @export
-tidylda.matrix <- function(dtm, ...){
-  
-  # convert to dgcmatrix
-  dtm <- methods::as(dtm, "dgCMatrix", strict = TRUE)
-  
-  # run
-  tidylda_bridge(dtm = dtm, ...)
-}
+#' @describeIn tidylda tidylda fit method for \code{\link[base]{matrix}}
+tidylda.matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
 
-#' @describeIn tidylda tidylda fit method for matrices from the 
-#'   \code{\link[Matrix]{Matrix}} package.
-#' @export
-tidylda.Matrix <- function(dtm, ...){
-  
-  # convert to dgcmatrix
-  dtm <- methods::as(dtm, "dgCMatrix", strict = TRUE)
-  
-  # run
-  tidylda_bridge(dtm = dtm, ...)
-}
+#' @describeIn tidylda tidylda fit method for  \code{\link[Matrix]{Matrix}}
+tidylda.Matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
 
+#' @describeIn tidylda tidylda fit method for \code{\link[quanteda]{dfm}}
+tidylda.dfm <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+
+#' @describeIn tidylda tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
+tidylda.simple_triplet_matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+
+#' @describeIn tidylda tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
+tidylda.DocumentTermMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
 
 
 #' Bridge function for fitting \code{tidylda} topic models
@@ -133,15 +124,8 @@ tidylda_bridge <- function(...) {
     stop("burnin must be less than iterations")
   }
   
-  # dtm of the correct format?
-  if (! inherits(dtm, "dgCMatrix")) {
-    message("dtm is not of class dgCMatrix, attempting to convert...")
-    
-    dtm <- try(methods::as(dtm, "dgCMatrix", strict = TRUE)) # requires Matrix in namespace
-    
-    if (! "dgCMatrix" %in% class(dtm))
-      stop("conversion failed. Please pass an object of class dgCMatrix for dtm")
-  }
+  # Ensure dtm is of class dgCMatrix
+  dtm <- convert_dtm(dtm = dtm)
   
   # is k formatted correctly?
   if (k < 2)

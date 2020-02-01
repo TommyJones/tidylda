@@ -78,6 +78,12 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
     
     rownames(newdata) <- 1
     
+  } else { # assume you passed something that can be converted to dgCMatrix
+    
+    # Ensure dtm is of class dgCMatrix
+    newdata <- convert_dtm(dtm = newdata)
+    
+    
   }
   
   if (sum(c("gibbs", "dot") %in% method) == 0) {

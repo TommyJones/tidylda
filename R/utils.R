@@ -2,6 +2,40 @@
 # Functions in this file are internal to tidylda
 ################################################################################
 
+#' Convert various things to a \code{dgCMatrix} to work with various functions 
+#' and methods
+#' @keywords internal
+#' @description
+#'   Presently, \code{tidylda} makes heavy usage of the \code{dgCMatrix} class.
+#'   However, a user may have created a DTM (or TCM) in one of several classes.
+#'   Since data could be in several formats, this function convernts them to a 
+#'   \code{dgCMatrix} before passing them along.
+#' @param dtm the data you want to convert
+#' @return an object of class \code{dgCMatrix}
+convert_dtm <- function(dtm) {
+  
+  if (inherits(dtm, c("Matrix", "matrix"))) {
+    
+    out <- methods::as(dtm, "dgCMatrix", strict = TRUE)
+    
+  } else if (inherits(dtm, "simple_triplet_matrix")) {
+    
+    out <- sparseMatrix(i = dtm$i, 
+                        j = dtm$j, 
+                        x = dtm$v,
+                        dims = c(dtm$nrow, dtm$ncol),
+                        dimnames = list(rownames = dtm$dimnames$Docs,
+                                        colnames = dtm$dimnames$Terms))
+    
+  } else {
+    stop("dtm cannot be converted to dgCMatrix. Supported classes are ", 
+         "c('Matrix', 'matrix', 'simple_triplet_matrix', 'dfm', 'DocumentTermMatrix'), ",
+         "However, I see class(dtm) = ", class(dtm))
+  }
+  
+  out
+}
+
 #' Format \code{beta} For Input into \code{fit_lda_c}
 #' @keywords internal
 #' @description

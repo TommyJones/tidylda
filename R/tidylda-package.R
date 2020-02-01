@@ -14,18 +14,17 @@ NULL
 #' @import Rcpp
 #' @import furrr
 #' @import tibble
-#' @importFrom textmineR CalcGamma
-#' @importFrom textmineR CalcProbCoherence
-#' @importFrom textmineR CalcTopicModelR2
-#' @importFrom textmineR TmParallelApply
+#' @importFrom gtools rdirichlet
+#' @importFrom methods as
 #' @importFrom Matrix colSums
 #' @importFrom Matrix rowSums
 #' @importFrom Matrix rbind2
 #' @importFrom Matrix cbind2
-#' @importFrom gtools rdirichlet
-#' @importFrom methods as
 #' @importFrom Rcpp sourceCpp
 #' @importFrom stats median
+#' @importFrom textmineR CalcGamma
+#' @importFrom textmineR CalcProbCoherence
+#' @importFrom textmineR CalcTopicModelR2
 #' @useDynLib "tidylda", .registration=TRUE
 NULL
 

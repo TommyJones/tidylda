@@ -82,7 +82,10 @@ Update an LDA model using collapsed Gibbs sampling.
   
   \code{update} handles the addition of new vocabulary by adding a flat prior 
   over new tokens. Specifically, each entry in the new prior is equal to the
-  median value of \code{beta} from the old model.
+  median value of \code{beta} from the old model. The resulting model will 
+  have the total vocabulary of the old model plus any new vocabulary tokens.
+  In other words, after running \code{update.tidylda} \code{ncol(phi) >= ncol(dtm)}
+  where \code{phi} is from the new model and \code{dtm} is the additional data.
   
   You can add additional topics by setting the \code{additional_k} parameter
   to an integer greater than zero. New entries to \code{alpha} have a flat 

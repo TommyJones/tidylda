@@ -44,7 +44,10 @@
 #'   
 #'   \code{update} handles the addition of new vocabulary by adding a flat prior 
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
-#'   median value of \code{beta} from the old model.
+#'   median value of \code{beta} from the old model. The resulting model will 
+#'   have the total vocabulary of the old model plus any new vocabulary tokens.
+#'   In other words, after running \code{update.tidylda} \code{ncol(phi) >= ncol(dtm)}
+#'   where \code{phi} is from the new model and \code{dtm} is the additional data.
 #'   
 #'   You can add additional topics by setting the \code{additional_k} parameter
 #'   to an integer greater than zero. New entries to \code{alpha} have a flat 
@@ -198,19 +201,31 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
   ### Vocabulary alignment and new topic (if any) alignment ----
   
   # align vocab in intelligent way for adding new vocab
-  v_diff <- setdiff(colnames(dtm), colnames(phi_initial))
+  total_vocabulary <- union(colnames(dtm), colnames(phi_initial))
   
-  m_add <- matrix(0, nrow = nrow(phi_initial), ncol = length(v_diff))
+  add_to_dtm <- setdiff(total_vocabulary, colnames(dtm))
   
-  colnames(m_add) <- v_diff
+  add_to_model <- setdiff(total_vocabulary, colnames(phi_initial))
   
-  beta$beta <- cbind(beta$beta, m_add+ median(beta$beta)) # uniform prior over new words
+  m_add_to_dtm <- matrix(0, nrow = nrow(dtm), ncol = length(add_to_dtm))
+  
+  colnames(m_add_to_dtm) <- add_to_dtm
+  
+  m_add_to_model <- matrix(0, nrow = nrow(phi_initial), ncol = length(add_to_model))
+  
+  colnames(m_add_to_model) <- add_to_model
+  
+  dtm <- cbind(dtm, m_add_to_dtm)
+  
+  # uniform prior over new words
+  beta$beta <- cbind(beta$beta, m_add_to_model + median(beta$beta)) 
   
   beta$beta <- beta$beta[, colnames(dtm)]
   
-  phi_initial <- cbind(phi_initial, m_add + median(phi_initial)) 
+  phi_initial <- cbind(phi_initial, m_add_to_model + median(phi_initial)) 
   
   phi_initial <- phi_initial[, colnames(dtm)] / rowSums(phi_initial[, colnames(dtm)])
+  
   
   # add topics to beta and phi_initial
   # prior for topics inherets from beta, specifically colMeans(beta)

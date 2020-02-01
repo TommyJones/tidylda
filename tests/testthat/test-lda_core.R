@@ -199,7 +199,7 @@ test_that("can update models",{
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta))
   
-  expect_equal(ncol(lda2$phi), ncol(d2))
+  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
   
   # 1 additonal topic and no phi as prior
   lda2 <- update(object = lda, 
@@ -219,7 +219,7 @@ test_that("can update models",{
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 1)
   
-  expect_equal(ncol(lda2$phi), ncol(d2))
+  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
   
   # 3 additional topics and no phi as prior
   lda2 <- update(object = lda, 
@@ -239,7 +239,7 @@ test_that("can update models",{
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
   
-  expect_equal(ncol(lda2$phi), ncol(d2))
+  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
 
   # no additional topics and phi as prior
   lda2 <- update(object = lda, 
@@ -259,7 +259,7 @@ test_that("can update models",{
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta))
   
-  expect_equal(ncol(lda2$phi), ncol(d2))
+  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
   
   
   # 3 additonal topics and phi as prior
@@ -280,7 +280,7 @@ test_that("can update models",{
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
   
-  expect_equal(ncol(lda2$phi), ncol(d2))
+  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
   
   
 })

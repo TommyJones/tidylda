@@ -118,9 +118,13 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
   
   # is k formatted correctly?
   if (! is.numeric(additional_k)){
+    
     stop("additional_k must be an integer >= 0")
+    
   } else if (additional_k < 0) {
+    
     stop("additional_k must be an integer >= 0")
+    
   }
   
   additional_k <- floor(additional_k) # in case somebody is cheeky and passes a decimal

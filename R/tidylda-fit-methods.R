@@ -96,9 +96,9 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                  alpha = alpha,
                  beta = beta,
                  optimize_alpha = optimize_alpha,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
-                 return_data = FALSE,
+                 calc_likelihood = calc_likelihood,
+                 calc_r2 = calc_r2,
+                 return_data = return_data,
                  ...)
   
 }
@@ -151,10 +151,7 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
   
   if (! is.logical(calc_likelihood))
     stop("calc_likelihood must be logical")
-  
-  if (! is.logical(calc_coherence))
-    stop("calc_coherence must be logical")
-  
+
   if (! is.logical(return_data))
     stop("return_data must be logical")
   

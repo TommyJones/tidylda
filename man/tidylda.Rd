@@ -19,7 +19,7 @@ tidylda(
   ...
 )
 
-\method{tidylda}{dgCMatrix}(dtm, ...)
+\method{tidylda}{dgCMatrix}(...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -61,6 +61,15 @@ Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling.
 \details{
 This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   written using the excellent Rcpp package. Some implementation notes follow:
+  
+  Topic-token and topic-document assignments are not initialized based on a
+  uniform-random sampling, as is common. Instead, topic-token probabilities
+  (i.e. \code{phi}) are initialized by sampling from a Dirichlet distribution
+  with \code{beta} as its parameter. The same is done for topic-document
+  probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
+  function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
+  a single Gibbs iteration to initialize assignments of tokens to topics and 
+  topics to documents.
   
   When you use burn-in iterations (i.e. \code{burnin = TRUE}), the resulting 
   \code{phi} and \code{theta} matrices are calculated by averaging over every 

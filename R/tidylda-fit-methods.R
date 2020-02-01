@@ -23,6 +23,15 @@
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 #'   written using the excellent Rcpp package. Some implementation notes follow:
 #'   
+#'   Topic-token and topic-document assignments are not initialized based on a
+#'   uniform-random sampling, as is common. Instead, topic-token probabilities
+#'   (i.e. \code{phi}) are initialized by sampling from a Dirichlet distribution
+#'   with \code{beta} as its parameter. The same is done for topic-document
+#'   probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
+#'   function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
+#'   a single Gibbs iteration to initialize assignments of tokens to topics and 
+#'   topics to documents.
+#'   
 #'   When you use burn-in iterations (i.e. \code{burnin = TRUE}), the resulting 
 #'   \code{phi} and \code{theta} matrices are calculated by averaging over every 
 #'   iteration after the specified  number of burn-in iterations. If you do not 
@@ -79,7 +88,16 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
 
 #' @describeIn tidylda tidylda fit method for \code{dgCMatrix}
 #' @export
-tidylda.dgCMatrix <- function(dtm, ...) {
+tidylda.dgCMatrix <- function(...) tidylda_bridge(...)
+
+#' Bridge function for fitting \code{tidylda} topic models
+#' @keywords internal
+#' @description
+#'   Takes in arguments from various \code{tidylda} S3 methods and fits the 
+#'   resulting topic model. The arguments to this function are documented in
+#'   \code{\link[tidylda]{tidylda}}.
+#'
+tidylda_bridge <- function(...) {
   
   # first, get the call for reproducibility
   mc <- match.call()

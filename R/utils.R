@@ -20,12 +20,12 @@ convert_dtm <- function(dtm) {
     
   } else if (inherits(dtm, "simple_triplet_matrix")) {
     
-    out <- sparseMatrix(i = dtm$i, 
-                        j = dtm$j, 
-                        x = dtm$v,
-                        dims = c(dtm$nrow, dtm$ncol),
-                        dimnames = list(rownames = dtm$dimnames$Docs,
-                                        colnames = dtm$dimnames$Terms))
+    out <- Matrix::sparseMatrix(i = dtm$i, 
+                                j = dtm$j, 
+                                x = dtm$v,
+                                dims = c(dtm$nrow, dtm$ncol),
+                                dimnames = list(rownames = dtm$dimnames$Docs,
+                                                colnames = dtm$dimnames$Terms))
     
   } else {
     stop("dtm cannot be converted to dgCMatrix. Supported classes are ", 

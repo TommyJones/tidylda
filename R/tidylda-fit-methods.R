@@ -1,6 +1,11 @@
 #' Fit a Latent Dirichlet Allocation topic model
 #' @description Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling. 
-#' @param dtm A document term matrix or term co-occurrence matrix of class dgCMatrix.
+#' @param dtm A document term matrix or term co-occurrence matrix. The preferred
+#'   class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support 
+#'   for any \code{\link[Matrix]{Matrix-class}} object as well as several other 
+#'   commonly-used classes such as \code{\link[base]{matrix}}, 
+#'   \code{\link[quanteda]{dfm}}, \code{\link[tm]{DocumentTermMatrix}}, and
+#'   \code{\link[slam]{simple_triplet_matrix}}
 #' @param k Integer number of topics.
 #' @param iterations Integer number of iterations for the Gibbs sampler to run. 
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
@@ -82,27 +87,21 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                     optimize_alpha = FALSE, calc_likelihood = FALSE, 
                     calc_r2 = FALSE, return_data = FALSE, ...) {
   
-  UseMethod("tidylda")
+  # UseMethod("tidylda")
+  
+  tidylda_bridge(dtm = dtm, 
+                 k = k, 
+                 iterations = iterations,
+                 burnin = burnin,
+                 alpha = alpha,
+                 beta = beta,
+                 optimize_alpha = optimize_alpha,
+                 calc_likelihood = FALSE,
+                 calc_r2 = FALSE,
+                 return_data = FALSE,
+                 ...)
   
 }
-
-#' @describeIn tidylda tidylda fit method for \code{dgCMatrix}
-tidylda.dgCMatrix <- function(...) tidylda_bridge(...)
-
-#' @describeIn tidylda tidylda fit method for \code{\link[base]{matrix}}
-tidylda.matrix <- function(...) tidylda_bridge(...)
-
-#' @describeIn tidylda tidylda fit method for  \code{\link[Matrix]{Matrix}}
-tidylda.Matrix <- function(...) tidylda_bridge(...)
-
-#' @describeIn tidylda tidylda fit method for \code{\link[quanteda]{dfm}}
-tidylda.dfm <- function(...) tidylda_bridge(...)
-
-#' @describeIn tidylda tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
-tidylda.simple_triplet_matrix <- function(...) tidylda_bridge(...)
-
-#' @describeIn tidylda tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
-tidylda.DocumentTermMatrix <- function(...) tidylda_bridge(...)
 
 
 #' Bridge function for fitting \code{tidylda} topic models

@@ -2,12 +2,6 @@
 % Please edit documentation in R/tidylda-fit-methods.R
 \name{tidylda}
 \alias{tidylda}
-\alias{tidylda.dgCMatrix}
-\alias{tidylda.matrix}
-\alias{tidylda.Matrix}
-\alias{tidylda.dfm}
-\alias{tidylda.simple_triplet_matrix}
-\alias{tidylda.DocumentTermMatrix}
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
 tidylda(
@@ -23,21 +17,14 @@ tidylda(
   return_data = FALSE,
   ...
 )
-
-\method{tidylda}{dgCMatrix}(...)
-
-\method{tidylda}{matrix}(...)
-
-\method{tidylda}{Matrix}(...)
-
-\method{tidylda}{dfm}(...)
-
-\method{tidylda}{simple_triplet_matrix}(...)
-
-\method{tidylda}{DocumentTermMatrix}(...)
 }
 \arguments{
-\item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
+\item{dtm}{A document term matrix or term co-occurrence matrix. The preferred
+class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support 
+for any \code{\link[Matrix]{Matrix-class}} object as well as several other 
+commonly-used classes such as \code{\link[base]{matrix}}, 
+\code{\link[quanteda]{dfm}}, \code{\link[tm]{DocumentTermMatrix}}, and
+\code{\link[slam]{simple_triplet_matrix}}}
 
 \item{k}{Integer number of topics.}
 
@@ -111,21 +98,6 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   numbers, rather than the expected negative numbers. Looking into that, but 
   in the meantime caveat emptor once again.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{dgCMatrix}: tidylda fit method for \code{dgCMatrix}
-
-\item \code{matrix}: tidylda fit method for \code{\link[base]{matrix}}
-
-\item \code{Matrix}: tidylda fit method for  \code{\link[Matrix]{Matrix}}
-
-\item \code{dfm}: tidylda fit method for \code{\link[quanteda]{dfm}}
-
-\item \code{simple_triplet_matrix}: tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
-
-\item \code{DocumentTermMatrix}: tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
-}}
-
 \examples{
 # load some data
 data(nih_sample_dtm, package = "textmineR")

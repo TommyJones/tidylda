@@ -24,17 +24,17 @@ tidylda(
   ...
 )
 
-tidylda.dgCMatrix(...)
+\method{tidylda}{dgCMatrix}(...)
 
-tidylda.matrix(...)
+\method{tidylda}{matrix}(...)
 
-tidylda.Matrix(...)
+\method{tidylda}{Matrix}(...)
 
-tidylda.dfm(...)
+\method{tidylda}{dfm}(...)
 
-tidylda.simple_triplet_matrix(...)
+\method{tidylda}{simple_triplet_matrix}(...)
 
-tidylda.DocumentTermMatrix(...)
+\method{tidylda}{DocumentTermMatrix}(...)
 }
 \arguments{
 \item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
@@ -111,19 +111,19 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   numbers, rather than the expected negative numbers. Looking into that, but 
   in the meantime caveat emptor once again.
 }
-\section{Functions}{
+\section{Methods (by class)}{
 \itemize{
-\item \code{tidylda.dgCMatrix}: tidylda fit method for \code{dgCMatrix}
+\item \code{dgCMatrix}: tidylda fit method for \code{dgCMatrix}
 
-\item \code{tidylda.matrix}: tidylda fit method for \code{\link[base]{matrix}}
+\item \code{matrix}: tidylda fit method for \code{\link[base]{matrix}}
 
-\item \code{tidylda.Matrix}: tidylda fit method for  \code{\link[Matrix]{Matrix}}
+\item \code{Matrix}: tidylda fit method for  \code{\link[Matrix]{Matrix}}
 
-\item \code{tidylda.dfm}: tidylda fit method for \code{\link[quanteda]{dfm}}
+\item \code{dfm}: tidylda fit method for \code{\link[quanteda]{dfm}}
 
-\item \code{tidylda.simple_triplet_matrix}: tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
+\item \code{simple_triplet_matrix}: tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
 
-\item \code{tidylda.DocumentTermMatrix}: tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
+\item \code{DocumentTermMatrix}: tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
 }}
 
 \examples{

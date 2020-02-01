@@ -82,18 +82,7 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                     optimize_alpha = FALSE, calc_likelihood = FALSE, 
                     calc_r2 = FALSE, return_data = FALSE, ...) {
   
-  NextMethod("tidylda", 
-            dtm = dtm, 
-            k = k,
-            iterations = iterations,
-            burnin = burnin,
-            alpha = alpha,
-            beta = beta,
-            optimize_alpha = optimize_alpha,
-            calc_likelihood = calc_likelihood,
-            calc_r2 = calc_r2,
-            return_data = return_data,
-            ...)
+  UseMethod("tidylda")
   
 }
 

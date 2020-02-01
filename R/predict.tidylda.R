@@ -2,7 +2,7 @@
 #' Get predictions from a Latent Dirichlet Allocation model
 #' @description Obtains predictions of topics for new documents from a fitted LDA model
 #' @param object a fitted object of class \code{tidylda}
-#' @param newdata a DTM or TCM of class \code{dgCMatrix} or a numeric vector
+#' @param new_data a DTM or TCM of class \code{dgCMatrix} or a numeric vector
 #' @param method one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 #'        and \code{iterations} must be specified.
 #' @param iterations If \code{method = "gibbs"}, an integer number of iterations 
@@ -37,7 +37,7 @@
 #' barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
 #' }
 #' @export
-predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"), 
+predict.tidylda <- function(object, new_data, method = c("gibbs", "dot"), 
                             iterations = NULL, burnin = -1, ...) {
   
   ### Check inputs ----
@@ -53,63 +53,38 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
     
   }
   
-  if (sum(c("dgCMatrix", "numeric") %in% class(newdata)) < 1) {
-    stop("newdata must be a matrix of class dgCMatrix or a numeric vector")
-  }
-  
-  if (class(newdata) == "numeric") { # if newdata is a numeric vector, assumed to be 1 document
-    if (is.null(names(newdata))) {
-      stop("it looks like newdata is a numeric vector without names. 
-           Did you mean to pass a single document?
-           If so, it needs a names attribute to index tokens")
-    }
-    
-    
-    vocab <- names(newdata)
-    
-    newdata <- Matrix::Matrix(newdata, nrow = 1, sparse = TRUE)
-    
-    colnames(newdata) <- vocab
-    
-    rownames(newdata) <- 1
-    
-  } else { # assume you passed something that can be converted to dgCMatrix
-    
-    # Ensure dtm is of class dgCMatrix
-    newdata <- convert_dtm(dtm = newdata)
-    
-    
-  }
-  
+  # handle dtm
+  new_data <- convert_dtm(dtm = new_data)
+
   if (sum(c("gibbs", "dot") %in% method) == 0) {
     stop("method must be one of 'gibbs' or 'dot'")
   }
   
-  dtm_newdata <- newdata
+  dtm_new_data <- new_data
   
   ### Align vocabulary ----
   # this is fancy because of how we do indexing in gibbs sampling
   vocab_original <- colnames(object$phi) # tokens in training set
   
-  vocab_intersect <- intersect(vocab_original, colnames(dtm_newdata))
+  vocab_intersect <- intersect(vocab_original, colnames(dtm_new_data))
   
   vocab_add <- setdiff(vocab_original, vocab_intersect)
   
-  add_mat <- Matrix::Matrix(0, nrow = nrow(dtm_newdata), ncol = length(vocab_add))
+  add_mat <- Matrix::Matrix(0, nrow = nrow(dtm_new_data), ncol = length(vocab_add))
   
   colnames(add_mat) <- vocab_add
   
-  dtm_newdata <- Matrix::cbind2(dtm_newdata, add_mat)
+  dtm_new_data <- Matrix::cbind2(dtm_new_data, add_mat)
   
-  if (nrow(dtm_newdata) == 1) {
-    dtm_newdata <- Matrix::Matrix(dtm_newdata[,vocab_original], nrow = 1, sparse = TRUE)
+  if (nrow(dtm_new_data) == 1) {
+    dtm_new_data <- Matrix::Matrix(dtm_new_data[,vocab_original], nrow = 1, sparse = TRUE)
     
-    colnames(dtm_newdata) <- vocab_original
+    colnames(dtm_new_data) <- vocab_original
     
-    rownames(dtm_newdata) <- 1
+    rownames(dtm_new_data) <- 1
   } else {
 
-    dtm_newdata <- dtm_newdata[, vocab_original]
+    dtm_new_data <- dtm_new_data[, vocab_original]
     
   }
   
@@ -117,10 +92,10 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
   
   if (method[1] == "dot") { # dot product method
     
-    result <- dtm_newdata[, vocab_original]
+    result <- dtm_new_data[, vocab_original]
     
     # handle differently if one row
-    if (nrow(dtm_newdata) == 1) {
+    if (nrow(dtm_new_data) == 1) {
       result <- result / sum(result)
     } else {
       result <- result / Matrix::rowSums(result)
@@ -130,7 +105,7 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
     result <- as.matrix(result)
     result[is.na(result)] <- 0
     
-    rownames(result) <- rownames(dtm_newdata)
+    rownames(result) <- rownames(dtm_new_data)
     colnames(result) <- rownames(object$phi)
     
     
@@ -138,15 +113,15 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
     # format inputs
     
     # get initial distribution with recursive call to "dot" method
-    theta_initial <- predict.tidylda(object = object, newdata = newdata, method = "dot")
+    theta_initial <- predict.tidylda(object = object, new_data = new_data, method = "dot")
     
     # make sure priors are formatted correctly
-    beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_newdata))
+    beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_new_data))
     
     alpha <- format_alpha(object$alpha, k = nrow(object$phi))
     
     # get initial counts
-    lex <- initialize_topic_counts(dtm = dtm_newdata,
+    lex <- initialize_topic_counts(dtm = dtm_new_data,
                                    k = nrow(object$phi),
                                    alpha = alpha$alpha,
                                    beta = beta$beta,
@@ -172,7 +147,7 @@ predict.tidylda <- function(object, newdata, method = c("gibbs", "dot"),
                        optimize_alpha = FALSE)
     
     # format posterior prediction
-    result <- format_raw_lda_outputs(lda = lda, dtm = dtm_newdata, 
+    result <- format_raw_lda_outputs(lda = lda, dtm = dtm_new_data, 
                                      burnin = burnin, is_prediction = TRUE, ...)
     
   }

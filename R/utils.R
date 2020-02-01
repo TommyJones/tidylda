@@ -27,6 +27,22 @@ convert_dtm <- function(dtm) {
                                 dimnames = list(rownames = dtm$dimnames$Docs,
                                                 colnames = dtm$dimnames$Terms))
     
+  } else if (inherits(dtm, "numeric")){
+    
+    if (is.null(names(dtm))) {
+      stop("it looks like dtm (or new_data if you called 'predict') is a numeric ",
+           "vector without names.Did you mean to pass a single document? If so, ",
+           "it needs a names attribute to index tokens")
+    }
+    
+    vocab <- names(dtm)
+    
+    dtm <- Matrix::Matrix(dtm, nrow = 1, sparse = TRUE)
+    
+    colnames(dtm) <- vocab
+    
+    rownames(dtm) <- 1
+
   } else {
     stop("dtm cannot be converted to dgCMatrix. Supported classes are ", 
          "c('Matrix', 'matrix', 'simple_triplet_matrix', 'dfm', 'DocumentTermMatrix'), ",

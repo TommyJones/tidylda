@@ -13,26 +13,26 @@ test_that("can fit lda models without error", {
   # expected errors here
   expect_error(
     tidylda(dtm = d1, 
-                  k = 1, 
-                  iterations = 20, burnin = 10,
-                  alpha = 0.1, beta = 0.05,
-                  optimize_alpha = TRUE,
-                  calc_likelihood = FALSE,
-                  calc_r2 = FALSE,
-                  return_data = FALSE)
-  , regexp = "k must be 2 or greater")
+            k = 1, 
+            iterations = 20, burnin = 10,
+            alpha = 0.1, beta = 0.05,
+            optimize_alpha = TRUE,
+            calc_likelihood = FALSE,
+            calc_r2 = FALSE,
+            return_data = FALSE)
+    , regexp = "k must be 2 or greater")
   
   # if any of the below throw an error, you've got a problem...
   
   # scalar priors without optimizing alpha
   lda <- tidylda(dtm = d1, 
-                       k = 4, 
-                       iterations = 20, burnin = 10,
-                       alpha = 0.1, beta = 0.05,
-                       optimize_alpha = FALSE,
-                       calc_likelihood = TRUE,
-                       calc_r2 = FALSE,
-                       return_data = FALSE)
+                 k = 4, 
+                 iterations = 20, burnin = 10,
+                 alpha = 0.1, beta = 0.05,
+                 optimize_alpha = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = FALSE,
+                 return_data = FALSE)
   
   expect_length(lda$alpha, 1)
   
@@ -55,25 +55,25 @@ test_that("can fit lda models without error", {
   
   # scalar priors optimizing alpha
   lda <- tidylda(dtm = d1, 
-                       k = 4, 
-                       iterations = 20, burnin = 10,
-                       alpha = 0.1, beta = 0.05,
-                       optimize_alpha = TRUE,
-                       calc_likelihood = TRUE,
-                       calc_r2 = FALSE,
-                       return_data = FALSE)
+                 k = 4, 
+                 iterations = 20, burnin = 10,
+                 alpha = 0.1, beta = 0.05,
+                 optimize_alpha = TRUE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = FALSE,
+                 return_data = FALSE)
   
   expect_length(lda$alpha, 4)
   
   # vector priors
   lda <- tidylda(dtm = d1, 
-                       k = 4, 
-                       iterations = 20, burnin = 10,
-                       alpha = rep(0.1, 4), beta = rep(0.05, ncol(d1)),
-                       optimize_alpha = TRUE,
-                       calc_likelihood = TRUE,
-                       calc_r2 = FALSE,
-                       return_data = FALSE)
+                 k = 4, 
+                 iterations = 20, burnin = 10,
+                 alpha = rep(0.1, 4), beta = rep(0.05, ncol(d1)),
+                 optimize_alpha = TRUE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = FALSE,
+                 return_data = FALSE)
   
   expect_length(lda$alpha, 4)
   
@@ -81,18 +81,82 @@ test_that("can fit lda models without error", {
   
   # beta as matrix prior
   lda <- tidylda(dtm = d1, 
-                       k = 4, 
-                       iterations = 20, burnin = 10,
-                       alpha = 0.1, beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
-                       optimize_alpha = FALSE,
-                       calc_likelihood = FALSE,
-                       calc_r2 = FALSE,
-                       return_data = FALSE)
-
+                 k = 4, 
+                 iterations = 20, burnin = 10,
+                 alpha = 0.1, beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
+                 optimize_alpha = FALSE,
+                 calc_likelihood = FALSE,
+                 calc_r2 = FALSE,
+                 return_data = FALSE)
+  
   expect_equal(class(lda$beta), "matrix")
   
 })
 
-
+test_that("errors hit for malformed parameters", {
+  
+  # burnin >= iterations
+  expect_error(tidylda(dtm = d1, 
+                       k = 4, 
+                       iterations = 20, burnin = 21,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = FALSE,
+                       calc_likelihood = FALSE,
+                       calc_r2 = FALSE,
+                       return_data = FALSE))
+  
+  # non-numeric k
+  expect_error(tidylda(dtm = d1, 
+                       k = "4", 
+                       iterations = 20, burnin = 10,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = FALSE,
+                       calc_likelihood = FALSE,
+                       calc_r2 = FALSE,
+                       return_data = FALSE))
+  
+  # iterations not specified
+  expect_error(tidylda(dtm = d1, 
+                       k = 4))
+  
+  # non-logical logicals
+  expect_error(tidylda(dtm = d1, 
+                       k = "4", 
+                       iterations = 20, burnin = 10,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = "FALSE",
+                       calc_likelihood = FALSE,
+                       calc_r2 = FALSE,
+                       return_data = FALSE))
+  
+  expect_error(tidylda(dtm = d1, 
+                       k = "4", 
+                       iterations = 20, burnin = 10,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = FALSE,
+                       calc_likelihood = "FALSE",
+                       calc_r2 = FALSE,
+                       return_data = FALSE))
+  
+  expect_error(tidylda(dtm = d1, 
+                       k = "4", 
+                       iterations = 20, burnin = 10,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = FALSE,
+                       calc_likelihood = FALSE,
+                       calc_r2 = "FALSE",
+                       return_data = FALSE))
+  
+  expect_error(tidylda(dtm = d1, 
+                       k = "4", 
+                       iterations = 20, burnin = 10,
+                       alpha = 0.1, beta = 0.05,
+                       optimize_alpha = FALSE,
+                       calc_likelihood = FALSE,
+                       calc_r2 = FALSE,
+                       return_data = "FALSE"))
+  
+  
+})
 
 

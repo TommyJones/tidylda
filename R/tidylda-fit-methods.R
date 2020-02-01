@@ -145,8 +145,19 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
   
   beta <- format_beta(beta = beta, k = k, Nv = ncol(dtm))
   
+  # are you being logical
   if (! is.logical(calc_r2))
     stop("calc_r2 must be logical")
+  
+  if (! is.logical(calc_likelihood))
+    stop("calc_likelihood must be logical")
+  
+  if (! is.logical(calc_coherence))
+    stop("calc_coherence must be logical")
+  
+  if (! is.logical(return_data))
+    stop("return_data must be logical")
+  
   
   ### format inputs ----
   

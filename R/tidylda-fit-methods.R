@@ -87,7 +87,12 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                     optimize_alpha = FALSE, calc_likelihood = FALSE, 
                     calc_r2 = FALSE, return_data = FALSE, ...) {
   
+  # not using methods for now as I think this is cleaner
   # UseMethod("tidylda")
+  
+  # first, get the call for reproducibility
+  mc <- match.call()
+  
   
   tidylda_bridge(dtm = dtm, 
                  k = k, 
@@ -99,6 +104,7 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                  calc_likelihood = calc_likelihood,
                  calc_r2 = calc_r2,
                  return_data = return_data,
+                 mc,
                  ...)
   
 }
@@ -112,10 +118,7 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
 #'   \code{\link[tidylda]{tidylda}}.
 tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta, 
                            optimize_alpha, calc_likelihood, calc_r2, 
-                           return_data, ...) {
-  
-  # first, get the call for reproducibility
-  mc <- match.call()
+                           return_data, mc, ...) {
   
   ### check validity of inputs ----
   

@@ -24,7 +24,7 @@ lda <- tidylda(dtm = d1,
 
 test_that("can make predictions without error",{
   # one row gibbs with burnin
-  p <- predict(object = lda, newdata = d2[1,], method = "gibbs", iterations = 20, burnin = 10)
+  p <- predict(object = lda, new_data = d2[1,], method = "gibbs", iterations = 20, burnin = 10)
   
   expect_equal(nrow(p), 1)
   
@@ -33,7 +33,7 @@ test_that("can make predictions without error",{
   expect_setequal(colnames(p), colnames(lda$theta))
   
   # multi-row gibbs with burnin
-  p <- predict(object = lda, newdata = d2, method = "gibbs", iterations = 20, burnin = 10)
+  p <- predict(object = lda, new_data = d2, method = "gibbs", iterations = 20, burnin = 10)
   
   expect_equal(nrow(p), nrow(d2))
   
@@ -42,7 +42,7 @@ test_that("can make predictions without error",{
   expect_setequal(colnames(p), colnames(lda$theta))
   
   # single row dot method
-  p <- predict(object = lda, newdata = d2[1,], method = "dot")
+  p <- predict(object = lda, new_data = d2[1,], method = "dot")
   
   expect_equal(nrow(p), 1)
   
@@ -51,13 +51,31 @@ test_that("can make predictions without error",{
   expect_setequal(colnames(p), colnames(lda$theta))
   
   # multi-row dot method
-  p <- predict(object = lda, newdata = d2, method = "dot")
+  p <- predict(object = lda, new_data = d2, method = "dot")
   
   expect_equal(nrow(p), nrow(d2))
   
   expect_equal(ncol(p), ncol(lda$theta))
   
   expect_setequal(colnames(p), colnames(lda$theta))
+  
+})
+
+test_that("malformed args in predict throw errors",{
+  
+  # no iterations specified
+  expect_error(
+    predict(object = lda, new_data = d2, method = "gibbs")
+  )
+  
+  # burnin >= iterations
+  expect_error(
+    predict(object = lda, new_data = d2, method = "gibbs", iterations = 5, burnin = 6)
+  )
+  
+  # incorrect method
+  predict(object = lda, new_data = d2, method = "oops")
+  
   
 })
 

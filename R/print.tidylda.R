@@ -27,7 +27,8 @@ print.tidylda <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   
   s <- x$summary
   
-  cat("A Latent Dirichlet Allocation Model with", nrow(x$phi), "topics:\n")
+  cat("A Latent Dirichlet Allocation Model of ", nrow(x$phi), "topics, ",
+      nrow(x$theta), " documents, and ", ncol(x$theta), " tokens:\n")
   
   if ("r2" %in% names(x)) {
     cat("The model's R-squared is ", round(x$r2, digits = digits), "\n")

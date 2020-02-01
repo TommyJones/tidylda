@@ -17,7 +17,7 @@
 Print a summary for objects of class \code{tidylda}
 }
 \examples{
-\dontrun{
+\donttest{
 dtm <- textmineR::nih_sample_dtm
 
 lda <- tidylda(dtm = dtm, k = 10, iterations = 100)

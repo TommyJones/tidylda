@@ -11,6 +11,15 @@
 
 \item{...}{other arguments passed to methods}
 }
+\value{
+\code{glance} returns a one-row \code{\link[tibble]{tibble}} with the 
+  following columns:
+  
+  \code{num_topics}: the number of topics in the model
+  \code{num_documents}: the number of documents used for fitting
+  \code{num_tokens}: the number of tokens covered by the model
+  \code{num}
+}
 \description{
 \code{glance} constructs a single-row summary "glance" of a \code{tidylda}
   topic model.

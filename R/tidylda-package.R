@@ -14,6 +14,9 @@ NULL
 #' @import Rcpp
 #' @import furrr
 #' @import tibble
+#' @importFrom generics augment
+#' @importFrom generics glance
+#' @importFrom generics tidy
 #' @importFrom gtools rdirichlet
 #' @importFrom methods as
 #' @importFrom Matrix colSums

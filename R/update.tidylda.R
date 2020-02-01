@@ -183,7 +183,7 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
   phi_initial <- object$phi
   
   theta_initial <- predict.tidylda(object = object,
-                                           newdata = dtm,
+                                           new_data = dtm,
                                            method = "dot",
                                            ...)
   

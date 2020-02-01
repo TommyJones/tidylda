@@ -6,7 +6,7 @@
 \usage{
 \method{predict}{tidylda}(
   object,
-  newdata,
+  new_data,
   method = c("gibbs", "dot"),
   iterations = NULL,
   burnin = -1,
@@ -16,7 +16,7 @@
 \arguments{
 \item{object}{a fitted object of class \code{tidylda}}
 
-\item{newdata}{a DTM or TCM of class \code{dgCMatrix} or a numeric vector}
+\item{new_data}{a DTM or TCM of class \code{dgCMatrix} or a numeric vector}
 
 \item{method}{one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 and \code{iterations} must be specified.}

@@ -74,7 +74,9 @@ test_that("malformed args in predict throw errors",{
   )
   
   # incorrect method
-  predict(object = lda, new_data = d2, method = "oops")
+  expect_error(
+    predict(object = lda, new_data = d2, method = "oops")
+  )
   
   
 })

@@ -15,6 +15,7 @@ tidylda_bridge(
   calc_likelihood,
   calc_r2,
   return_data,
+  mc,
   ...
 )
 }

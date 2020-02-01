@@ -133,11 +133,18 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
   if (is.null(iterations))
     stop("You must specify number of iterations")
   
-  if (! is.logical(calc_likelihood))
-    stop("calc_likelihood must be TRUE or FALSE")
+  # are you being logical
+  if (! is.logical(calc_r2))
+    stop("calc_r2 must be logical")
   
+  if (! is.logical(calc_likelihood))
+    stop("calc_likelihood must be logical")
+  
+  if (! is.logical(return_data))
+    stop("return_data must be logical")
+
   if (! is.logical(phi_as_prior))
-    stop("phi_as_prior must be TRUE or FALSE")
+    stop("phi_as_prior must be logical")
   
   
   ### Pull out objects used for update ----

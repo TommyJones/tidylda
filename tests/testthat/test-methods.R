@@ -213,6 +213,124 @@ test_that("can update models",{
   
 })
 
+test_that("errors are thrown for malformed inputs to update.tidylda",{
+  
+  # burnin >= iterations
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 30,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  )
+  
+  # additional_k is not numeric
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = "3",
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  )
+  
+  # additional_k is less than zero
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = -3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  )
+  
+  # iterations not specified
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE)
+  )
+  
+  # logical things aren't logical
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = "TRUE",
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  )
+  
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = "TRUE",
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  )
+  
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = "TRUE",
+           calc_r2 = TRUE,
+           return_data = FALSE)
+  ) 
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = "TRUE",
+           return_data = FALSE)
+  )
+  
+  expect_error(
+    update(object = lda, 
+           dtm = d2,
+           additional_k = 3,
+           phi_as_prior = TRUE,
+           iterations = 20, 
+           burnin = 10,
+           optimize_alpha = TRUE,
+           calc_likelihood = TRUE,
+           calc_r2 = TRUE,
+           return_data = "FALSE")
+  )  
+  
+})
 
 ### Tests for the print method ----
 

@@ -507,36 +507,28 @@ format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
     }
     
     # resulting object
-    result <- list(phi = phi,
-                   theta = theta,
-                   gamma = gamma,
-                   alpha = alpha_out,
-                   beta = beta_out,
-                   log_likelihood = as_tibble(data.frame(iteration = lda$log_likelihood[1,],
-                                                         log_likelihood = lda$log_likelihood[2, ]))
-    ) # add other things here if necessary
+    summary <- summarize_topics(phi = phi, theta = theta, dtm = dtm)
     
-    class(result) <- "tidylda"
+    log_likelihood <- as_tibble(data.frame(iteration = lda$log_likelihood[1,],
+                                           log_likelihood = lda$log_likelihood[2, ]))
     
+    result <- new_tidylda(phi = phi,
+                          theta = theta,
+                          gamma = gamma,
+                          alpha = alpha_out,
+                          beta = beta_out,
+                          summary = summary,
+                          call = call,
+                          log_likelihood = log_likelihood)
+
     ### calculate and add other things ---
-    
-    result$summary <- summarize_topics(phi = result$phi, theta = result$theta,
-                                       dtm = dtm)
-    
-    # get arguments for auditiability
-    # result$other_call_args <- list(iterations = iterations, 
-    #                                burnin = burnin,
-    #                                optimize_alpha = optimize_alpha)
-    
+
     # goodness of fit
     if (calc_r2) {
       result$r2 <- textmineR::CalcTopicModelR2(dtm = dtm, 
                                                phi = result$phi, 
                                                theta = result$theta, ...)
     }
-    
-    # call
-    result$call <- call
     
     # a little cleanup here
     if (! calc_likelihood) {

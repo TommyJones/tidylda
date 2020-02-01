@@ -108,10 +108,6 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
   
   ### Check inputs are of correct dimensionality ----
   
-  # object of correct class?
-  if (class(object) != "tidylda")
-    stop("object must be of class tidylda")
-  
   # iterations and burnin acceptable?
   if (burnin >= iterations) {
     stop("burnin must be less than iterations")

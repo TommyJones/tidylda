@@ -94,8 +94,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))
@@ -117,8 +117,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))
@@ -137,8 +137,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))
@@ -157,8 +157,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))
@@ -177,8 +177,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))
@@ -198,8 +198,8 @@ test_that("can update models",{
                  iterations = 20, 
                  burnin = 10,
                  optimize_alpha = TRUE,
-                 calc_likelihood = FALSE,
-                 calc_r2 = FALSE,
+                 calc_likelihood = TRUE,
+                 calc_r2 = TRUE,
                  return_data = FALSE)
   
   expect_named(lda2, names(lda))

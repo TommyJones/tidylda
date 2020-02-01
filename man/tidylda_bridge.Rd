@@ -4,7 +4,19 @@
 \alias{tidylda_bridge}
 \title{Bridge function for fitting \code{tidylda} topic models}
 \usage{
-tidylda_bridge(...)
+tidylda_bridge(
+  dtm,
+  k,
+  iterations,
+  burnin,
+  alpha,
+  beta,
+  optimize_alpha,
+  calc_likelihood,
+  calc_r2,
+  return_data,
+  ...
+)
 }
 \description{
 Takes in arguments from various \code{tidylda} S3 methods and fits the 

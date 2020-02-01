@@ -82,28 +82,38 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
                     optimize_alpha = FALSE, calc_likelihood = FALSE, 
                     calc_r2 = FALSE, return_data = FALSE, ...) {
   
-  UseMethod("tidylda")
+  NextMethod("tidylda", 
+            dtm = dtm, 
+            k = k,
+            iterations = iterations,
+            burnin = burnin,
+            alpha = alpha,
+            beta = beta,
+            optimize_alpha = optimize_alpha,
+            calc_likelihood = calc_likelihood,
+            calc_r2 = calc_r2,
+            return_data = return_data,
+            ...)
   
 }
 
 #' @describeIn tidylda tidylda fit method for \code{dgCMatrix}
-#' @export
-tidylda.dgCMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.dgCMatrix <- function(...) tidylda_bridge(...)
 
 #' @describeIn tidylda tidylda fit method for \code{\link[base]{matrix}}
-tidylda.matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.matrix <- function(...) tidylda_bridge(...)
 
 #' @describeIn tidylda tidylda fit method for  \code{\link[Matrix]{Matrix}}
-tidylda.Matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.Matrix <- function(...) tidylda_bridge(...)
 
 #' @describeIn tidylda tidylda fit method for \code{\link[quanteda]{dfm}}
-tidylda.dfm <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.dfm <- function(...) tidylda_bridge(...)
 
 #' @describeIn tidylda tidylda fit method for \code{\link[slam]{simple_triplet_matrix}}
-tidylda.simple_triplet_matrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.simple_triplet_matrix <- function(...) tidylda_bridge(...)
 
 #' @describeIn tidylda tidylda fit method for \code{\link[tm]{DocumentTermMatrix}}
-tidylda.DocumentTermMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
+tidylda.DocumentTermMatrix <- function(...) tidylda_bridge(...)
 
 
 #' Bridge function for fitting \code{tidylda} topic models
@@ -112,7 +122,9 @@ tidylda.DocumentTermMatrix <- function(dtm, ...) tidylda_bridge(dtm = dtm, ...)
 #'   Takes in arguments from various \code{tidylda} S3 methods and fits the 
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
-tidylda_bridge <- function(...) {
+tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta, 
+                           optimize_alpha, calc_likelihood, calc_r2, 
+                           return_data, ...) {
   
   # first, get the call for reproducibility
   mc <- match.call()

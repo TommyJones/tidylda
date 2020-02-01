@@ -2,7 +2,6 @@
 
 S3method(predict,tidylda)
 S3method(print,tidylda)
-S3method(tidylda,dgCMatrix)
 S3method(update,tidylda)
 export(tidylda)
 export(update)

@@ -2,17 +2,103 @@
 % Please edit documentation in R/update.tidylda.R
 \name{update}
 \alias{update}
-\title{Update methods for topic models}
+\alias{update.tidylda}
+\title{Update a Latent Dirichlet Allocation topic model}
 \usage{
 update(object, ...)
+
+\method{update}{tidylda}(
+  object,
+  dtm,
+  iterations = NULL,
+  burnin = -1,
+  optimize_alpha = FALSE,
+  calc_likelihood = FALSE,
+  calc_r2 = FALSE,
+  return_data = FALSE,
+  additional_k = 0,
+  phi_as_prior = FALSE,
+  ...
+)
 }
 \arguments{
-\item{object}{An existing trained topic model}
+\item{object}{a fitted object of class \code{tidylda}.}
 
-\item{...}{Additional arguments to the call}
+\item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
+
+\item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
+
+\item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
+
+\item{burnin}{Integer number of burnin iterations. If \code{burnin} is greater than -1,
+the resulting "phi" and "theta" matrices are an average over all iterations
+greater than \code{burnin}.}
+
+\item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
+Defaults to \code{FALSE}. See 'details' of documentation for
+\code{\link[textmineR]{FitLdaModel}}for more information.}
+
+\item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
+Useful for assessing convergence. Defaults to \code{FALSE}.}
+
+\item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
+Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
+
+\item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
+
+\item{additional_k}{Integer number of topics to add, defaults to 0.}
+
+\item{phi_as_prior}{Logical. Do you want to replace \code{beta} with \code{phi}
+from the previous model as the prior for words over topics?}
+}
+\value{
+Returns an S3 object of class c("tidylda").
 }
 \description{
-\code{update} updates a previously-trained topic model based
-on new data or continues training a model with its original data. Useful for 
-updates or transfer learning.
+Update an LDA model using collapsed Gibbs sampling.
+}
+\details{
+prior + counts vs. counts only. Vocab alignment + uniform prior over new words. 
+         Adding additional topics. works best with significant vocab overlap
+}
+\section{Methods (by class)}{
+\itemize{
+\item \code{tidylda}: Update method for \code{tidylda}
+}}
+
+\examples{
+\dontrun{
+# load a document term matrix
+data(nih_sample_dtm, package = "textmineR")
+
+d1 <- nih_sample_dtm[1:50,]
+
+d2 <- nih_sample_dtm[51:100,]
+
+# fit a model
+m <- tidylda(d1, k = 10, 
+                  iterations = 200, burnin = 175)
+
+# update an existing model by adding documents
+m2 <- update(object = m,
+             dtm = rbind(d1, d2),
+             iterations = 200,
+             burnin = 175)
+             
+# use an old model as a prior for a new model
+m3 <- update(object = m,
+             dtm = d2, # new documents only
+             phi_as_prior = TRUE,
+             iterations = 200,
+             burnin = 175)
+             
+# add topics while updating a model by adding documents
+m4 <- update(object = m,
+             dtm = rbind(d1, d2),
+             additional_k = 3,
+             iterations = 200,
+             burnin = 175)
+             
+
+}
 }

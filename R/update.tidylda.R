@@ -1,12 +1,3 @@
-#' Update methods for topic models
-#' @description \code{update} updates a previously-trained topic model based
-#' on new data or continues training a model with its original data. Useful for 
-#' updates or transfer learning.
-#' @param object An existing trained topic model
-#' @param ... Additional arguments to the call
-#' @export
-update <- function(object, ...) UseMethod("update")
-
 #' Update a Latent Dirichlet Allocation topic model
 #' @description Update an LDA model using collapsed Gibbs sampling. 
 #' @param object a fitted object of class \code{tidylda}.
@@ -67,6 +58,10 @@ update <- function(object, ...) UseMethod("update")
 #'              
 #' 
 #' }
+update <- function(object, ...) UseMethod("update")
+
+#' @describeIn update Update method for \code{tidylda}
+#' @export
 update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1, 
                            optimize_alpha = FALSE, calc_likelihood = FALSE, 
                            calc_r2 = FALSE, return_data = FALSE, 

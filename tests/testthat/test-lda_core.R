@@ -10,18 +10,6 @@ d1 <- dtm[1:50, ]
 
 test_that("can fit lda models without error", {
   
-  # expected errors here
-  expect_error(
-    tidylda(dtm = d1, 
-            k = 1, 
-            iterations = 20, burnin = 10,
-            alpha = 0.1, beta = 0.05,
-            optimize_alpha = TRUE,
-            calc_likelihood = FALSE,
-            calc_r2 = FALSE,
-            return_data = FALSE)
-    , regexp = "k must be 2 or greater")
-  
   # if any of the below throw an error, you've got a problem...
   
   # scalar priors without optimizing alpha
@@ -95,6 +83,20 @@ test_that("can fit lda models without error", {
 
 test_that("errors hit for malformed parameters", {
   
+  # k = 1 is bad
+  expect_error(
+    tidylda(dtm = d1, 
+            k = 1, 
+            iterations = 20, burnin = 10,
+            alpha = 0.1, beta = 0.05,
+            optimize_alpha = TRUE,
+            calc_likelihood = FALSE,
+            calc_r2 = FALSE,
+            return_data = FALSE)
+    , regexp = "k must be 2 or greater")
+  
+  
+  
   # burnin >= iterations
   expect_error(tidylda(dtm = d1, 
                        k = 4, 
@@ -121,7 +123,7 @@ test_that("errors hit for malformed parameters", {
   
   # non-logical logicals
   expect_error(tidylda(dtm = d1, 
-                       k = "4", 
+                       k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = "FALSE",
@@ -130,7 +132,7 @@ test_that("errors hit for malformed parameters", {
                        return_data = FALSE))
   
   expect_error(tidylda(dtm = d1, 
-                       k = "4", 
+                       k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = FALSE,
@@ -139,7 +141,7 @@ test_that("errors hit for malformed parameters", {
                        return_data = FALSE))
   
   expect_error(tidylda(dtm = d1, 
-                       k = "4", 
+                       k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = FALSE,
@@ -148,7 +150,7 @@ test_that("errors hit for malformed parameters", {
                        return_data = FALSE))
   
   expect_error(tidylda(dtm = d1, 
-                       k = "4", 
+                       k = 4, 
                        iterations = 20, burnin = 10,
                        alpha = 0.1, beta = 0.05,
                        optimize_alpha = FALSE,

@@ -6,8 +6,7 @@ docs <- textmineR::nih_sample
 
 tidy_docs <- unnest_tokens(tbl = docs[, c("APPLICATION_ID", "ABSTRACT_TEXT")],
                            input = "ABSTRACT_TEXT",
-                           output = "word",
-                           stopwords = stop_words$word)
+                           output = "word")
 
 tidy_docs$count <- 1
 

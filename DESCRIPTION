@@ -29,13 +29,13 @@ Imports:
     stringr,
     textmineR,
     tibble,
-    tidyr
+    tidyr,
+    tidytext
 Suggests:
     furrr,
     parallel,
     knitr,
     testthat,
-    tidytext
 LinkingTo: Rcpp, 
     RcppArmadillo,
 RoxygenNote: 7.0.2

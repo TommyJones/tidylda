@@ -36,6 +36,8 @@ Suggests:
     parallel,
     knitr,
     testthat,
+    tm,
+    quanteda
 LinkingTo: Rcpp, 
     RcppArmadillo,
 RoxygenNote: 7.0.2

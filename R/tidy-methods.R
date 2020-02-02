@@ -70,6 +70,9 @@ glance.tidylda <- function(x, ...) {
 #'   
 #'   If \code{matrix = "gamma"} then the result is a table of one row per topic
 #'   and token with the following columns: \code{topic}, \code{token}, \code{gamma}
+#' @note
+#'   If \code{log = TRUE} then "log_" will be appended to the name of the third
+#'   column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".
 #' @examples
 #' \donttest{
 #'   dtm <- textmineR::nih_sample_dtm
@@ -134,6 +137,8 @@ tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
   if (log) {
     
     out[[3]] <- log(out[[3]])
+    
+    names(out)[3] <- paste0("log_", names(out)[3])
     
   }
   

@@ -98,6 +98,13 @@ format_beta <- function(beta, k, Nv) {
     
   } else if (is.matrix(beta)) { # if beta is a matrix
     
+    # check dims before moving on
+    if (nrow(beta) != k | ncol(beta) != Nv)
+      stop("If beta is a matrix, it must have the same number of rows as topics ",
+           "and it must have the same number of columns (tokens) as your dtm. ",
+           "But I see nrow(beta) = ", nrow(beta), " and k = ", k, ". I also see ",
+           "ncol(beta) = ", ncol(beta), " but ncol(dtm) = ", Nv)
+    
     beta_class <- "matrix"
     
   }

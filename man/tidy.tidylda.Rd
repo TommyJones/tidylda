@@ -31,6 +31,10 @@ Returns a \code{\link[tibble]{tibble}}.
 \description{
 Tidy the result of a \code{tidylda} topic model
 }
+\note{
+If \code{log = TRUE} then "log_" will be appended to the name of the third
+  column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".
+}
 \examples{
 \donttest{
   dtm <- textmineR::nih_sample_dtm

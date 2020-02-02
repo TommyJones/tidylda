@@ -104,7 +104,7 @@ Updates are, as of this writing, are almost-surely useful but their behaviors
  have not been optimized or well-studied. Caveat emptor!
 }
 \examples{
-\dontrun{
+\donttest{
 # load a document term matrix
 data(nih_sample_dtm, package = "textmineR")
 

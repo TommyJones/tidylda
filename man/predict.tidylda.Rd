@@ -38,7 +38,7 @@ a "theta" matrix with one row per document and one column per topic
 Obtains predictions of topics for new documents from a fitted LDA model
 }
 \examples{
-\dontrun{
+\donttest{
 # load some data
 data(nih_sample_dtm, package = "textmineR")
 

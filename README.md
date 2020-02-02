@@ -5,6 +5,8 @@
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
+# tidylda <img src='man/figures/logo.png' align="right" height="136.5" />
+
 Latent Dirichlet Allocation Using 'tidyverse' Conventions
 
 Copyright 2020 by Thomas W. Jones

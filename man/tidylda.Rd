@@ -78,7 +78,7 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   iteration after the specified  number of burn-in iterations. If you do not 
   use burn-in iterations, then the matrices are calculated from the last run
   only. Ideally, you'd burn in every iteration before convergence, then average
-  over the chain after its converved (and thus every observation is independent).
+  over the chain after its converged (and thus every observation is independent).
   
   If you set \code{optimize_alpha} to \code{TRUE}, then each element of \code{alpha}
   is proportional to the number of times each topic has be sampled that iteration

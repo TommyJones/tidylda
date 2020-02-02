@@ -50,7 +50,7 @@
 #'     the iteration and log likelihood at that iteration. This slot is only populated
 #'     if \code{calc_likelihood = TRUE}
 #'   
-#'   \code{r2} is a numeric scalar resuting from a call to 
+#'   \code{r2} is a numeric scalar resulting from a call to 
 #'     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
 #'     \code{calc_r2 = TRUE}
 #' @note

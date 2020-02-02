@@ -8,7 +8,7 @@
 #' @description
 #'   Presently, \code{tidylda} makes heavy usage of the \code{dgCMatrix} class.
 #'   However, a user may have created a DTM (or TCM) in one of several classes.
-#'   Since data could be in several formats, this function convernts them to a 
+#'   Since data could be in several formats, this function converts them to a 
 #'   \code{dgCMatrix} before passing them along.
 #' @param dtm the data you want to convert
 #' @return an object of class \code{dgCMatrix}
@@ -57,7 +57,7 @@ convert_dtm <- function(dtm) {
 #' @description
 #'   There are a bunch of ways users could format \code{beta} but the C++ Gibbs
 #'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
-#'   approprate formatting. It also returns errors if the user input a malformatted
+#'   appropriate formatting. It also returns errors if the user input a malformatted
 #'   \code{beta}.
 #' @param beta the prior for words over topics. Can be a numeric scalar, numeric 
 #'   vector, or numeric matrix.
@@ -66,7 +66,7 @@ convert_dtm <- function(dtm) {
 #'   in \code{\link[tidylda]{tidylda}}.
 #' @return 
 #'   Returns a list with two elements: \code{beta} and \code{beta_class}. 
-#'   \code{beta} is the post-formatted versionof \code{beta} in the form of a 
+#'   \code{beta} is the post-formatted version of \code{beta} in the form of a 
 #'   \code{k} by \code{Nv} numeric matrix. \code{beta_class} is a character 
 #'   denoting whether or not the user-supplied \code{beta} was a "scalar", 
 #'   "vector", or "matrix".
@@ -119,7 +119,7 @@ format_beta <- function(beta, k, Nv) {
 #' @description
 #'   There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
 #'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
-#'   approprate formatting. It also returns errors if the user input a malformatted
+#'   appropriate formatting. It also returns errors if the user input a malformatted
 #'   \code{alpha}.
 #' @param alpha the prior for topics over documents. Can be a numeric scalar or 
 #'   numeric vector.
@@ -165,7 +165,7 @@ format_alpha <- function(alpha, k) {
 #'   Gibbs iteration to populate topic counts (and other objects) used during the
 #'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that 
 #'   you aren't using fancy seeding or transfer learning, this makes a random
-#'   initialization by sampling from Dirichlet distributions paramaterized by 
+#'   initialization by sampling from Dirichlet distributions parameterized by 
 #'   priors \code{alpha} and \code{beta}.
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
 #' @param k the number of topics 
@@ -413,7 +413,7 @@ summarize_topics <- function(theta, phi, dtm){
 #'   the model? If \code{is_prediction = TRUE}, this argument is ignored.
 #' @param calc_likelihood did you calculate the log likelihood when making a call
 #'   to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
-#'   rgument is ignored.
+#'   argument is ignored.
 #' @param call the result of calling \code{\link[base]{match.call}} at the top of 
 #'   \code{\link[tidylda]{tidylda}}.
 #' @return
@@ -449,7 +449,7 @@ summarize_topics <- function(theta, phi, dtm){
 #'     the iteration and log likelihood at that iteration. This slot is only populated
 #'     if \code{calc_likelihood = TRUE}
 #'   
-#'   \code{r2} is a numeric scalar resuting from a call to 
+#'   \code{r2} is a numeric scalar resulting from a call to 
 #'     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
 #'     \code{calc_r2 = TRUE}
 #' @note

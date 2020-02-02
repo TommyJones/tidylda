@@ -1,7 +1,7 @@
 #' Print Method for tidylda
 #' @description Print a summary for objects of class \code{tidylda}
 #' @param x an object of class \code{tidylda}
-#' @param digits minimal numer of significant digits
+#' @param digits minimal number of significant digits
 #' @param ... further arguments passed to or from other methods
 #' @examples 
 #' \donttest{

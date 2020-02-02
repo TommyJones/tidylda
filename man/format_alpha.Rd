@@ -22,7 +22,7 @@ Returns a list with two elements: \code{alpha} and \code{alpha_class}.
 \description{
 There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
-  approprate formatting. It also returns errors if the user input a malformatted
+  appropriate formatting. It also returns errors if the user input a malformatted
   \code{alpha}.
 }
 \keyword{internal}

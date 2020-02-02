@@ -41,7 +41,7 @@ the model? If \code{is_prediction = TRUE}, this argument is ignored.}
 
 \item{calc_likelihood}{did you calculate the log likelihood when making a call
 to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
-rgument is ignored.}
+argument is ignored.}
 
 \item{call}{the result of calling \code{\link[base]{match.call}} at the top of 
 \code{\link[tidylda]{tidylda}}.}
@@ -79,7 +79,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
     the iteration and log likelihood at that iteration. This slot is only populated
     if \code{calc_likelihood = TRUE}
   
-  \code{r2} is a numeric scalar resuting from a call to 
+  \code{r2} is a numeric scalar resulting from a call to 
     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
     \code{calc_r2 = TRUE}
 }

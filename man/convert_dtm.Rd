@@ -16,7 +16,7 @@ an object of class \code{dgCMatrix}
 \description{
 Presently, \code{tidylda} makes heavy usage of the \code{dgCMatrix} class.
   However, a user may have created a DTM (or TCM) in one of several classes.
-  Since data could be in several formats, this function convernts them to a 
+  Since data could be in several formats, this function converts them to a 
   \code{dgCMatrix} before passing them along.
 }
 \keyword{internal}

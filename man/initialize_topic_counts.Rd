@@ -67,7 +67,7 @@ Implementing seeded (or guided) LDA models and transfer learning means that
   Gibbs iteration to populate topic counts (and other objects) used during the
   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that 
   you aren't using fancy seeding or transfer learning, this makes a random
-  initialization by sampling from Dirichlet distributions paramaterized by 
+  initialization by sampling from Dirichlet distributions parameterized by 
   priors \code{alpha} and \code{beta}.
 }
 \note{

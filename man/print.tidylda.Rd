@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{an object of class \code{tidylda}}
 
-\item{digits}{minimal numer of significant digits}
+\item{digits}{minimal number of significant digits}
 
 \item{...}{further arguments passed to or from other methods}
 }

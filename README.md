@@ -11,7 +11,7 @@ Latent Dirichlet Allocation Using 'tidyverse' Conventions
 
 Copyright 2020 by Thomas W. Jones
 
-Implements an algorithim for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). 
+Implements an algorithm for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). 
     
 In addition this implementation of LDA allows you to:
 
@@ -21,4 +21,6 @@ In addition this implementation of LDA allows you to:
 * apply LDA in a transfer-learning paradigm, updating a model's parameters with additional data (or additional iterations)
 
 Note that the seeding of topics and transfer learning are **experimental** for now. They are almost-surely useful but their behaviors have not been optimized or well-studied. Caveat emptor!
+
+# 
 

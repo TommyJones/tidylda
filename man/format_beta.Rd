@@ -17,7 +17,7 @@ in \code{\link[tidylda]{tidylda}}.}
 }
 \value{
 Returns a list with two elements: \code{beta} and \code{beta_class}. 
-  \code{beta} is the post-formatted versionof \code{beta} in the form of a 
+  \code{beta} is the post-formatted version of \code{beta} in the form of a 
   \code{k} by \code{Nv} numeric matrix. \code{beta_class} is a character 
   denoting whether or not the user-supplied \code{beta} was a "scalar", 
   "vector", or "matrix".
@@ -25,7 +25,7 @@ Returns a list with two elements: \code{beta} and \code{beta_class}.
 \description{
 There are a bunch of ways users could format \code{beta} but the C++ Gibbs
   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
-  approprate formatting. It also returns errors if the user input a malformatted
+  appropriate formatting. It also returns errors if the user input a malformatted
   \code{beta}.
 }
 \keyword{internal}

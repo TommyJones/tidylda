@@ -434,5 +434,81 @@ test_that("glance works with updated models", {
 
 })
 
+### test tidy methods ----
 
+test_that("tidy.tidylda works as expected", {
+  
+  # tidy phi
+  tidy_phi <- tidy(x = lda,
+                   matrix = "phi")
+  
+  expect_named(tidy_phi, c("topic", "token", "phi"))
+  
+  expect_type(tidy_phi[[1]], "double")
+  
+  expect_type(tidy_phi[[2]], "character")
+  
+  expect_type(tidy_phi[[3]], "double")
+  
+  # log to tidy phi
+  tidy_phi_log <- tidy(x = lda,
+                       matrix = "phi",
+                       log = TRUE)
+  
+  expect_named(tidy_phi_log, c("topic", "token", "log_phi"))
+  
+  expect_type(tidy_phi_log[[1]], "double")
+  
+  expect_type(tidy_phi_log[[2]], "character")
+  
+  expect_type(tidy_phi_log[[3]], "double")
+  
+  # tidy theta
+  tidy_theta <- tidy(x = lda,
+                     matrix = "theta")
+  
+  expect_named(tidy_theta, c("document", "topic", "theta"))
+  
+  expect_type(tidy_theta[[1]], "character")
+  
+  expect_type(tidy_theta[[2]], "double")
+  
+  expect_type(tidy_theta[[3]], "double")
+  
+  # tidy gamma
+  tidy_gamma <- tidy(x = lda,
+                     matrix = "gamma")
+  
+  expect_named(tidy_gamma, c("topic", "token", "gamma"))
+  
+  expect_type(tidy_gamma[[1]], "double")
+  
+  expect_type(tidy_gamma[[2]], "character")
+  
+  expect_type(tidy_gamma[[3]], "double")
+  
+  
+  
+  
+})
 
+test_that("tidy.tidylda throws errors for malformed inputs", {
+  
+  expect_error(
+    tidy(x = lda,
+         matrix = "WRONG")
+  )
+  
+  expect_error(
+    tidy(x = lda,
+         matrix = 1)
+  )
+  
+  expect_error(
+    tidy(x = lda,
+         matrix = "phi",
+         log = "WRONG")
+  )
+  
+  
+})

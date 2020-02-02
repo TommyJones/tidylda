@@ -399,7 +399,7 @@ test_that("glance.tidylda behaves nicely", {
                                         prevalence = 0,
                                         coherence = 0,
                                         top_terms = "0",
-                                        stringsAsFactpr = FALSE),
+                                        stringsAsFactors = FALSE),
                    call = "whee")
   
   g <- glance(n)

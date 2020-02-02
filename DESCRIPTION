@@ -1,30 +1,27 @@
-Package: tidylda
 Type: Package
+Package: tidylda
 Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
 Version: 0.0.0.999
-Authors@R: c(
-    person(given = "Tommy", 
-           family = "Jones", 
-           role = c("aut", "cre"), 
+Authors@R: 
+    person(given = "Tommy",
+           family = "Jones",
+           role = c("aut", "cre"),
            email = "jones.thos.w@gmail.com",
            comment = c(ORCID = "0000-0001-6457-2452"))
-    )
-Description: Implements an algorithm for Latent Dirichlet Allocation (LDA)
-    using style conventions from the 'tidyverse' and specifically 'tidymodels'. 
-    Also implements several novel features for LDA such as guided models and 
-    transfer learning.
+Description: Implements an algorithm for Latent Dirichlet
+    Allocation (LDA) using style conventions from the 'tidyverse' and
+    specifically 'tidymodels'.  Also implements several novel features for
+    LDA such as guided models and transfer learning.
 License: MIT + file LICENSE
-Encoding: UTF-8
 URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
-LazyData: true
 Depends: 
     Matrix
 Imports:
     generics,
     gtools,
     methods,
-    Rcpp (>= 1.0.2), 
+    Rcpp (>= 1.0.2),
     stats,
     stringr,
     textmineR,
@@ -33,12 +30,16 @@ Imports:
     tidytext
 Suggests:
     furrr,
-    parallel,
     knitr,
+    parallel,
+    quanteda,
     testthat,
-    tm,
-    quanteda
-LinkingTo: Rcpp, 
-    RcppArmadillo,
+    tm
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
+VignetteBuilder: 
+    knitr
+Encoding: UTF-8
+LazyData: true
 RoxygenNote: 7.0.2
-VignetteBuilder: knitr

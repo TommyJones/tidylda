@@ -14,7 +14,7 @@
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # load some data
 #' data(nih_sample_dtm, package = "textmineR")
 #' 

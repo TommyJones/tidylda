@@ -60,7 +60,7 @@
 #'  have not been optimized or well-studied. Caveat emptor!
 #' @export
 #' @examples 
-#' \dontrun{
+#' \donttest{
 #' # load a document term matrix
 #' data(nih_sample_dtm, package = "textmineR")
 #' 

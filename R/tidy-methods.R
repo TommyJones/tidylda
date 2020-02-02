@@ -51,4 +51,14 @@ glance.tidylda <- function(x, ...) {
   
 }
 
-
+#' Tidy a matrix from a \code{tidylda} topic model
+#' @description
+#' @param
+#' @return
+#' @examples
+#' @export
+tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
+  
+  print("nothing to see here yet")
+  
+}

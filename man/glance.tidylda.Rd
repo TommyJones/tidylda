@@ -18,7 +18,8 @@
   \code{num_topics}: the number of topics in the model
   \code{num_documents}: the number of documents used for fitting
   \code{num_tokens}: the number of tokens covered by the model
-  \code{num}
+  \code{iterations}: number of total Gibbs iterations run
+  \code{burnin}: number of burn-in Gibbs iterations run
 }
 \description{
 \code{glance} constructs a single-row summary "glance" of a \code{tidylda}

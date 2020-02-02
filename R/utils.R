@@ -100,12 +100,6 @@ format_beta <- function(beta, k, Nv) {
     
     beta_class <- "matrix"
     
-  } else { # if beta is of an un supported data type
-    
-    stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
-         a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
-         values and at least one non-zero value.")
-    
   }
   
   

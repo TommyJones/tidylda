@@ -12,3 +12,4 @@
 
 ^R/_sandbox_lda_gibbs2.R$
 ^appveyor\.yml$
+^LICENSE\.md$

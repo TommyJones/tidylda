@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{an object of class \code{tidylda}}
 
-\item{...}{other arguments passed to methods}
+\item{...}{other arguments passed to methods,currently not used}
 }
 \value{
 \code{glance} returns a one-row \code{\link[tibble]{tibble}} with the 

@@ -27,7 +27,8 @@ Imports:
     Rcpp (>= 1.0.2), 
     stats,
     textmineR,
-    tibble
+    tibble,
+    tidyr
 Suggests:
     furrr,
     parallel,

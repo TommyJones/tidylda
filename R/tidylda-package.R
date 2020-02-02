@@ -27,6 +27,7 @@ NULL
 #' @importFrom textmineR CalcProbCoherence
 #' @importFrom textmineR CalcTopicModelR2
 #' @importFrom tibble as_tibble
+#' @importFrom tidyr pivot_longer
 #' @useDynLib "tidylda", .registration=TRUE
 NULL
 

@@ -6,9 +6,41 @@
 \usage{
 \method{tidy}{tidylda}(x, matrix, log = FALSE, ...)
 }
-\value{
+\arguments{
+\item{x}{an object of class \code{tidylda}}
 
+\item{matrix}{the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or 
+\code{'gamma'}}
+
+\item{log}{do you want to have the result on a log scale? Defaults to \code{FALSE}}
+
+\item{...}{other arguments passed to methods,currently not used}
+}
+\value{
+Returns a \code{\link[tibble]{tibble}}.
+  
+  If \code{matrix = "phi"} then the result is a table of one row per topic
+  and token with the following columns: \code{topic}, \code{token}, \code{phi}
+  
+  If \code{matrix = "theta"} then the result is a table of one row per document
+  and topic with the following columns: \code{document}, \code{topic}, \code{theta}
+  
+  If \code{matrix = "gamma"} then the result is a table of one row per topic
+  and token with the following columns: \code{topic}, \code{token}, \code{gamma}
 }
 \description{
-Tidy a matrix from a \code{tidylda} topic model
+Tidy the result of a \code{tidylda} topic model
+}
+\examples{
+\donttest{
+  dtm <- textmineR::nih_sample_dtm
+  
+  lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
+  
+  tidy_phi <- tidy(lda, matrix = "phi")
+  
+  tidy_theta <- tidy(lda, matrix = "theta")
+  
+  tidy_gamma <- tidy(lda, matrix = "gamma")
+}
 }

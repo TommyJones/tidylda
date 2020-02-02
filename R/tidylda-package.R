@@ -23,6 +23,7 @@ NULL
 #' @importFrom Matrix cbind2
 #' @importFrom Rcpp sourceCpp
 #' @importFrom stats median
+#' @importFrom stringr str_replace_all
 #' @importFrom textmineR CalcGamma
 #' @importFrom textmineR CalcProbCoherence
 #' @importFrom textmineR CalcTopicModelR2

@@ -106,7 +106,7 @@ tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
                       x$phi, 
                       stringsAsFactors = FALSE)
     
-    out <- tidyr::pivot_longer(data = out, cols = -topic, 
+    out <- tidyr::pivot_longer(data = out, cols = setdiff(colnames(out), "topic"), 
                                names_to = "token", values_to = "phi")
     
   } else if (matrix == "theta") {
@@ -115,7 +115,7 @@ tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
                       x$theta,
                       stringsAsFactors = FALSE)
     
-    out <- tidyr::pivot_longer(data = out, cols = -document,
+    out <- tidyr::pivot_longer(data = out, cols = setdiff(colnames(out), "document"),
                                names_to = "topic", values_to = "theta")
     
     out$topic <- as.numeric(stringr::str_replace_all(out$topic, "^X", ""))
@@ -126,7 +126,7 @@ tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
                       x$gamma, 
                       stringsAsFactors = FALSE)
     
-    out <- tidyr::pivot_longer(data = out, cols = -topic, 
+    out <- tidyr::pivot_longer(data = out, cols = setdiff(colnames(out), "topic"), 
                                names_to = "token", values_to = "gamma")
     
   }

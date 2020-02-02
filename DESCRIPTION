@@ -26,6 +26,7 @@ Imports:
     methods,
     Rcpp (>= 1.0.2), 
     stats,
+    stringr,
     textmineR,
     tibble,
     tidyr

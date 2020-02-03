@@ -32,75 +32,75 @@ or update)? Defaults to \code{FALSE}}
 
 \item{beta}{output of \code{\link[tidylda]{format_beta}}}
 
-\item{optimize_alpha}{did you optimize \code{alpha} when making a call to 
-\code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
+\item{optimize_alpha}{did you optimize \code{alpha} when making a call to
+\code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
 argument is ignored.}
 
 \item{calc_r2}{did the user want to calculate R-squared when calculating the
 the model? If \code{is_prediction = TRUE}, this argument is ignored.}
 
 \item{calc_likelihood}{did you calculate the log likelihood when making a call
-to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this 
+to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
 argument is ignored.}
 
-\item{call}{the result of calling \code{\link[base]{match.call}} at the top of 
+\item{call}{the result of calling \code{\link[base]{match.call}} at the top of
 \code{\link[tidylda]{tidylda}}.}
 }
 \value{
 Returns an S3 object of class \code{tidylda} with the following slots:
-  
-  \code{phi} is a numeric matrix whose rows are the posterior estimates 
+
+  \code{phi} is a numeric matrix whose rows are the posterior estimates
     of P(token|topic)
-  
+
   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
     P(topic|document)
-  
+
   \code{gamma} is a numeric matrix whose rows are the posterior estimates of
-    P(topic|token). This is calculated by making a call to 
+    P(topic|token). This is calculated by making a call to
     \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
-    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is 
+    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is
     proportional to \code{Matrix::rowSums(dtm)}).
-  
+
   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
-    is \code{FALSE}, \code{alpha} is what the user passed when calling 
-    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
-    \code{alpha} is a numeric vector returned in the \code{alpha} slot from a 
+    is \code{FALSE}, \code{alpha} is what the user passed when calling
+    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE},
+    \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
     call to \code{\link[tidylda]{fit_lda_c}}.
-  
-  \code{beta} is the prior for tokens over topics. This is what the user passed 
+
+  \code{beta} is the prior for tokens over topics. This is what the user passed
     when calling \code{\link[tidylda]{tidylda}}.
-  
+
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
-  
+
   \code{call} is the result of \code{\link[base]{match.call}} called at the top
     of \code{\link[tidylda]{tidylda}}
-  
-  \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are 
+
+  \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are
     the iteration and log likelihood at that iteration. This slot is only populated
     if \code{calc_likelihood = TRUE}
-  
-  \code{r2} is a numeric scalar resulting from a call to 
+
+  \code{r2} is a numeric scalar resulting from a call to
     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
     \code{calc_r2 = TRUE}
 }
 \description{
-Since all three of \code{\link[tidylda]{tidylda}}, 
-  \code{\link[tidylda]{update.tidylda}}, and 
+Since all three of \code{\link[tidylda]{tidylda}},
+  \code{\link[tidylda]{update.tidylda}}, and
   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
   we need a way to format the resulting posteriors and other user-facing
   objects consistently. This function does that.
 }
 \note{
 In general, the arguments of this function should be what the user passed
-  when calling \code{\link[tidylda]{tidylda}}. 
-  
-  \code{burnin} is used only to determine whether or not burn in iterations 
-  were used when fitting the model. If \code{burnin > -1} then posteriors 
-  are calculated using \code{lda$Cd_mean} and \code{lda$Cv_mean} respectively. 
-  Otherwise, posteriors are calculated using \code{lda$Cd_mean} and 
+  when calling \code{\link[tidylda]{tidylda}}.
+
+  \code{burnin} is used only to determine whether or not burn in iterations
+  were used when fitting the model. If \code{burnin > -1} then posteriors
+  are calculated using \code{lda$Cd_mean} and \code{lda$Cv_mean} respectively.
+  Otherwise, posteriors are calculated using \code{lda$Cd_mean} and
   \code{lda$Cv_mean}.
-  
-  The class of \code{call} isn't checked. It's just passed through to the 
+
+  The class of \code{call} isn't checked. It's just passed through to the
   object returned by this function. Might be useful if you are using this
   function for troubleshooting or something.
 }

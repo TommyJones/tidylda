@@ -58,37 +58,37 @@ Returns an S3 object of class c("tidylda").
 Update an LDA model using collapsed Gibbs sampling.
 }
 \details{
-\code{update} allows you to (a) update the probabilities (i.e. weights) of 
-  a previously-fit model with new data or additional iterations and (b) optionally 
-  use \code{phi} of a previously-fit LDA topic model as the \code{beta} prior 
+\code{update} allows you to (a) update the probabilities (i.e. weights) of
+  a previously-fit model with new data or additional iterations and (b) optionally
+  use \code{phi} of a previously-fit LDA topic model as the \code{beta} prior
   for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
   \code{phi_as_prior = TRUE} respectively.
-  
+
   If \code{phi_as_prior = TRUE}, then the new \code{beta} is equal to \code{phi}
   from the old model. (For handling of new tokens, see below.) Then each row
   of the new \code{beta} is rescaled so that each row has the same magnitude
   as the previous model's \code{beta}.
-  
-  Instead of initializing token-topic assignments in the manner for new 
-  models (see \code{\link[tidylda]{tidylda}}), the update initializes in 2 
+
+  Instead of initializing token-topic assignments in the manner for new
+  models (see \code{\link[tidylda]{tidylda}}), the update initializes in 2
   steps:
-  
-  First, topic-document probabilities (i.e. \code{theta}) are obtained by a 
+
+  First, topic-document probabilities (i.e. \code{theta}) are obtained by a
   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
   for the documents in \code{dtm}. Next, both \code{phi} and \code{theta} are
   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
-  which executes a single Gibbs iteration to assign topics to tokens and 
-  documents. 
-  
-  \code{update} handles the addition of new vocabulary by adding a flat prior 
+  which executes a single Gibbs iteration to assign topics to tokens and
+  documents.
+
+  \code{update} handles the addition of new vocabulary by adding a flat prior
   over new tokens. Specifically, each entry in the new prior is equal to the
-  median value of \code{beta} from the old model. The resulting model will 
+  median value of \code{beta} from the old model. The resulting model will
   have the total vocabulary of the old model plus any new vocabulary tokens.
   In other words, after running \code{update.tidylda} \code{ncol(phi) >= ncol(dtm)}
   where \code{phi} is from the new model and \code{dtm} is the additional data.
-  
+
   You can add additional topics by setting the \code{additional_k} parameter
-  to an integer greater than zero. New entries to \code{alpha} have a flat 
+  to an integer greater than zero. New entries to \code{alpha} have a flat
   prior equal to the median value of \code{alpha} in the old model. (Note that
   if \code{alpha} itself is a flat prior, i.e. scalar, then the new topics have
   the same value for their prior.) New entries to \code{beta} are the average
@@ -100,7 +100,7 @@ Update an LDA model using collapsed Gibbs sampling.
 }}
 
 \note{
-Updates are, as of this writing, are almost-surely useful but their behaviors 
+Updates are, as of this writing, are almost-surely useful but their behaviors
  have not been optimized or well-studied. Caveat emptor!
 }
 \examples{
@@ -108,34 +108,40 @@ Updates are, as of this writing, are almost-surely useful but their behaviors
 # load a document term matrix
 data(nih_sample_dtm, package = "textmineR")
 
-d1 <- nih_sample_dtm[1:50,]
+d1 <- nih_sample_dtm[1:50, ]
 
-d2 <- nih_sample_dtm[51:100,]
+d2 <- nih_sample_dtm[51:100, ]
 
 # fit a model
-m <- tidylda(d1, k = 10, 
-                  iterations = 200, burnin = 175)
+m <- tidylda(d1,
+  k = 10,
+  iterations = 200, burnin = 175
+)
 
 # update an existing model by adding documents
-m2 <- update(object = m,
-             dtm = rbind(d1, d2),
-             iterations = 200,
-             burnin = 175)
-             
-# use an old model as a prior for a new model
-m3 <- update(object = m,
-             dtm = d2, # new documents only
-             phi_as_prior = TRUE,
-             iterations = 200,
-             burnin = 175)
-             
-# add topics while updating a model by adding documents
-m4 <- update(object = m,
-             dtm = rbind(d1, d2),
-             additional_k = 3,
-             iterations = 200,
-             burnin = 175)
-             
+m2 <- update(
+  object = m,
+  dtm = rbind(d1, d2),
+  iterations = 200,
+  burnin = 175
+)
 
+# use an old model as a prior for a new model
+m3 <- update(
+  object = m,
+  dtm = d2, # new documents only
+  phi_as_prior = TRUE,
+  iterations = 200,
+  burnin = 175
+)
+
+# add topics while updating a model by adding documents
+m4 <- update(
+  object = m,
+  dtm = rbind(d1, d2),
+  additional_k = 3,
+  iterations = 200,
+  burnin = 175
+)
 }
 }

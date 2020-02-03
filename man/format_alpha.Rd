@@ -7,21 +7,21 @@
 format_alpha(alpha, k)
 }
 \arguments{
-\item{alpha}{the prior for topics over documents. Can be a numeric scalar or 
+\item{alpha}{the prior for topics over documents. Can be a numeric scalar or
 numeric vector.}
 
 \item{k}{the number of topics.}
 }
 \value{
-Returns a list with two elements: \code{alpha} and \code{alpha_class}. 
-  \code{alpha} is the post-formatted version of \code{alpha} in the form of a 
-  \code{k}-length numeric vector. \code{alpha_class} is a character 
+Returns a list with two elements: \code{alpha} and \code{alpha_class}.
+  \code{alpha} is the post-formatted version of \code{alpha} in the form of a
+  \code{k}-length numeric vector. \code{alpha_class} is a character
   denoting whether or not the user-supplied \code{alpha} was a "scalar" or
   "vector".
 }
 \description{
 There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
-  sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the 
+  sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
   appropriate formatting. It also returns errors if the user input a malformatted
   \code{alpha}.
 }

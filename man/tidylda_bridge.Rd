@@ -20,7 +20,7 @@ tidylda_bridge(
 )
 }
 \description{
-Takes in arguments from various \code{tidylda} S3 methods and fits the 
+Takes in arguments from various \code{tidylda} S3 methods and fits the
   resulting topic model. The arguments to this function are documented in
   \code{\link[tidylda]{tidylda}}.
 }

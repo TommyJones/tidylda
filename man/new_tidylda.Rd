@@ -7,7 +7,7 @@
 new_tidylda(phi, theta, gamma, alpha, beta, summary, call, ...)
 }
 \arguments{
-\item{phi}{a numeric matrix whose rows are the posterior estimates 
+\item{phi}{a numeric matrix whose rows are the posterior estimates
 of P(token|topic)}
 
 \item{theta}{a numeric matrix  whose rows are the posterior estimates of
@@ -23,7 +23,7 @@ the prior for topics over documents}
 numeric matrix with dimensions dim(phi); the prior for tokens over topics.}
 
 \item{summary}{a \code{\link[tibble]{tibble}} with the following columns:
-\code{topic} (numeric), \code{prevalence} (numeric), \code{coherence} (numeric), 
+\code{topic} (numeric), \code{prevalence} (numeric), \code{coherence} (numeric),
 \code{top_terms} (character)}
 
 \item{call}{the function call used to create the model. See note, below.}
@@ -32,38 +32,38 @@ numeric matrix with dimensions dim(phi); the prior for tokens over topics.}
 }
 \value{
 Returns an S3 object of class \code{tidylda} with the following slots:
-  
-  \code{phi} is a numeric matrix whose rows are the posterior estimates 
+
+  \code{phi} is a numeric matrix whose rows are the posterior estimates
     of P(token|topic)
-  
+
   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
     P(topic|document)
-  
+
   \code{gamma} is a numeric matrix whose rows are the posterior estimates of
-    P(topic|token). This is calculated by making a call to 
+    P(topic|token). This is calculated by making a call to
     \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
-    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is 
+    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is
     proportional to \code{Matrix::rowSums(dtm)}).
-  
+
   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
-    is \code{FALSE}, \code{alpha} is what the user passed when calling 
-    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE}, 
-    \code{alpha} is a numeric vector returned in the \code{alpha} slot from a 
+    is \code{FALSE}, \code{alpha} is what the user passed when calling
+    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE},
+    \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
     call to \code{\link[tidylda]{fit_lda_c}}.
-  
-  \code{beta} is the prior for tokens over topics. This is what the user passed 
+
+  \code{beta} is the prior for tokens over topics. This is what the user passed
     when calling \code{\link[tidylda]{tidylda}}.
-  
+
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
-  
+
   \code{call} is the result of \code{\link[base]{match.call}} called at the top
     of \code{\link[tidylda]{tidylda}}
-  
-  \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are 
+
+  \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are
     the iteration and log likelihood at that iteration. This slot is only populated
     if \code{calc_likelihood = TRUE}
-  
-  \code{r2} is a numeric scalar resulting from a call to 
+
+  \code{r2} is a numeric scalar resulting from a call to
     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
     \code{calc_r2 = TRUE}
 }
@@ -74,8 +74,8 @@ This is a helper function for creating new \code{tidylda} objects.
 You can technically pass a \code{\link[base]{data.frame}} as the \code{summary}
   parameter. However, you may experience unintended side effects when using
   \code{\link[tidylda]{print.tidylda}}.
-  
-  The class of \code{call} isn't checked. It's just passed through to the 
+
+  The class of \code{call} isn't checked. It's just passed through to the
   object returned by this function. Might be useful if you are using this
   function for troubleshooting or something.
 }

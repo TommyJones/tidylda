@@ -14,10 +14,10 @@ summarize_topics(theta, phi, dtm)
 \item{dtm}{a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.}
 }
 \value{
-Returns a \code{\link[tibble]{tibble}} with the following columns: 
-  \code{topic} is the integer row number of \code{phi}. 
-  \code{prevalence} is the frequency of each topic throughout the corpus it 
-    was trained on normalized so that it sums to 100. 
+Returns a \code{\link[tibble]{tibble}} with the following columns:
+  \code{topic} is the integer row number of \code{phi}.
+  \code{prevalence} is the frequency of each topic throughout the corpus it
+    was trained on normalized so that it sums to 100.
   \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
     using the default 5 most-probable terms in each topic.
   \code{top_terms} displays the top 3 most-probable terms in each topic.
@@ -28,19 +28,19 @@ Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
   \code{\link[tidylda]{print.tidylda}}.
 }
 \note{
-\code{prevalence} should be proportional to P(topic). It is calculated by 
-  weighting on document length. So, topics prevalent in longer documents get 
+\code{prevalence} should be proportional to P(topic). It is calculated by
+  weighting on document length. So, topics prevalent in longer documents get
   more weight than topics prevalent in shorter documents. It is calculated
-  by 
-  
+  by
+
   \code{prevalence <- rowSums(dtm) * theta \%>\% colSums()}
-    
+
   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
-  
+
   An alternative calculation (not implemented here) might have been
-   
+
   \code{prevalence <- colSums(dtm) * t(phi) \%>\% colSums()}
-  
+
   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
 }
 \keyword{internal}

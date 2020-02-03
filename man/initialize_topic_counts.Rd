@@ -32,7 +32,7 @@ in topics. Must be specified for predictions or updates as called by
 respectively.}
 
 \item{theta_initial}{if specified, a numeric matrix for the probability of
-topics in documents. Must be specified for updates as called by 
+topics in documents. Must be specified for updates as called by
 \code{\link[tidylda]{update.tidylda}}}
 
 \item{freeze_topics}{if \code{TRUE} does not update counts of tokens in topics.
@@ -41,22 +41,22 @@ This is \code{TRUE} for predictions.}
 \item{...}{other items to be passed to \code{\link[furrr]{future_map}}}
 }
 \value{
-Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv}, 
+Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},
   and \code{Ck}. All of these are used by \code{\link[tidylda]{fit_lda_c}}.
-  
+
   \code{docs} is a list with one element per document. Each element is a vector
   of integers of length \code{sum(dtm[j,])} for the j-th document. The integer
   entries correspond to the zero-index column of the \code{dtm}.
-  
+
   \code{Zd} is a list of similar format as \code{docs}. The difference is that
   the integer values correspond to the zero-index for topics.
-  
+
   \code{Cd} is a matrix of integers denoting how many times each topic has
   been sampled in each document.
-  
+
   \code{Cv} is similar to \code{Cd} but it counts how many times each topic
   has been sampled for each token.
-  
+
   \code{Ck} is an integer vector denoting how many times each topic has been
   sampled overall.
 }
@@ -65,9 +65,9 @@ Implementing seeded (or guided) LDA models and transfer learning means that
   we can't initialize topics with a uniform-random start. This function prepares
   data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
   Gibbs iteration to populate topic counts (and other objects) used during the
-  main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that 
+  main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that
   you aren't using fancy seeding or transfer learning, this makes a random
-  initialization by sampling from Dirichlet distributions parameterized by 
+  initialization by sampling from Dirichlet distributions parameterized by
   priors \code{alpha} and \code{beta}.
 }
 \note{

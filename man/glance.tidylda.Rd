@@ -12,9 +12,9 @@
 \item{...}{other arguments passed to methods,currently not used}
 }
 \value{
-\code{glance} returns a one-row \code{\link[tibble]{tibble}} with the 
+\code{glance} returns a one-row \code{\link[tibble]{tibble}} with the
   following columns:
-  
+
   \code{num_topics}: the number of topics in the model
   \code{num_documents}: the number of documents used for fitting
   \code{num_tokens}: the number of tokens covered by the model
@@ -27,11 +27,10 @@
 }
 \examples{
 \donttest{
-  dtm <- textmineR::nih_sample_dtm
-  
-  lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
-  
-  glance(lda)
-  
+dtm <- textmineR::nih_sample_dtm
+
+lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
+
+glance(lda)
 }
 }

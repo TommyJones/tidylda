@@ -16,10 +16,10 @@ License: MIT + file LICENSE
 URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
 Depends: 
-    Matrix
+    generics
 Imports:
-    generics,
     gtools,
+    Matrix,
     methods,
     Rcpp (>= 1.0.2),
     stats,

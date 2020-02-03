@@ -146,7 +146,7 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     
     colnames(out) <- c("document", "topic", "theta")
     
-    out$topic <- as.numeric(out$topic)
+    out$topic <- as.numeric(stringr::str_replace_all(out$topic, "^X", ""))
     
   }
   

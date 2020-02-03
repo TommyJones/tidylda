@@ -22,5 +22,151 @@ In addition this implementation of LDA allows you to:
 
 Note that the seeding of topics and transfer learning are **experimental** for now. They are almost-surely useful but their behaviors have not been optimized or well-studied. Caveat emptor!
 
-# 
+# Installation
+
+You can install the development version with
+
+```
+devtools::install_github("tommyjones/tidylda")
+```
+
+# Getting started
+
+This package is still in its early stages of development. However, some basic functionality is below. Here, we will use the `tidytext` package to create a document term matrix, fit a topic model, predict topics of unseen documents, and update the model with those new documents.
+
+`tidylda` uses the following naming conventions for topic models:
+
+* `theta` is a matrix whose rows are distributions of topics over documents, or P(topic|document)
+* `phi` is a matrix whose rows are distributions of tokens over topics, or P(token|topic)
+* `gamma` is a matrix whose rows are distributions of topics over tokens, or P(topic|token)
+  `gamma` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
+* `alpha` is the prior that tunes `theta`
+* `beta` is the prior that tunes `phi`
+
+```
+library(tidytext)
+library(tidyverse)
+library(tidylda)
+
+### Initial set up ---
+# load some documents
+docs <- textmineR::nih_sample 
+
+# tokenize using tidytext's unnest_tokens
+tidy_docs <- docs %>% 
+  select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
+  unnest_tokens(output = word, 
+                input = ABSTRACT_TEXT,
+                stopwords = stop_words$word,
+                token = "ngrams",
+                n_min = 1, n = 2) %>% 
+  count(APPLICATION_ID, word) %>% 
+  filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
+
+tidy_docs <- tidy_docs %>% # filter words that are just numbers
+  filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
+
+# turn a tidy tbl into a sparse dgCMatrix 
+# note tidylda has support for several document term matrix formats
+d <- tidy_docs %>% 
+  cast_sparse(APPLICATION_ID, word, n)
+
+# let's split the documents into two groups to demonstrate predictions and updates
+d1 <- d[1:50, ]
+
+d2 <- d[51:nrow(d), ]
+
+# make sure we have different vocabulary for each data set to simulate the "real world"
+# where you get new tokens coming in over time
+d1 <- d1[, colSums(d1) > 0]
+
+d2 <- d2[, colSums(d2) > 0]
+
+### fit an intial model and inspect it ----
+
+set.seed(123)
+
+lda <- tidylda(
+  dtm = d1,
+  k = 10,
+  iterations = 200, 
+  burnin = 175,
+  alpha = 0.1, # also accepts vector inputs
+  beta = 0.05, # also accepts vector or matrix inputs
+  optimize_alpha = FALSE, # experimental
+  calc_likelihood = TRUE,
+  calc_r2 = TRUE, # see https://arxiv.org/abs/1911.11061
+  return_data = FALSE
+)
+
+# did the model converge?
+# there are actual test stats for this, but should look like "yes"
+qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line")
+
+# look at the model overall
+glance(lda)
+
+print(lda)
+
+# it comes with its own summary matrix that's printed out with print(), above
+lda$summary
+
+
+# inspect the individual matrices
+tidy_theta <- tidy(lda, matrix = "theta")
+
+tidy_theta
+
+tidy_phi <- tidy(lda, matrix = "phi")
+
+tidy_phi
+
+tidy_gamma <- tidy(lda, matrix = "gamma")
+
+tidy_gamma
+
+### predictions on held out data ---
+# two methods: gibbs is cleaner and more techically correct in the bayesian sense
+p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
+
+# dot is faster, less prone to error (e.g. underflow), noisier, and frequentist
+p_dot <- predict(lda, new_data = d2[1, ], method = "dot")
+
+barplot(rbind(gibbs = p_gibbs, dot = p_dot), beside = TRUE, col = c("red", "blue"))
+legend("top", legend = c("Gibbs", "dot product"), fill = c("red", "blue"))
+
+
+### updating the model ----
+# now that you have new documents, maybe you want to fold them into the model?
+lda2 <- update(
+  object = lda, 
+  dtm = d, # save me the trouble of manually-combining these by just using d
+  iterations = 200, 
+  burnin = 175,
+  calc_likelihood = TRUE,
+  calc_r2 = TRUE
+)
+
+# we can do similar analyses
+# did the model converge?
+qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "line")
+
+# look at the model overall
+glance(lda2)
+
+print(lda2)
+
+# how does that compare to the old model?
+print(lda)
+
+```
+
+I plan to have more analyses and a fuller accounting of the options of the various functions when I write the vignettes.
+
+Planned updates include:
+
+* an `augment` method to append distributions of `theta`, `phi`, or `gamma` to a tidy tibble of tokens
+* various functions to compare topic models to evaluate the effects of `update`. (Although the functions will likely be general enough that you could compare any topic models.)
+
+If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email.
 

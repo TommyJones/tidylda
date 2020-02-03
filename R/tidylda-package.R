@@ -10,11 +10,7 @@
 NULL
 
 
-
 #' @import Rcpp
-#' @importFrom generics augment
-#' @importFrom generics glance
-#' @importFrom generics tidy
 #' @importFrom gtools rdirichlet
 #' @importFrom methods as
 #' @importFrom Matrix colSums
@@ -33,3 +29,16 @@ NULL
 #' @importFrom tidytext cast_dtm
 #' @useDynLib "tidylda", .registration=TRUE
 NULL
+
+#' @importFrom generics augment
+#' @export
+generics::augment
+
+#' @importFrom generics glance
+#' @export
+generics::glance
+
+#' @importFrom generics tidy
+#' @export
+generics::tidy
+

@@ -106,6 +106,7 @@ tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
 
 #' Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
 #' @describeIn tidy.tidylda Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
+#' @export
 tidy.matrix <- function(x, matrix, log = FALSE, ...) {
   
   # check inputs

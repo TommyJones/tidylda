@@ -274,7 +274,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
   lda2 <- update(object = lda, 
                  dtm = nd,
                  iterations = 10)
-\  
+
   # burnin >= iterations
   expect_error(
     update(

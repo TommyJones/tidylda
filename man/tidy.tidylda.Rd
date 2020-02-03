@@ -2,12 +2,16 @@
 % Please edit documentation in R/tidy-methods.R
 \name{tidy.tidylda}
 \alias{tidy.tidylda}
+\alias{tidy.matrix}
 \title{Tidy a matrix from a \code{tidylda} topic model}
 \usage{
 \method{tidy}{tidylda}(x, matrix, log = FALSE, ...)
+
+\method{tidy}{matrix}(x, matrix, log = FALSE, ...)
 }
 \arguments{
-\item{x}{an object of class \code{tidylda}}
+\item{x}{an object of class \code{tidylda} or an individual \code{phi}, 
+\code{theta}, or \code{gamma} matrix.}
 
 \item{matrix}{the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
 \code{'gamma'}}
@@ -31,6 +35,11 @@ Returns a \code{\link[tibble]{tibble}}.
 \description{
 Tidy the result of a \code{tidylda} topic model
 }
+\section{Functions}{
+\itemize{
+\item \code{tidy.matrix}: Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
+}}
+
 \note{
 If \code{log = TRUE} then "log_" will be appended to the name of the third
   column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".

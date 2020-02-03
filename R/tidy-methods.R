@@ -53,7 +53,8 @@ glance.tidylda <- function(x, ...) {
 #' Tidy a matrix from a \code{tidylda} topic model
 #' @description
 #' Tidy the result of a \code{tidylda} topic model
-#' @param x an object of class \code{tidylda}
+#' @param x an object of class \code{tidylda} or an individual \code{phi}, 
+#'   \code{theta}, or \code{gamma} matrix.
 #' @param matrix the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
 #'   \code{'gamma'}
 #' @param log do you want to have the result on a log scale? Defaults to \code{FALSE}
@@ -86,60 +87,74 @@ glance.tidylda <- function(x, ...) {
 #' }
 #' @export
 tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
-
-  # check inputs
+  
   if (!inherits(matrix, "character") |
-    !sum(c("phi", "theta", "gamma") %in% matrix) >= 1) {
+      !sum(c("phi", "theta", "gamma") %in% matrix) >= 1) {
     stop("matrix should be one of c('phi', 'theta', 'gamma')")
   }
+  
+  if (matrix == "phi") {
+    out <- tidy.matrix(x = x$phi, matrix = matrix, log = log)
+  } else if (matrix == "gamma") {
+    out <- tidy.matrix(x = x$gamma, matrix = matrix, log = log)
+  } else {
+    out <- tidy.matrix(x = x$theta, matrix = matrix, log = log)
+  }
+  
+  out
+}
 
+#' Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
+#' @describeIn tidy.tidylda Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
+tidy.matrix <- function(x, matrix, log = FALSE, ...) {
+  
+  # check inputs
+  if (!inherits(matrix, "character") |
+      !sum(c("phi", "theta", "gamma") %in% matrix) >= 1) {
+    stop("matrix should be one of c('phi', 'theta', 'gamma')")
+  }
+  
   if (!is.logical(log)) {
     stop("log must be logical.")
   }
-
-  # run 'em
+  
+  out <- data.frame(
+    names_col = rownames(x),
+    x,
+    stringsAsFactors = FALSE
+  )
+  
+  out <- tidyr::pivot_longer(
+    data = out, cols = setdiff(colnames(out), "names_col"),
+    names_to = "index", values_to = "value"
+  )
+  
   if (matrix == "phi") {
-    out <- data.frame(
-      topic = as.numeric(rownames(x$phi)),
-      x$phi,
-      stringsAsFactors = FALSE
-    )
-
-    out <- tidyr::pivot_longer(
-      data = out, cols = setdiff(colnames(out), "topic"),
-      names_to = "token", values_to = "phi"
-    )
-  } else if (matrix == "theta") {
-    out <- data.frame(
-      document = rownames(x$theta),
-      x$theta,
-      stringsAsFactors = FALSE
-    )
-
-    out <- tidyr::pivot_longer(
-      data = out, cols = setdiff(colnames(out), "document"),
-      names_to = "topic", values_to = "theta"
-    )
-
-    out$topic <- as.numeric(stringr::str_replace_all(out$topic, "^X", ""))
+    
+    colnames(out) <- c("topic", "token", "phi")
+    
+    out$topic <- as.numeric(out$topic)
+    
   } else if (matrix == "gamma") {
-    out <- data.frame(
-      topic = as.numeric(rownames(x$gamma)),
-      x$gamma,
-      stringsAsFactors = FALSE
-    )
+    
+    colnames(out) <- c("topic", "token", "gamma")
+    
+    out$topic <- as.numeric(out$topic)
 
-    out <- tidyr::pivot_longer(
-      data = out, cols = setdiff(colnames(out), "topic"),
-      names_to = "token", values_to = "gamma"
-    )
+  } else { # meanse matrix  == theta
+    
+    colnames(out) <- c("document", "topic", "theta")
+    
+    out$topic <- as.numeric(out$topic)
+    
   }
-
+  
   if (log) {
     out[[3]] <- log(out[[3]])
-
+    
     names(out)[3] <- paste0("log_", names(out)[3])
   }
-
+  
   out
+  
 }

@@ -561,9 +561,10 @@ test_that("tidy.tidylda works as expected", {
   expect_type(tidy_gamma[[2]], "character")
 
   expect_type(tidy_gamma[[3]], "double")
+  
 })
 
-test_that("tidy.tidylda throws errors for malformed inputs", {
+test_that("tidy throws errors for malformed inputs", {
   expect_error(
     tidy(
       x = lda,
@@ -585,4 +586,21 @@ test_that("tidy.tidylda throws errors for malformed inputs", {
       log = "WRONG"
     )
   )
+  
+  # matrices the same as above
+  expect_error(
+    tidy_theta <- tidy(
+      x = lda$theta,
+      matrix = "WRONG"
+    )
+  )
+  
+  expect_error(
+    tidy_theta <- tidy(
+      x = lda$theta,
+      matrix = "theta",
+      log = "WRONG"
+    )
+  )
+  
 })

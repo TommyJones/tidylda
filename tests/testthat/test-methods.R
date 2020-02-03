@@ -266,6 +266,15 @@ test_that("can update models", {
 
 test_that("errors are thrown for malformed inputs to update.tidylda", {
 
+  # no vocabulary overlap between models
+  nd <- rbind(numeric(10), numeric(10), numeric(10))
+  
+  colnames(nd) <- 1:10 # numbers means no vocab overlap
+  
+  lda2 <- update(object = lda, 
+                 dtm = nd,
+                 iterations = 10)
+\  
   # burnin >= iterations
   expect_error(
     update(

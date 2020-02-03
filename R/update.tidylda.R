@@ -191,6 +191,7 @@ update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
     object = object,
     new_data = dtm,
     method = "dot",
+    no_common_tokens = "uniform",
     ...
   )
 

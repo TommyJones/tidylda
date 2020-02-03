@@ -11,8 +11,26 @@
 #'        If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 #'        are an average over all iterations greater than \code{burnin}.
 #'        Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.
+#' @param no_common_tokens behavior when encountering documents that have no tokens
+#'        in common with the model. Options are "\code{default}", "\code{zero}",
+#'        or "\code{uniform}". See 'details', below for explanation of behavior. 
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return a "theta" matrix with one row per document and one column per topic
+#' @details 
+#'   If \code{predict.tidylda} encounters documents that have no tokens in common
+#'   with the model in \code{object} it will engage in one of three behaviors based
+#'   on the setting of \code{no_common_tokens}.
+#'   
+#'   \code{default} (the default) sets all topics to 0 for offending documents. This 
+#'   enables continued computations downstream in a way that \code{NA} would not.
+#'   However, if \code{no_common_tokens == "default"}, then \code{predict.tidylda}
+#'   will emit a warning for every such document it encounters.
+#'   
+#'   \code{zero} has the same behavior as \code{default} but it emits a message
+#'   instead of a warning.
+#'   
+#'   \code{uniform} sets all topics to 1/k for every topic for offending documents.
+#'   it does not emit a warning or message.
 #' @examples
 #' \donttest{
 #' # load some data
@@ -41,8 +59,13 @@
 #' barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 #' }
 #' @export
-predict.tidylda <- function(object, new_data, method = c("gibbs", "dot"),
-                            iterations = NULL, burnin = -1, ...) {
+predict.tidylda <- function(object, 
+                            new_data, 
+                            method = c("gibbs", "dot"),
+                            iterations = NULL, 
+                            burnin = -1, 
+                            no_common_tokens = c("default", "zero", "uniform"),
+                            ...){
 
   ### Check inputs ----
   if (method[1] == "gibbs") {
@@ -64,6 +87,12 @@ predict.tidylda <- function(object, new_data, method = c("gibbs", "dot"),
 
   dtm_new_data <- new_data
 
+  if (sum(no_common_tokens %in% c("default", "zero", "uniform")) <= 0) {
+    stop(
+      "no_common_tokens must be one of 'default', 'zero', or 'uniform'."
+    )
+  }
+  
   ### Align vocabulary ----
   # this is fancy because of how we do indexing in gibbs sampling
   vocab_original <- colnames(object$phi) # tokens in training set
@@ -103,15 +132,45 @@ predict.tidylda <- function(object, new_data, method = c("gibbs", "dot"),
 
     result <- result %*% t(object$gamma[, vocab_original])
     result <- as.matrix(result)
-    result[is.na(result)] <- 0
-
+    
+    repl <- is.na(result)
+    
+    bad_docs <- which(rowSums(repl) > 0)
+    
     rownames(result) <- rownames(dtm_new_data)
     colnames(result) <- rownames(object$phi)
+    
+    # how do you want to handle empty documents?
+    if (no_common_tokens[1] %in% c("default", "zero")) {
+      if (length(bad_docs) > 0) {
+        result[repl] <- 0
+        if (no_common_tokens[1] == "default") {
+          for (bad in bad_docs) {
+            warning(
+              "Document ", bad, " has no tokens in common with the model. ",
+              "Setting predictions to 0 for all documents. To change this behavior ",
+              "or silence this warning, change the value of 'no_common_tokens' in ",
+              "the call to predict.tidylda."
+            )
+          }
+        } else {
+          for (bad in bad_docs) {
+            message(
+              "Document ", bad, " has no tokens in common with the model. ",
+              "Setting predictions to 0 for all documents."
+            )
+          }
+        } 
+      } 
+    } else { # means no_common_tokens == "uniform"
+      result[bad_docs, ] <- 1 / ncol(object$theta)
+    }
   } else { # gibbs method
     # format inputs
 
     # get initial distribution with recursive call to "dot" method
-    theta_initial <- predict.tidylda(object = object, new_data = new_data, method = "dot")
+    theta_initial <- predict.tidylda(object = object, new_data = new_data, 
+                                     method = "dot", no_common_tokens = "uniform")
 
     # make sure priors are formatted correctly
     beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_new_data))

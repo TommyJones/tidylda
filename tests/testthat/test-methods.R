@@ -78,6 +78,29 @@ test_that("malformed args in predict throw errors", {
   expect_error(
     predict(object = lda, new_data = d2, method = "oops")
   )
+  
+  # no overlap in vocabulary throws warning on "dot" by default
+  nd <- numeric(10)
+  
+  names(nd) <- seq_along(nd) # numbers means no vocab overlap
+  
+  expect_warning(
+    predict(object = lda, new_data = nd, method = "dot")
+  )
+  # no overlap in vocabulary doesn't throw warning on "dot" if specified
+  expect_message(
+    predict(object = lda, new_data = nd, method = "dot", no_common_tokens = "zero")
+  )
+  
+  # no overlap in vocabulary sets every topic to 1/k and no message or warning
+  p <- predict(object = lda, new_data = nd, method = "dot", no_common_tokens = "uniform")
+  
+  expect_equal(mean(p), 1 / nrow(lda$phi))
+  
+  # no_common_tokens has illegal value
+  expect_error(
+    predict(object = lda, new_data = nd, method = "dot", no_common_tokens = "WRONG!")
+  )
 })
 
 

@@ -10,6 +10,7 @@
   method = c("gibbs", "dot"),
   iterations = NULL,
   burnin = -1,
+  no_common_tokens = c("default", "zero", "uniform"),
   ...
 )
 }
@@ -21,13 +22,17 @@
 \item{method}{one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 and \code{iterations} must be specified.}
 
-\item{iterations}{If \code{method = "gibbs"}, an integer number of iterations 
+\item{iterations}{If \code{method = "gibbs"}, an integer number of iterations
 for the Gibbs sampler to run. A future version may include automatic stopping criteria.}
 
-\item{burnin}{If \code{method = "gibbs"}, an integer number of burnin iterations. 
+\item{burnin}{If \code{method = "gibbs"}, an integer number of burnin iterations.
 If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 are an average over all iterations greater than \code{burnin}.
 Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.}
+
+\item{no_common_tokens}{behavior when encountering documents that have no tokens
+in common with the model. Options are "\code{default}", "\code{zero}",
+or "\code{uniform}". See 'details', below for explanation of behavior.}
 
 \item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
 }
@@ -37,27 +42,47 @@ a "theta" matrix with one row per document and one column per topic
 \description{
 Obtains predictions of topics for new documents from a fitted LDA model
 }
+\details{
+If \code{predict.tidylda} encounters documents that have no tokens in common
+  with the model in \code{object} it will engage in one of three behaviors based
+  on the setting of \code{no_common_tokens}.
+  
+  \code{default} (the default) sets all topics to 0 for offending documents. This 
+  enables continued computations downstream in a way that \code{NA} would not.
+  However, if \code{no_common_tokens == "default"}, then \code{predict.tidylda}
+  will emit a warning for every such document it encounters.
+  
+  \code{zero} has the same behavior as \code{default} but it emits a message
+  instead of a warning.
+  
+  \code{uniform} sets all topics to 1/k for every topic for offending documents.
+  it does not emit a warning or message.
+}
 \examples{
 \donttest{
 # load some data
 data(nih_sample_dtm, package = "textmineR")
 
-# fit a model 
+# fit a model
 set.seed(12345)
 
-m <- tidylda(dtm = nih_sample_dtm[1:20,], k = 5,
-                   iterations = 200, burnin = 175)
+m <- tidylda(
+  dtm = nih_sample_dtm[1:20, ], k = 5,
+  iterations = 200, burnin = 175
+)
 
 str(m)
 
 # predict on held-out documents using gibbs sampling "fold in"
-p1 <- predict(m, nih_sample_dtm[21:100,], method = "gibbs",
-              iterations = 200, burnin = 175)
+p1 <- predict(m, nih_sample_dtm[21:100, ],
+  method = "gibbs",
+  iterations = 200, burnin = 175
+)
 
 # predict on held-out documents using the dot product method
-p2 <- predict(m, nih_sample_dtm[21:100,], method = "dot")
+p2 <- predict(m, nih_sample_dtm[21:100, ], method = "dot")
 
 # compare the methods
-barplot(rbind(p1[1,],p2[1,]), beside = TRUE, col = c("red", "blue")) 
+barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 }
 }

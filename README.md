@@ -63,9 +63,9 @@ unseen documents, and update the model with those new documents.
     with a computationally-simple and efficient dot product and it may
     be interesting to analyze in its own right.
   - `alpha` is the prior that tunes `theta`
-  - `beta` is the prior that tunes `phi` \#\# Example
+  - `beta` is the prior that tunes `phi`
 
-This is a basic example which shows you how to solve a common problem:
+## Example
 
 ``` r
 library(tidytext)

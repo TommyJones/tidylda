@@ -59,9 +59,8 @@ This package is still in its early stages of development. However, some basic fu
   `gamma` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
 * `alpha` is the prior that tunes `theta`
 * `beta` is the prior that tunes `phi`
-## Example
 
-This is a basic example which shows you how to solve a common problem:
+## Example
 
 ```{r example}
 library(tidytext)

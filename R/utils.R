@@ -617,7 +617,7 @@ calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
       }
       
       # rows of theta multiplied by doc lengths in y
-      x <- Matrix::rowSums(y) * result$theta[rows, ]
+      x <- Matrix::rowSums(y) * theta[rows, ]
       
       if (! inherits(x, "matrix")) {
         x <- matrix(x, nrow = 1)
@@ -628,7 +628,7 @@ calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
     ...
   )
   
-  ybar <- colMeans(dtm)
+  ybar <- Matrix::colMeans(dtm)
   
   # MAP: calculate sum of squares
   ss <- furrr::future_map(

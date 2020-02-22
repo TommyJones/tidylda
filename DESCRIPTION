@@ -17,10 +17,12 @@ URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
 Depends: 
 Imports:
+    furrr,
     generics,
     gtools,
     Matrix,
     methods,
+    mvrsquared,
     Rcpp (>= 1.0.2),
     stats,
     stringr,
@@ -29,7 +31,6 @@ Imports:
     tidyr,
     tidytext
 Suggests:
-    furrr,
     knitr,
     parallel,
     quanteda,

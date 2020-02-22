@@ -569,10 +569,12 @@ format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
 
     # goodness of fit
     if (calc_r2) {
-      result$r2 <- textmineR::CalcTopicModelR2(
+      result$r2 <- calc_lda_r2(
         dtm = dtm,
-        phi = result$phi,
-        theta = result$theta, ...
+        theta = theta,
+        phi = phi,
+        batch_size = 3000, # hard coded for now
+        ...
       )
     }
 
@@ -590,3 +592,66 @@ format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
     return(result)
   }
 }
+
+#' Calculate R-squared for a tidylda Model
+#' @keywords internal
+#' @description Formats inputs and hands off to mvrsquared::calc_rsquared
+#' @param dtm must be of class dgCMatrix
+#' @param theta a theta matrix
+#' @param phi a phi matrix
+#' @param batch_size for parallel processing
+#' @param ... other aruments passed to \code{\link[furrr]{future_map}}
+calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
+  # divide things into batches
+  batches <- furrr::future_map(
+    .x = seq(1, nrow(dtm), by = batch_size),
+    .f = function(b){
+      # rows to select on
+      rows <- b:min(b + batch_size - 1, nrow(dtm))
+      
+      # rows of the dtm
+      y <- dtm[rows, ]
+      
+      if (! inherits(y, "dgCMatrix")) {
+        y <- methods::as(object = y, Class = "dgCMatrix")
+      }
+      
+      # rows of theta multiplied by doc lengths in y
+      x <- Matrix::rowSums(y) * result$theta[rows, ]
+      
+      if (! inherits(x, "matrix")) {
+        x <- matrix(x, nrow = 1)
+      }
+      
+      list(y = y, x = x)
+    }, 
+    ...
+  )
+  
+  ybar <- colMeans(dtm)
+  
+  # MAP: calculate sum of squares
+  ss <- furrr::future_map(
+    .x = batches,
+    .f = function(batch) {
+      mvrsquared::calc_rsquared(
+        y = batch$y,
+        yhat = list(x = batch$x, w = phi),
+        ybar = ybar,
+        return_ss_only = TRUE)
+    },
+    ...
+  )
+  
+  # REDUCE: get SST and SSE by summation
+  ss <- colSums(
+    do.call(rbind, ss)
+  )
+  
+  # return r-squared
+  r2 <- 1 - ss["sse"] / ss["sst"]
+  
+  r2
+}
+
+

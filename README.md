@@ -147,7 +147,8 @@ lda <- tidylda(
 
 # did the model converge?
 # there are actual test stats for this, but should look like "yes"
-qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line")
+qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line") + 
+    ggtitle("Checking model convergence")
 ```
 
 <img src="man/figures/README-example-1.png" width="100%" />
@@ -277,14 +278,19 @@ p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
 # dot is faster, less prone to error (e.g. underflow), noisier, and frequentist
 p_dot <- predict(lda, new_data = d2[1, ], method = "dot")
 
-barplot(rbind(gibbs = p_gibbs, dot = p_dot), beside = TRUE, col = c("red", "blue"))
-legend("top", legend = c("Gibbs", "dot product"), fill = c("red", "blue"))
+# pull both together into a plot to compare
+tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
+  pivot_longer(cols = gibbs:dot, names_to = "type") %>%
+  ggplot() + 
+  geom_bar(mapping = aes(x = topic, y = value, group = type, fill = type), 
+           stat = "identity", position="dodge") +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) + 
+  ggtitle("Gibbs predictions vs. dot product predictions")
 ```
 
 <img src="man/figures/README-example-2.png" width="100%" />
 
 ``` r
-
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
@@ -299,7 +305,8 @@ lda2 <- update(
 
 # we can do similar analyses
 # did the model converge?
-qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "line")
+qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "line") +
+  ggtitle("Checking model convergence")
 ```
 
 <img src="man/figures/README-example-3.png" width="100%" />

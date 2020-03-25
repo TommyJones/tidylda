@@ -164,7 +164,9 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
-lda2 <- update(
+# note as of this writing you have to call tidylda::update explicitly to avoid 
+# clashes with stats::update. Will fix soon-ish
+lda2 <- tidylda::update(
   object = lda, 
   dtm = d, # save me the trouble of manually-combining these by just using d
   iterations = 200, 

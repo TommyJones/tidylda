@@ -30,7 +30,7 @@ convert_dtm <- function(dtm) {
     if (is.null(names(dtm))) {
       stop(
         "it looks like dtm (or new_data if you called 'predict') is a numeric ",
-        "vector without names.Did you mean to pass a single document? If so, ",
+        "vector without names. Did you mean to pass a single document? If so, ",
         "it needs a names attribute to index tokens"
       )
     }

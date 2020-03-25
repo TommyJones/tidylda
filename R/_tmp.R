@@ -50,63 +50,6 @@ lda <- tidylda(
 
 #### Begin getting counts for new transfer learning nonsense ----
 
-# function to recover counts for both theta and phi
-recover_counts <- function(prob_matrix, prior_matrix, total_vector) {
-  # prob_matrix is D X k
-  # prior_matrix is D X k
-  # total_vector is of length D
-  
-  # first, we have to get the denominator
-  denom <- total_vector + (ncol(prior_matrix) * prior_matrix)
-  
-  # then, multiply probabilities by the denominator 
-  count_matrix <- prob_matrix * denom # pointwise multiplication
-  
-  # subtract the prior to get what the counts *should* be
-  count_matrix <- count_matrix - prior_matrix
-  
-  # reconcile the counts so that they're integers and line up to the right totals
-  count_matrix <- apply(count_matrix, 1, function(x){
-    
-    tot <- sum(x)
-    
-    round_x <- round(x)
-    
-    remainder <- round(tot - sum(round_x))
-    
-    if (remainder == 0) {
-      
-      return(round_x)
-      
-    } else if (remainder > 0) { # we need to add some
-      
-      sample_prob <- x
-      
-      sample_prob[sample_prob < 0] <- 0
-      
-      idx <- sample(seq_along(x), remainder, prob = sample_prob)
-      
-      round_x[idx] <- round_x[idx] + 1
-      
-      return(round_x)
-      
-    } else { # we need to take some away
-      
-      idx <- sample(seq_along(x)[round_x > 0], -1 * remainder, prob = x[round_x > 0])
-      
-      round_x[idx] <- round_x[idx] - 1
-      
-      return(round_x)
-    }
-    
-  })
-  
-  count_matrix <- t(count_matrix)
-  
-  
-  count_matrix
-}
-
 # begin with dot product to get topic distributions for each document
 theta_hat <- predict(lda, d1, method = "dot", no_common_tokens = "uniform")
 
@@ -117,7 +60,7 @@ alph <- matrix(1, ncol = nrow(theta_hat), nrow = ncol(theta_hat)) + alph$alpha
 alph <- t(alph)
 
 # get Cd
-Cd <- recover_counts(
+Cd <- tidylda:::recover_counts_from_probs(
   prob_matrix = theta_hat,
   prior_matrix = alph,
   total_vector = Matrix::rowSums(d1)
@@ -131,7 +74,7 @@ Ck <- colSums(Cd)
 # counts over new words
 bet <- tidylda:::format_beta(beta = lda$beta, k = ncol(Cd), Nv = ncol(d1))
 
-Cv <- recover_counts(
+Cv <- tidylda:::recover_counts_from_probs(
   prob_matrix = lda$phi,
   prior_matrix = bet$beta,
   total_vector = Ck

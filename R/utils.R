@@ -156,6 +156,101 @@ format_alpha <- function(alpha, k) {
   )
 }
 
+#' Get Count Matrices from Phi or Theta (and Priors)
+#' @keywords internal
+#' @description
+#'   This function is a core component of \code{\link[tidylda]{initialize_topic_counts}}.
+#'   See details, below.
+#' @param prob_matrix a numeric \code{phi} or \code{theta} matrix
+#' @param prior_matrix a matrix of same dimension as \code{prob_matrix} whose 
+#'   entries represent the relevant prior (\code{alpha} or \code{beta})
+#' @param total_vector a vector of token counts of length \code{ncol(prob_matrix)}
+#' @details 
+#'   This function uses a probability matrix (theta or phi), its prior (alpha or
+#'   beta, respectively), and a vector of counts to simulate what the the Cd or
+#'   Cv matrix would be at the end of a Gibbs run that resulted in that probability
+#'   matrix.
+#'   
+#'   For example, theta is calculated from a matrix of counts, Cd, and a prior,
+#'   alpha. Specifically, the i,j entry of theta is given by
+#'   
+#'   \code{(Cd[i, j] + alpha[i, j]) / sum(Cd[, j] + alpha[, j])}
+#'   
+#'   Similarly, phi comes from
+#'   
+#'   \code{(Cv[i, j] + beta[i, j]) / sum(Cv[, j] + beta[, j])}
+#'   
+#'   (The above are written to be general with respect to alpha and beta being
+#'   matrices. They could also be vectors or scalars.)
+#'   
+#'   So, this function uses the above formulas to try and reconstruct Cd or Cv
+#'   from theta and alpha or phi and beta, respectively. As of this writing,
+#'   this method is experimental. In the future, there will be a paper with
+#'   more technical details cited here.
+#'   
+#'   The priors must be matrices for the purposes of the function. This is to
+#'   support topic seeding and model updates. The former requires beta to be a 
+#'   matrix. The latter may require beta to be a matrix. Here, alpha is also
+#'   required to be a matrix for compatibility.
+#'   
+#'   All that said, for now \code{\link[tidylda]{initialize_topic_counts}} only
+#'   uses this function to calculate Cd.
+recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
+  # prob_matrix is D X k
+  # prior_matrix is D X k
+  # total_vector is of length D
+  
+  # first, we have to get the denominator
+  denom <- total_vector + (ncol(prior_matrix) * prior_matrix)
+  
+  # then, multiply probabilities by the denominator 
+  count_matrix <- prob_matrix * denom # pointwise multiplication
+  
+  # subtract the prior to get what the counts *should* be
+  count_matrix <- count_matrix - prior_matrix
+  
+  # reconcile the counts so that they're integers and line up to the right totals
+  count_matrix <- apply(count_matrix, 1, function(x){
+    
+    tot <- sum(x)
+    
+    round_x <- round(x)
+    
+    remainder <- round(tot - sum(round_x))
+    
+    if (remainder == 0) {
+      
+      return(round_x)
+      
+    } else if (remainder > 0) { # we need to add some
+      
+      sample_prob <- x
+      
+      sample_prob[sample_prob < 0] <- 0
+      
+      idx <- sample(seq_along(x), remainder, prob = sample_prob)
+      
+      round_x[idx] <- round_x[idx] + 1
+      
+      return(round_x)
+      
+    } else { # we need to take some away
+      
+      idx <- sample(seq_along(x)[round_x > 0], -1 * remainder, prob = x[round_x > 0])
+      
+      round_x[idx] <- round_x[idx] - 1
+      
+      return(round_x)
+    }
+    
+  })
+  
+  count_matrix <- t(count_matrix)
+  
+  
+  count_matrix
+}
+
 #' Initialize topic counts for gibbs sampling
 #' @keywords internal
 #' @description

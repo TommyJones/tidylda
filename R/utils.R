@@ -236,7 +236,15 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
       
     } else { # we need to take some away
       
-      idx <- sample(seq_along(x)[round_x > 0], -1 * remainder, prob = x[round_x > 0])
+      sample_prob <- x[round_x > 0]
+      
+      sample_prob[sample_prob < 0] <- 0
+      
+      sample_from <- seq_along(x)[round_x > 0]
+      
+      sample_size <- -1 * remainder
+      
+      idx <- sample(x = sample_from, size = sample_size, prob = sample_prob)
       
       round_x[idx] <- round_x[idx] - 1
       

@@ -80,7 +80,11 @@ recover_counts <- function(prob_matrix, prior_matrix, total_vector) {
       
     } else if (remainder > 0) { # we need to add some
       
-      idx <- sample(seq_along(x), remainder, prob = x)
+      sample_prob <- x
+      
+      sample_prob[sample_prob < 0] <- 0
+      
+      idx <- sample(seq_along(x), remainder, prob = sample_prob)
       
       round_x[idx] <- round_x[idx] + 1
       
@@ -104,7 +108,7 @@ recover_counts <- function(prob_matrix, prior_matrix, total_vector) {
 }
 
 # begin with dot product to get topic distributions for each document
-theta_hat <- predict(lda, d2, method = "dot", no_common_tokens = "uniform")
+theta_hat <- predict(lda, d1, method = "dot", no_common_tokens = "uniform")
 
 alph <- tidylda:::format_alpha(lda$alpha, nrow(lda$phi))
 
@@ -116,7 +120,7 @@ alph <- t(alph)
 Cd <- recover_counts(
   prob_matrix = theta_hat,
   prior_matrix = alph,
-  total_vector = Matrix::rowSums(d2)
+  total_vector = Matrix::rowSums(d1)
   )
 
 # Cd is done now get Ck 
@@ -125,6 +129,12 @@ Ck <- colSums(Cd)
 # use Ck to get counts for Cv
 # in future, you'll have to do this *after* you reconcile vocab and add uniform
 # counts over new words
-bet <- tidylda:::format_beta(beta = lda$beta, k = )
+bet <- tidylda:::format_beta(beta = lda$beta, k = ncol(Cd), Nv = ncol(d1))
+
+Cv <- recover_counts(
+  prob_matrix = lda$phi,
+  prior_matrix = bet$beta,
+  total_vector = Ck
+)
 
 

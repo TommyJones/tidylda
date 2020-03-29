@@ -20,7 +20,7 @@
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
-#'   \code{update} allows you to (a) update the probabilities (i.e. weights) of
+#'   \code{refit} allows you to (a) update the probabilities (i.e. weights) of
 #'   a previously-fit model with new data or additional iterations and (b) optionally
 #'   use \code{phi} of a previously-fit LDA topic model as the \code{beta} prior
 #'   for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
@@ -39,14 +39,14 @@
 #'   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
 #'   for the documents in \code{dtm}. Next, both \code{phi} and \code{theta} are
 #'   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
-#'   which executes a single Gibbs iteration to assign topics to tokens and
-#'   documents.
+#'   which assigns topics to tokens in a manner approximatley proportional to 
+#'   the posteriors and executes a single Gibbs iteration.
 #'
-#'   \code{update} handles the addition of new vocabulary by adding a flat prior
+#'   \code{refit} handles the addition of new vocabulary by adding a flat prior
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
 #'   median value of \code{beta} from the old model. The resulting model will
 #'   have the total vocabulary of the old model plus any new vocabulary tokens.
-#'   In other words, after running \code{update.tidylda} \code{ncol(phi) >= ncol(dtm)}
+#'   In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(dtm)}
 #'   where \code{phi} is from the new model and \code{dtm} is the additional data.
 #'
 #'   You can add additional topics by setting the \code{additional_k} parameter
@@ -75,7 +75,7 @@
 #' )
 #'
 #' # update an existing model by adding documents
-#' m2 <- update(
+#' m2 <- refit(
 #'   object = m,
 #'   dtm = rbind(d1, d2),
 #'   iterations = 200,
@@ -83,7 +83,7 @@
 #' )
 #'
 #' # use an old model as a prior for a new model
-#' m3 <- update(
+#' m3 <- refit(
 #'   object = m,
 #'   dtm = d2, # new documents only
 #'   phi_as_prior = TRUE,
@@ -92,7 +92,7 @@
 #' )
 #'
 #' # add topics while updating a model by adding documents
-#' m4 <- update(
+#' m4 <- refit(
 #'   object = m,
 #'   dtm = rbind(d1, d2),
 #'   additional_k = 3,
@@ -100,11 +100,7 @@
 #'   burnin = 175
 #' )
 #' }
-update <- function(object, ...) UseMethod("update")
-
-#' @describeIn update Update method for \code{tidylda}
-#' @export
-update.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
+refit.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
                            optimize_alpha = FALSE, calc_likelihood = FALSE,
                            calc_r2 = FALSE, return_data = FALSE,
                            additional_k = 0, phi_as_prior = FALSE, ...) {

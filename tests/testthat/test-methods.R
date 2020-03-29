@@ -109,7 +109,7 @@ test_that("malformed args in predict throw errors", {
 test_that("can update models", {
   # continuation of the old model for another 20 iterations
   # matters because dtm lines up exactly with existing vocabulary etc.
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d1,
     additional_k = 0,
@@ -134,7 +134,7 @@ test_that("can update models", {
 
 
   # new data adding no extra topics no phi as prior
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d2,
     additional_k = 0,
@@ -156,7 +156,7 @@ test_that("can update models", {
   expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
 
   # 1 additonal topic and no phi as prior
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d2,
     additional_k = 1,
@@ -178,7 +178,7 @@ test_that("can update models", {
   expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
 
   # 3 additional topics and no phi as prior
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d2,
     additional_k = 3,
@@ -200,7 +200,7 @@ test_that("can update models", {
   expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
 
   # no additional topics and phi as prior
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d2,
     additional_k = 0,
@@ -223,7 +223,7 @@ test_that("can update models", {
 
 
   # 3 additonal topics and phi as prior
-  lda2 <- update(
+  lda2 <- refit(
     object = lda,
     dtm = d2,
     additional_k = 3,
@@ -259,7 +259,7 @@ test_that("can update models", {
     return_data = FALSE
   )
 
-  l2 <- update(l1, d2, iterations = 20)
+  l2 <- refit(l1, d2, iterations = 20)
 
   expect_equal(ncol(l2$beta), length(union(colnames(d1), colnames(d2))))
 })
@@ -271,13 +271,13 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
   
   colnames(nd) <- 1:10 # numbers means no vocab overlap
   
-  lda2 <- update(object = lda, 
+  lda2 <- refit(object = lda, 
                  dtm = nd,
                  iterations = 10)
 
   # burnin >= iterations
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -293,7 +293,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
 
   # additional_k is not numeric
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = "3",
@@ -309,7 +309,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
 
   # additional_k is less than zero
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = -3,
@@ -325,7 +325,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
 
   # iterations not specified
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -335,7 +335,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
 
   # logical things aren't logical
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -350,7 +350,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
   )
 
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -365,7 +365,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
   )
 
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -379,7 +379,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
     )
   )
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -394,7 +394,7 @@ test_that("errors are thrown for malformed inputs to update.tidylda", {
   )
 
   expect_error(
-    update(
+    refit(
       object = lda,
       dtm = d2,
       additional_k = 3,
@@ -481,7 +481,7 @@ test_that("glance.tidylda behaves nicely", {
 })
 
 test_that("glance works with updated models", {
-  l2 <- update(lda, d2, iterations = 20)
+  l2 <- refit(lda, d2, iterations = 20)
 
   g <- glance(l2)
 

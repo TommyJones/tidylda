@@ -42,3 +42,6 @@ generics::glance
 #' @export
 generics::tidy
 
+#' @importFrom generics refit
+#' @export
+generics::refit

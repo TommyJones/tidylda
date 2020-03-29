@@ -6,6 +6,7 @@
 \alias{augment}
 \alias{glance}
 \alias{tidy}
+\alias{refit}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -13,6 +14,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{generics}{\code{\link[generics]{augment}}, \code{\link[generics]{glance}}, \code{\link[generics]{tidy}}}
+  \item{generics}{\code{\link[generics]{augment}}, \code{\link[generics]{glance}}, \code{\link[generics]{refit}}, \code{\link[generics]{tidy}}}
 }}
 

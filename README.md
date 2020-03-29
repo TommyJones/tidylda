@@ -83,11 +83,6 @@ library(tidylda)
 #> Registered S3 method overwritten by 'tidylda':
 #>   method      from 
 #>   tidy.matrix broom
-#> 
-#> Attaching package: 'tidylda'
-#> The following object is masked from 'package:stats':
-#> 
-#>     update
 library(Matrix)
 #> 
 #> Attaching package: 'Matrix'
@@ -295,9 +290,7 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
-# note as of this writing you have to call tidylda::update explicitly to avoid 
-# clashes with stats::update. Will fix soon-ish
-lda2 <- tidylda::update(
+lda2 <- refit(
   object = lda, 
   dtm = d, # save me the trouble of manually-combining these by just using d
   iterations = 200, 
@@ -325,7 +318,7 @@ glance(lda2)
 
 print(lda2)
 #> A Latent Dirichlet Allocation Model of  10 topics,  99  documents, and  3081  tokens:
-#> update.tidylda(object = lda, dtm = d, iterations = 200, burnin = 175, 
+#> refit.tidylda(object = lda, dtm = d, iterations = 200, burnin = 175, 
 #>     calc_likelihood = TRUE, calc_r2 = TRUE)
 #> 
 #> The model's R-squared is  0.1637 
@@ -406,7 +399,7 @@ Planned updates include:
   - an `augment` method to append distributions of `theta`, `phi`, or
     `gamma` to a tidy tibble of tokens
   - various functions to compare topic models to evaluate the effects of
-    `update`. (Although the functions will likely be general enough that
+    `refit`. (Although the functions will likely be general enough that
     you could compare any topic models.)
 
 If you have any suggestions for additional functionality, changes to

@@ -165,9 +165,7 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
-# note as of this writing you have to call tidylda::update explicitly to avoid 
-# clashes with stats::update. Will fix soon-ish
-lda2 <- tidylda::update(
+lda2 <- refit(
   object = lda, 
   dtm = d, # save me the trouble of manually-combining these by just using d
   iterations = 200, 
@@ -195,7 +193,7 @@ I plan to have more analyses and a fuller accounting of the options of the vario
 Planned updates include:
 
 * an `augment` method to append distributions of `theta`, `phi`, or `gamma` to a tidy tibble of tokens
-* various functions to compare topic models to evaluate the effects of `update`. (Although the functions will likely be general enough that you could compare any topic models.)
+* various functions to compare topic models to evaluate the effects of `refit`. (Although the functions will likely be general enough that you could compare any topic models.)
 
 If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email.
 

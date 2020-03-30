@@ -85,7 +85,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
 }
 \description{
 Since all three of \code{\link[tidylda]{tidylda}},
-  \code{\link[tidylda]{update.tidylda}}, and
+  \code{\link[tidylda]{refit.tidylda}}, and
   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
   we need a way to format the resulting posteriors and other user-facing
   objects consistently. This function does that.

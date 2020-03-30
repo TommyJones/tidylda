@@ -24,7 +24,7 @@ Returns a \code{\link[tibble]{tibble}} with the following columns:
 }
 \description{
 Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
-  and \code{\link[tidylda]{update.tidylda}} and used to augment
+  and \code{\link[tidylda]{refit.tidylda}} and used to augment
   \code{\link[tidylda]{print.tidylda}}.
 }
 \note{

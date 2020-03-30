@@ -278,11 +278,11 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #'   by \code{\link[tidylda]{format_beta}}
 #' @param phi_initial if specified, a numeric matrix for the probability of tokens
 #'   in topics. Must be specified for predictions or updates as called by
-#'   \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{update.tidylda}}
+#'   \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{refit.tidylda}}
 #'   respectively.
 #' @param theta_initial if specified, a numeric matrix for the probability of
 #'   topics in documents. Must be specified for updates as called by
-#'   \code{\link[tidylda]{update.tidylda}}
+#'   \code{\link[tidylda]{refit.tidylda}}
 #' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
 #'   This is \code{TRUE} for predictions.
 #' @param ... other items to be passed to \code{\link[furrr]{future_map}}
@@ -457,7 +457,7 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
 #' @keywords internal
 #' @description
 #'   Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
-#'   and \code{\link[tidylda]{update.tidylda}} and used to augment
+#'   and \code{\link[tidylda]{refit.tidylda}} and used to augment
 #'   \code{\link[tidylda]{print.tidylda}}.
 #' @param theta numeric matrix whose rows represent P(topic|document)
 #' @param phi numeric matrix whose rows represent P(token|topic)
@@ -522,7 +522,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #' @keywords internal
 #' @description
 #'   Since all three of \code{\link[tidylda]{tidylda}},
-#'   \code{\link[tidylda]{update.tidylda}}, and
+#'   \code{\link[tidylda]{refit.tidylda}}, and
 #'   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
 #'   we need a way to format the resulting posteriors and other user-facing
 #'   objects consistently. This function does that.

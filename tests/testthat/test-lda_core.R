@@ -20,9 +20,12 @@ test_that("can fit lda models without error", {
     alpha = 0.1, beta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = TRUE,
-    calc_r2 = FALSE,
+    calc_r2 = TRUE,
     return_data = FALSE
   )
+  
+  # make sure r2 doesn't have a names element
+  expect_null(names(lda$r2))
 
   expect_length(lda$alpha, 1)
 

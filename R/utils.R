@@ -774,6 +774,8 @@ calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
   # return r-squared
   r2 <- 1 - ss["sse"] / ss["sst"]
   
+  names(r2) <- NULL
+  
   r2
 }
 

@@ -39,7 +39,7 @@ lda <- tidylda(
   k = 10,
   iterations = 200,
   burnin = 175,
-  alpha = 0.1, # also accepts vector inputs
+  alpha = 1, # also accepts vector inputs
   beta = 0.05, # also accepts vector or matrix inputs
   optimize_alpha = FALSE, # experimental
   calc_likelihood = TRUE,

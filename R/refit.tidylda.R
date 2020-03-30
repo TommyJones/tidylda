@@ -39,7 +39,7 @@
 #'   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
 #'   for the documents in \code{dtm}. Next, both \code{phi} and \code{theta} are
 #'   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
-#'   which assigns topics to tokens in a manner approximatley proportional to 
+#'   which assigns topics to tokens in a manner approximately proportional to 
 #'   the posteriors and executes a single Gibbs iteration.
 #'
 #'   \code{refit} handles the addition of new vocabulary by adding a flat prior

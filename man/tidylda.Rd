@@ -92,7 +92,7 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   \url{https://arxiv.org/pdf/1510.08628.pdf}. The only difference is that the
   version in \code{\link[tidylda]{tidylda}} allows \code{beta} to be a
   vector or matrix. (Vector used in this function, matrix used for model
-  updates in \code{\link[tidylda]{update.tidylda}}. At present, the
+  updates in \code{\link[tidylda]{refit.tidylda}}. At present, the
   log likelihood function appears to be ok for assessing convergence. i.e. It
   has the right shape. However, it is, as of this writing, returning positive
   numbers, rather than the expected negative numbers. Looking into that, but

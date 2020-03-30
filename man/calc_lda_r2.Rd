@@ -15,7 +15,7 @@ calc_lda_r2(dtm, theta, phi, batch_size, ...)
 
 \item{batch_size}{for parallel processing}
 
-\item{...}{other aruments passed to \code{\link[furrr]{future_map}}}
+\item{...}{other arguments passed to \code{\link[furrr]{future_map}}}
 }
 \description{
 Formats inputs and hands off to mvrsquared::calc_rsquared

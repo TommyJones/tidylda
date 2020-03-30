@@ -723,7 +723,7 @@ format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
 #' @param theta a theta matrix
 #' @param phi a phi matrix
 #' @param batch_size for parallel processing
-#' @param ... other aruments passed to \code{\link[furrr]{future_map}}
+#' @param ... other arguments passed to \code{\link[furrr]{future_map}}
 calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
   # divide things into batches
   batches <- furrr::future_map(

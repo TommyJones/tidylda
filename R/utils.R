@@ -353,53 +353,6 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
     total_vector = Matrix::rowSums(dtm)
   )
 
-  # # initalize Cd by sampling from theta_initial.
-  # # for asymmetric alpha, encodes more/less probable topics
-  # # we don't need to initialize Cv because we can use the probabilities in phi,
-  # # along with our sampled Cd to do a single Gibbs iteration to populate all three
-  # # of Cd, Ck, and Cv
-  # cd_sampler <- function(size, prob) {
-  #   stats::rmultinom(n = 1, size = size, prob = prob)
-  # }
-  # 
-  # # below makes use of furrr::future_map to allow for parallel processing
-  # # in cases where we have more than 3000 documents
-  # batches <- seq(1, nrow(dtm), by = 3000)
-  # 
-  # # future::plan(multiprocess)
-  # 
-  # iterator <- furrr::future_map(.x = batches, .f = function(b) {
-  #   rows <- b:min(b + 2999, nrow(dtm))
-  # 
-  #   if (length(rows) > 1) {
-  #     size <- Matrix::rowSums(dtm[rows, ])
-  # 
-  #     prob <- as.list(data.frame(t(theta_initial[rows, ])))
-  #   } else {
-  #     size <- sum(dtm[rows, ])
-  # 
-  #     prob <- theta_initial[rows, ]
-  #   }
-  # 
-  #   list(size = size, prob = prob)
-  # }, ...)
-  # 
-  # Cd_start <- furrr::future_map(
-  #   .x = iterator,
-  #   .f = function(x) {
-  #     out <- mapply(
-  #       FUN = cd_sampler,
-  #       size = x$size,
-  #       prob = x$prob
-  #     )
-  # 
-  #     t(out)
-  #   }, ...
-  # )
-  # 
-  # Cd_start <- do.call(rbind, Cd_start)
-  # 
-
   # Initialize objects with that single Gibbs iteration mentioned above
   # if we have more than 3000 documents, do it in parallel with furrr::future_map
 

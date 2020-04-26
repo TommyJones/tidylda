@@ -195,5 +195,5 @@ Planned updates include:
 * an `augment` method to append distributions of `theta`, `phi`, or `gamma` to a tidy tibble of tokens
 * various functions to compare topic models to evaluate the effects of `refit`. (Although the functions will likely be general enough that you could compare any topic models.)
 
-If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email.
+If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email: jones.thos.w at gmail.com.
 

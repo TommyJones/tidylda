@@ -4,12 +4,14 @@
 \alias{print.tidylda}
 \title{Print Method for tidylda}
 \usage{
-\method{print}{tidylda}(x, digits = max(3L, getOption("digits") - 3L), ...)
+\method{print}{tidylda}(x, digits = max(3L, getOption("digits") - 3L), n = 5, ...)
 }
 \arguments{
 \item{x}{an object of class \code{tidylda}}
 
 \item{digits}{minimal number of significant digits}
+
+\item{n}{Number of rows to show in each displayed \code{\link[tibble]{tibble}}.}
 
 \item{...}{further arguments passed to or from other methods}
 }

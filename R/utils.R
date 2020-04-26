@@ -234,7 +234,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
         })
       
       if (inherits(x = idx, what = "try-error")) {
-        stop("something went wrong allocating extra counts\n",
+        stop("something went wrong allocating counts\n",
              "we added some counts.\n",
              "remainder = ", remainder, "\n",
              "length(x) = ", length(x), "\n",
@@ -261,7 +261,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
         })
       
       if (inherits(x = idx, what = "try-error")) {
-        stop("something went wrong allocating extra counts\n",
+        stop("something went wrong allocating counts\n",
              "we subtracted some counts.\n",
              "remainder = ", remainder, "\n",
              "sample_size = ", sample_size, "\n",

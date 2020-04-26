@@ -228,18 +228,26 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
       
       sample_prob[sample_prob < 0] <- 0
       
-      idx <- 
-        try({
-          sample(seq_along(x), remainder, prob = sample_prob)
-        })
-      
-      if (inherits(x = idx, what = "try-error")) {
-        stop("something went wrong allocating counts\n",
-             "we added some counts.\n",
-             "remainder = ", remainder, "\n",
-             "length(x) = ", length(x), "\n",
-             "length(sample_prob) = ", length(sample_prob))
+      # account for length of x
+      # no need to sample 1 object, can do deterministically
+      if (length(x) == 1) {
+        idx <- 1
+      } else {
+        idx <- 
+          try({
+            sample(seq_along(x), remainder, prob = sample_prob)
+          })
+        
+        # if (inherits(x = idx, what = "try-error")) {
+        #   stop("something went wrong allocating counts\n",
+        #        "we added some counts.\n",
+        #        "remainder = ", remainder, "\n",
+        #        "length(x) = ", length(x), "\n",
+        #        "length(sample_prob) = ", length(sample_prob))
+        # }
+        
       }
+      
       
       round_x[idx] <- round_x[idx] + 1
       
@@ -255,20 +263,28 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
       
       sample_size <- -1 * remainder
       
-      idx <- 
-        try({
-          sample(x = sample_from, size = sample_size, prob = sample_prob)
-        })
-      
-      if (inherits(x = idx, what = "try-error")) {
-        stop("something went wrong allocating counts\n",
-             "we subtracted some counts.\n",
-             "remainder = ", remainder, "\n",
-             "sample_size = ", sample_size, "\n",
-             "length(sample_from) = ", length(sample_from), "\n",
-             "length(sample_prob) = ", length(sample_prob))
+      # have to accommodate tokens that are out of bounds. 
+      # if number of tokens is 1 then do it deterministically
+      if (length(sample_from) == 1) {
+        
+        idx <- sample_from
+        
+      } else {
+        
+        idx <- 
+          try({
+            sample(x = sample_from, size = sample_size, prob = sample_prob)
+          })
+        
+        # if (inherits(x = idx, what = "try-error")) {
+        #   stop("something went wrong allocating counts\n",
+        #        "we subtracted some counts.\n",
+        #        "remainder = ", remainder, "\n",
+        #        "sample_size = ", sample_size, "\n",
+        #        "length(sample_from) = ", length(sample_from), "\n",
+        #        "length(sample_prob) = ", length(sample_prob))
+        # }
       }
-      
       
       round_x[idx] <- round_x[idx] - 1
       

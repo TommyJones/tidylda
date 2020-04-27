@@ -238,13 +238,14 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
             sample(seq_along(x), remainder, prob = sample_prob)
           })
         
-        # if (inherits(x = idx, what = "try-error")) {
-        #   stop("something went wrong allocating counts\n",
-        #        "we added some counts.\n",
-        #        "remainder = ", remainder, "\n",
-        #        "length(x) = ", length(x), "\n",
-        #        "length(sample_prob) = ", length(sample_prob))
-        # }
+        if (inherits(x = idx, what = "try-error")) {
+          stop("Something went wrong allocating counts.\n",
+               "This is a low level error. Please contact the 'tidylda' maintainer.\n",
+               "Error occured while adding some counts.\n",
+               "remainder = ", remainder, "\n",
+               "length(x) = ", length(x), "\n",
+               "length(sample_prob) = ", length(sample_prob))
+        }
         
       }
       
@@ -276,14 +277,15 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
             sample(x = sample_from, size = sample_size, prob = sample_prob)
           })
         
-        # if (inherits(x = idx, what = "try-error")) {
-        #   stop("something went wrong allocating counts\n",
-        #        "we subtracted some counts.\n",
-        #        "remainder = ", remainder, "\n",
-        #        "sample_size = ", sample_size, "\n",
-        #        "length(sample_from) = ", length(sample_from), "\n",
-        #        "length(sample_prob) = ", length(sample_prob))
-        # }
+        if (inherits(x = idx, what = "try-error")) {
+          stop("Something went wrong allocating counts.\n",
+               "This is a low level error. Please contact the 'tidylda' maintainer.\n",
+               "Error occured while subtracting some counts.\n",
+               "remainder = ", remainder, "\n",
+               "sample_size = ", sample_size, "\n",
+               "length(sample_from) = ", length(sample_from), "\n",
+               "length(sample_prob) = ", length(sample_prob))
+        }
       }
       
       round_x[idx] <- round_x[idx] - 1

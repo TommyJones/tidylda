@@ -141,6 +141,213 @@ List create_lexicon(IntegerMatrix &Cd,
   
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Declare a bunch of voids to be called inside main sampling function
+////////////////////////////////////////////////////////////////////////////////
+// Functions down here are called inside of calc_lda_c()
+// update probabilities of each topic ***
+void recalculate_probs(
+    NumericVector& qz,
+    IntegerVector& doc,
+    int& n,
+    int& d,
+    bool& freeze_topics,
+    NumericMatrix& Phi,
+    IntegerMatrix& Cd,
+    IntegerMatrix& Cv,
+    IntegerVector& Ck,
+    NumericVector& alpha,
+    NumericMatrix& beta,
+    double& sum_alpha,
+    double& sum_beta,
+    double& phi_kv
+) {
+  
+  
+}
+
+// sample a new topic
+void sample_topics(
+    IntegerVector& doc,
+    IntegerVector& zd,
+    IntegerVector& z,
+    int& n,
+    int& d,
+    IntegerVector& Ck,
+    IntegerMatrix& Cd, // make this an integer vector with rows of Cd as list elements
+    IntegerMatrix& Cv,
+    IntegerVector& topic_index,
+    NumericVector& qz,
+    bool& freeze_topics,
+    NumericMatrix& Phi,
+    NumericVector& alpha,
+    NumericMatrix& beta,
+    double& sum_alpha,
+    double& sum_beta,
+    double& phi_kv
+) {
+  // for each token instance in the document
+  for (n = 0; n < doc.length(); n++) {
+    
+    // discount counts from previous run ***
+    Cd(d, zd[n]) -= 1; 
+    
+    
+    if (! freeze_topics) {
+      Cv(zd[n], doc[n]) -= 1; 
+      
+      Ck[zd[n]] -= 1;
+    }
+    
+    
+    // update probabilities of each topic ***
+    for (int k = 0; k < qz.length(); k++) {
+      
+      // get the correct term depending on if we freeze topics or not
+      if (freeze_topics) {
+        phi_kv = Phi(k, doc[n]);
+      } else {
+        phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
+          ((double)Ck[k] + sum_beta);
+      }
+      
+      qz[k] =  phi_kv * ((double)Cd(d, k) + alpha[k]) / 
+        ((double)doc.length() + sum_alpha - 1);
+      
+    }
+    
+    // sample a topic ***
+    z = RcppArmadillo::sample(topic_index, 1, false, qz);
+    
+    // update counts ***
+    Cd(d, z[0]) += 1; 
+    
+    if (! freeze_topics) {
+      
+      Cv(z[0], doc[n]) += 1; 
+      
+      Ck[z[0]] += 1;
+      
+    }
+    
+    // record this topic for this token/doc combination
+    zd[n] = z[0];
+    
+  } // end loop over each token in doc
+  
+}
+
+// self explanatory: calculates the (log) likelihood
+void fcalc_likelihood(
+    double& lg_beta_count1,
+    double& lg_beta_count2,
+    double& lg_alpha_count,
+    int& Nk,
+    int& Nd,
+    int& Nv,
+    int& k,
+    int& d,
+    int& v,
+    int& t,
+    double& sum_beta,
+    IntegerVector& Ck,
+    IntegerMatrix& Cd,
+    IntegerMatrix& Cv,
+    NumericVector& alpha,
+    NumericVector& beta,
+    double& lgalpha,
+    double& lgbeta,
+    double& lg_alpha_len,
+    NumericMatrix& log_likelihood
+) {
+  
+  // calculate lg_beta_count1, lg_beta_count2, lg_alph_count for this iter
+  // start by zeroing them out
+  lg_beta_count1 = 0.0;
+  lg_beta_count2 = 0.0;
+  lg_alpha_count = 0.0;
+  
+  for (k = 0; k < Nk; k++) {
+    
+    lg_beta_count1 += lgamma(sum_beta + Ck[k]);
+    
+    for (d = 0; d < Nd; d++) {
+      lg_alpha_count += lgamma(alpha[k] + Cd(d,k));
+    }
+    
+    for (v = 0; v < Nv; v++) {
+      lg_beta_count2 += lgamma(beta(k,v) + Cv(k,v));
+    }
+    
+  }
+  
+  lg_beta_count1 *= -1;
+  
+  log_likelihood(0, t) = t;
+  
+  log_likelihood(1, t) = lgalpha + lgbeta + lg_alpha_len + lg_alpha_count + 
+    lg_beta_count1 + lg_beta_count2;
+  
+}
+
+// if user wants to optimize alpha, do that here.
+// procedure likely to change similar to what Mimno does in Mallet
+void foptimize_alpha(
+    NumericVector& alpha, 
+    IntegerVector& Ck,
+    int& sumtokens,
+    double& sum_alpha,
+    int& Nk,
+    int& k
+) {
+  
+  NumericVector new_alpha(Nk);
+  
+  for (k = 0; k < Nk; k++) {
+    
+    new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
+    
+    new_alpha[k] += (new_alpha[k] + alpha[k]) / 2;
+    
+  }
+  
+  alpha = new_alpha;
+  
+}
+
+// Function aggregates counts across iterations after burnin iterations
+void agg_counts_post_burnin(
+    int& Nk,
+    int& Nd,
+    int& Nv,
+    int& k,
+    int& d,
+    int& v,
+    bool& freeze_topics,
+    IntegerMatrix& Cd,
+    IntegerMatrix& Cd_sum,
+    IntegerMatrix& Cv,
+    IntegerMatrix& Cv_sum
+) {
+  for (k = 0; k < Nk; k++) {
+    for (d = 0; d < Nd; d++) {
+      
+      Cd_sum(d, k) += Cd(d, k);
+      
+    }
+    if (! freeze_topics) {
+      for (v = 0; v < Nv; v++) {
+        
+        Cv_sum(k, v) += Cv(k, v);
+        
+      }
+    }
+  }
+}
+
+
+
 //' Main C++ Gibbs sampler for Latent Dirichlet Allocation
 //' @keywords internal
 //' @description
@@ -277,121 +484,85 @@ List fit_lda_c(List &docs,
       
       IntegerVector zd = Zd[d];
       
-      for (n = 0; n < doc.length(); n++) {
-        
-        // discount counts from previous run ***
-        Cd(d, zd[n]) -= 1; 
-        
-        
-        if (! freeze_topics) {
-          Cv(zd[n], doc[n]) -= 1; 
-          
-          Ck[zd[n]] -= 1;
-        }
-        
-        
-        // update probabilities of each topic ***
-        for (int k = 0; k < qz.length(); k++) {
-          
-          // get the correct term depending on if we freeze topics or not
-          if (freeze_topics) {
-            phi_kv = Phi(k, doc[n]);
-          } else {
-            phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
-              ((double)Ck[k] + sum_beta);
-          }
-          
-          qz[k] =  phi_kv * ((double)Cd(d, k) + alpha[k]) / 
-            ((double)doc.length() + sum_alpha - 1);
-          
-        }
-        
-        
-        // sample a topic ***
-        z = RcppArmadillo::sample(topic_index, 1, false, qz);
-        
-        // update counts ***
-        Cd(d, z[0]) += 1; 
-        
-        if (! freeze_topics) {
-          
-          Cv(z[0], doc[n]) += 1; 
-          
-          Ck[z[0]] += 1;
-          
-        }
-        
-        // record this topic for this token/doc combination
-        zd[n] = z[0];
-        
-      } // end loop over each token in doc
+      sample_topics(
+        doc,
+        zd,
+        z,
+        n,
+        d,
+        Ck,
+        Cd, // make this an integer vector with rows of Cd as list elements
+        Cv,
+        topic_index,
+        qz,
+        freeze_topics,
+        Phi,
+        alpha,
+        beta,
+        sum_alpha,
+        sum_beta,
+        phi_kv
+      );
+      
     } // end loop over docs
     
     // calc likelihood ***
     if (calc_likelihood && ! freeze_topics) {
       
-      // calculate lg_beta_count1, lg_beta_count2, lg_alph_count for this iter
-      // start by zeroing them out
-      lg_beta_count1 = 0.0;
-      lg_beta_count2 = 0.0;
-      lg_alpha_count = 0.0;
-      
-      for (k = 0; k < Nk; k++) {
-        
-        lg_beta_count1 += lgamma(sum_beta + Ck[k]);
-        
-        for (d = 0; d < Nd; d++) {
-          lg_alpha_count += lgamma(alpha[k] + Cd(d,k));
-        }
-        
-        for (v = 0; v < Nv; v++) {
-          lg_beta_count2 += lgamma(beta(k,v) + Cv(k,v));
-        }
-        
-      }
-
-      lg_beta_count1 *= -1;
-      
-      log_likelihood(0, t) = t;
-      
-      log_likelihood(1, t) = lgalpha + lgbeta + lg_alpha_len + lg_alpha_count + 
-        lg_beta_count1 + lg_beta_count2;
+      fcalc_likelihood(
+        lg_beta_count1,
+        lg_beta_count2,
+        lg_alpha_count,
+        Nk,
+        Nd,
+        Nv,
+        k,
+        d,
+        v,
+        t,
+        sum_beta,
+        Ck,
+        Cd,
+        Cv,
+        alpha,
+        beta,
+        lgalpha,
+        lgbeta,
+        lg_alpha_len,
+        log_likelihood
+      );
       
     }
     // optimize alpha ***
     if (optimize_alpha && ! freeze_topics) {
       
-      NumericVector new_alpha(Nk);
-      
-      for (k = 0; k < Nk; k++) {
-        
-        new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
-        
-        new_alpha[k] += (new_alpha[k] + alpha[k]) / 2;
-        
-      }
-      
-      alpha = new_alpha;
+      foptimize_alpha(
+        alpha, 
+        Ck,
+        sumtokens,
+        sum_alpha,
+        Nk,
+        k
+      );  
       
     }
     
     // aggregate counts after burnin ***
     if (burnin > -1 && t >= burnin) {
       
-      for (k = 0; k < Nk; k++) {
-        for (d = 0; d < Nd; d++) {
-          
-          Cd_sum(d, k) += Cd(d, k);
-          
-        }
-        if (! freeze_topics) {
-          for (v = 0; v < Nv; v++) {
-            
-            Cv_sum(k, v) += Cv(k, v);
-            
-          }
-        }
-      }
+      agg_counts_post_burnin(
+        Nk,
+        Nd,
+        Nv,
+        k,
+        d,
+        v,
+        freeze_topics,
+        Cd,
+        Cd_sum,
+        Cv,
+        Cv_sum
+      );
       
     }
     
@@ -433,215 +604,3 @@ List fit_lda_c(List &docs,
 }
 
 
-// Functions down here are called inside of calc_lda_c()
-// update probabilities of each topic ***
-void recalculate_probs(
-    NumericVector& qz,
-    IntegerVector& doc,
-    int& n,
-    int& d,
-    bool& freeze_topics,
-    NumericMatrix& Phi,
-    IntegerMatrix& Cd,
-    IntegerMatrix& Cv,
-    IntegerVector& Ck,
-    NumericVector& alpha,
-    NumericMatrix& beta,
-    double& sum_alpha,
-    double& sum_beta,
-    double& phi_kv
-) {
-  
-  for (int k = 0; k < qz.length(); k++) {
-    
-    // get the correct term depending on if we freeze topics or not
-    if (freeze_topics) {
-      phi_kv = Phi(k, doc[n]);
-    } else {
-      phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
-        ((double)Ck[k] + sum_beta);
-    }
-    
-    qz[k] =  phi_kv * ((double)Cd(d, k) + alpha[k]) / 
-      ((double)doc.length() + sum_alpha - 1);
-    
-  }
-  
-}
-
-void sample_topics(
-    IntegerVector& doc,
-    IntegerVector& zd,
-    IntegerVector& z,
-    int& n,
-    int&d,
-    IntegerVector& Ck,
-    IntegerMatrix& Cd, // make this an integer vector with rows of Cd as list elements
-    IntegerMatrix& Cv,
-    IntegerVector& topic_index,
-    NumericVector& qz,
-    bool& freeze_topics,
-    NumericMatrix& Phi,
-    NumericVector& alpha,
-    NumericMatrix& beta,
-    double& sum_alpha,
-    double& sum_beta
-) {
-  // for each token instance in the document
-  for (n = 0; n < doc.length(); n++) {
-    
-    // discount counts from previous run ***
-    Cd(d, zd[n]) -= 1; 
-    
-    
-    if (! freeze_topics) {
-      Cv(zd[n], doc[n]) -= 1; 
-      
-      Ck[zd[n]] -= 1;
-    }
-    
-    
-    // update probabilities of each topic ***
-    recalculate_probs(
-      qz,
-      doc,
-      n,
-      freeze_topics,
-      Phi,
-      Cd,
-      Cv,
-      Ck,
-      alpha,
-      beta,
-      sum_alpha,
-      sum_beta
-    );
-    
-    // sample a topic ***
-    z = RcppArmadillo::sample(topic_index, 1, false, qz);
-    
-    // update counts ***
-    Cd(d, z[0]) += 1; 
-    
-    if (! freeze_topics) {
-      
-      Cv(z[0], doc[n]) += 1; 
-      
-      Ck[z[0]] += 1;
-      
-    }
-    
-    // record this topic for this token/doc combination
-    zd[n] = z[0];
-    
-  } // end loop over each token in doc
-  
-}
-
-// self explanatory: calculates the (log) likelihood
-void calc_likelihood(
-    double& lg_beta_count1,
-    double& lg_beta_count2,
-    double& lg_alpha_count,
-    int& Nk,
-    int& Nd,
-    int& Nv,
-    int& k,
-    int& d,
-    int& v,
-    int& t,
-    double& sum_beta,
-    IntegerVector& Ck,
-    IntegerMatrix& Cd,
-    IntegerMatrix& Cv,
-    NumericVector& alpha,
-    NumericVector& beta,
-    double& lgalpha,
-    double& lgbeta,
-    double& lg_alpha_len,
-    NumericMatrix log_likelihood
-) {
-  
-  // calculate lg_beta_count1, lg_beta_count2, lg_alph_count for this iter
-  // start by zeroing them out
-  lg_beta_count1 = 0.0;
-  lg_beta_count2 = 0.0;
-  lg_alpha_count = 0.0;
-  
-  for (k = 0; k < Nk; k++) {
-    
-    lg_beta_count1 += lgamma(sum_beta + Ck[k]);
-    
-    for (d = 0; d < Nd; d++) {
-      lg_alpha_count += lgamma(alpha[k] + Cd(d,k));
-    }
-    
-    for (v = 0; v < Nv; v++) {
-      lg_beta_count2 += lgamma(beta(k,v) + Cv(k,v));
-    }
-    
-  }
-  
-  lg_beta_count1 *= -1;
-  
-  log_likelihood(0, t) = t;
-  
-  log_likelihood(1, t) = lgalpha + lgbeta + lg_alpha_len + lg_alpha_count + 
-    lg_beta_count1 + lg_beta_count2;
-  
-}
-
-// if user wants to optimize alpha, do that here.
-// procedure likely to change similar to what Mimno does in Mallet
-void optimize_alpha(
-    NumericVector& alpha, 
-    NumericVector& Ck,
-    int& sumtokens,
-    double& sum_alpha,
-    int& Nk,
-    int&k
-) {
-  
-  NumericVector new_alpha(Nk);
-  
-  for (k = 0; k < Nk; k++) {
-    
-    new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
-    
-    new_alpha[k] += (new_alpha[k] + alpha[k]) / 2;
-    
-  }
-  
-  alpha = new_alpha;
-  
-}
-
-// Function aggregates counts across iterations after burnin iterations
-void agg_counts_post_burnin(
-    int& Nk,
-    int& Nd,
-    int& Nv,
-    int& k,
-    int& d,
-    int& v,
-    bool& freeze_topics,
-    IntegerMatrix& Cd,
-    IntegerMatrix& Cd_sum,
-    IntegerMatrix& Cv
-  IntegerMatrix& Cv_sum
-) {
-  for (k = 0; k < Nk; k++) {
-    for (d = 0; d < Nd; d++) {
-      
-      Cd_sum(d, k) += Cd(d, k);
-      
-    }
-    if (! freeze_topics) {
-      for (v = 0; v < Nv; v++) {
-        
-        Cv_sum(k, v) += Cv(k, v);
-        
-      }
-    }
-  }
-}

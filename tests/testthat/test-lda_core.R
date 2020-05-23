@@ -88,7 +88,7 @@ test_that("can fit lda models without error", {
     return_data = FALSE
   )
 
-  expect_equal(class(lda$beta), "matrix")
+  expect_true(inherits(lda$beta, "matrix"))
 })
 
 test_that("errors hit for malformed parameters", {

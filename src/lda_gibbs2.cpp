@@ -22,11 +22,13 @@ using namespace Rcpp;
 //' @param alpha NumericVector prior for topics over documents
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
-List create_lexicon(IntegerMatrix &Cd, 
-                    NumericMatrix &Phi, 
-                    arma::sp_mat &dtm,
-                    NumericVector alpha,
-                    bool freeze_topics) {
+List create_lexicon(
+    IntegerMatrix &Cd, 
+    NumericMatrix &Phi, 
+    arma::sp_mat &dtm,
+    NumericVector alpha,
+    bool freeze_topics
+) {
   
   // ***************************************************************************
   // Initialize some variables
@@ -133,11 +135,13 @@ List create_lexicon(IntegerMatrix &Cd,
   // Prepare output and expel it from this function
   // ***************************************************************************
   
-  return List::create(Named("docs") = docs,
-                      Named("Zd") = Zd,
-                      Named("Cd") = Cd_out,
-                      Named("Cv") = Cv,
-                      Named("Ck") = Ck);
+  return List::create(
+    Named("docs") = docs,
+    Named("Zd") = Zd,
+    Named("Cd") = Cd_out,
+    Named("Cv") = Cv,
+    Named("Ck") = Ck
+  );
   
 }
 
@@ -369,20 +373,22 @@ void agg_counts_post_burnin(
 //' @param calc_likelihood bool do you want to calculate the log likelihood each iteration?
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
-List fit_lda_c(List &docs,
-               int &Nk,
-               NumericMatrix &beta,
-               NumericVector alpha,
-               IntegerMatrix Cd,
-               IntegerMatrix Cv,
-               IntegerVector Ck,
-               List Zd,
-               NumericMatrix &Phi,
-               int &iterations,
-               int &burnin,
-               bool &freeze_topics,
-               bool &calc_likelihood,
-               bool &optimize_alpha) {
+List fit_lda_c(
+    List &docs,
+    int &Nk,
+    NumericMatrix &beta,
+    NumericVector alpha,
+    IntegerMatrix Cd,
+    IntegerMatrix Cv,
+    IntegerVector Ck,
+    List Zd,
+    NumericMatrix &Phi,
+    int &iterations,
+    int &burnin,
+    bool &freeze_topics,
+    bool &calc_likelihood,
+    bool &optimize_alpha
+) {
   
   // ***********************************************************************
   // TODO Check quality of inputs to minimize risk of crashing the program
@@ -593,14 +599,16 @@ List fit_lda_c(List &docs,
   
   // Return the final list ***
   
-  return List::create(Named("Cd") = Cd,
-                      Named("Cv") = Cv,
-                      Named("Ck") = Ck,
-                      Named("Cd_mean") = Cd_mean,
-                      Named("Cv_mean") = Cv_mean,
-                      Named("log_likelihood") = log_likelihood,
-                      Named("alpha") = alpha,
-                      Named("beta") = beta);  
+  return List::create(
+    Named("Cd") = Cd,
+    Named("Cv") = Cv,
+    Named("Ck") = Ck,
+    Named("Cd_mean") = Cd_mean,
+    Named("Cv_mean") = Cv_mean,
+    Named("log_likelihood") = log_likelihood,
+    Named("alpha") = alpha,
+    Named("beta") = beta
+  );  
 }
 
 

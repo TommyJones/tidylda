@@ -161,7 +161,7 @@ void sample_topics(
     IntegerMatrix& Cd, 
     IntegerMatrix& Cv,
     IntegerVector& topic_index,
-    NumericVector& qz,
+    // NumericVector& qz,
     bool& freeze_topics,
     NumericMatrix& Phi,
     NumericVector& alpha,
@@ -183,6 +183,10 @@ void sample_topics(
       Ck[zd[n]] -= 1;
     }
     
+    // initialize qz here to calc on the fly
+    NumericVector qz(topic_index.length());
+    
+    qz = qz + 1;
     
     // update probabilities of each topic ***
     for (int k = 0; k < qz.length(); k++) {
@@ -398,11 +402,11 @@ List fit_lda_c(
   
   int t, d, n, k, v; // indices for loops
   
-  NumericVector qz(Nk);
+  // NumericVector qz(Nk);
+  // 
+  // qz = qz + 1; // uniform initialization
   
   IntegerVector topic_index = seq_len(Nk) - 1;
-  
-  qz = qz + 1; // uniform initialization
 
   IntegerVector z(1); // for sampling topics
   
@@ -461,7 +465,7 @@ List fit_lda_c(
   
   for (t = 0; t < iterations; t++) {
     
-    for (d = 0; d < Nd; d++) {
+    for (d = 0; d < Nd; d++) { //start loop over documents
       
       R_CheckUserInterrupt();
       
@@ -479,7 +483,7 @@ List fit_lda_c(
         Cd, // make this an integer vector with rows of Cd as list elements
         Cv,
         topic_index,
-        qz,
+        // qz,
         freeze_topics,
         Phi,
         alpha,

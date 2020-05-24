@@ -159,7 +159,7 @@ void sample_topics(
     int& n,
     int& d,
     IntegerVector& Ck,
-    IntegerMatrix& Cd, // make this an integer vector with rows of Cd as list elements
+    IntegerMatrix& Cd, 
     IntegerMatrix& Cv,
     IntegerVector& topic_index,
     NumericVector& qz,

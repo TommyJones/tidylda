@@ -150,26 +150,6 @@ List create_lexicon(
 // Declare a bunch of voids to be called inside main sampling function
 ////////////////////////////////////////////////////////////////////////////////
 // Functions down here are called inside of calc_lda_c()
-// update probabilities of each topic ***
-void recalculate_probs(
-    NumericVector& qz,
-    IntegerVector& doc,
-    int& n,
-    int& d,
-    bool& freeze_topics,
-    NumericMatrix& Phi,
-    IntegerMatrix& Cd,
-    IntegerMatrix& Cv,
-    IntegerVector& Ck,
-    NumericVector& alpha,
-    NumericMatrix& beta,
-    double& sum_alpha,
-    double& sum_beta,
-    double& phi_kv
-) {
-  
-  
-}
 
 // sample a new topic
 void sample_topics(

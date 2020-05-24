@@ -1,8 +1,5 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
-// NOTE TO TOMMY: USE ROXYGEN DOCUMENTATION FOR ALL EXPORTED FUNCTIONS
-// DO SO WHEN INTEGRATING BACK INTO textmineR
-
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadilloExtensions/sample.h>
 #include <R.h>

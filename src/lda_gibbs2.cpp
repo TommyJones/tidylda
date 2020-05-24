@@ -402,10 +402,6 @@ List fit_lda_c(
   
   int t, d, n, k, v; // indices for loops
   
-  // NumericVector qz(Nk);
-  // 
-  // qz = qz + 1; // uniform initialization
-  
   IntegerVector topic_index = seq_len(Nk) - 1;
 
   IntegerVector z(1); // for sampling topics
@@ -465,6 +461,7 @@ List fit_lda_c(
   
   for (t = 0; t < iterations; t++) {
     
+    // loop over documents
     for (d = 0; d < Nd; d++) { //start loop over documents
       
       R_CheckUserInterrupt();
@@ -480,10 +477,9 @@ List fit_lda_c(
         n,
         d,
         Ck,
-        Cd, // make this an integer vector with rows of Cd as list elements
+        Cd, 
         Cv,
         topic_index,
-        // qz,
         freeze_topics,
         Phi,
         alpha,
@@ -493,8 +489,7 @@ List fit_lda_c(
         phi_kv
       );
       
-    } // end loop over docs
-    
+    } // end loop over docs    
     // calc likelihood ***
     if (calc_likelihood && ! freeze_topics) {
       

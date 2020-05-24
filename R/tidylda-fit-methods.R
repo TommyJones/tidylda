@@ -179,7 +179,7 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
 
   # other formatting
   counts <- initialize_topic_counts(
-    dtm = dtm, k = 10,
+    dtm = dtm, k = k,
     alpha = alpha$alpha, beta = beta$beta,
     ...
   )

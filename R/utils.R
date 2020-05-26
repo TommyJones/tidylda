@@ -350,9 +350,17 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #' @note
 #'   All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing
 #'   over Zd in various ways.
-initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
-                                    theta_initial = NULL, freeze_topics = FALSE,
-                                    ...) {
+initialize_topic_counts <- function(
+  dtm, 
+  k, 
+  alpha, 
+  beta, 
+  phi_initial = NULL,
+  theta_initial = NULL, 
+  freeze_topics = FALSE,
+  batch_size = 3000,
+  ...
+) {
 
   # check inputs
 
@@ -398,12 +406,12 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
   # Initialize objects with that single Gibbs iteration mentioned above
   # if we have more than 3000 documents, do it in parallel with furrr::future_map
 
-  batches <- seq(1, nrow(dtm), by = 3000)
+  batches <- seq(1, nrow(dtm), by = batch_size)
 
   lexicon <- furrr::future_map(
     .x = batches,
     .f = function(b) {
-      rows <- b:min(b + 2999, nrow(dtm))
+      rows <- b:min(b + batch_size - 1, nrow(dtm))
 
       # if statement to handle single observations
       if (length(rows) == 1) {

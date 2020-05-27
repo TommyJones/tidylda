@@ -39,7 +39,8 @@ Suggests:
     spelling
 LinkingTo: 
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    RcppThread
 VignetteBuilder: 
     knitr
 Encoding: UTF-8

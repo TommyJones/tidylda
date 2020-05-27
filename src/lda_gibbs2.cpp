@@ -1,6 +1,7 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
 // [[Rcpp::depends(RcppArmadillo)]]
+#include "RcppThread.h"
 #include <RcppArmadilloExtensions/sample.h>
 #include <R.h>
 #include <cmath>
@@ -159,7 +160,7 @@ void sample_topics(
     IntegerMatrix& Cd, 
     IntegerMatrix& Cv,
     IntegerVector& topic_index,
-    NumericVector& qz,
+    // NumericVector& qz,
     bool& freeze_topics,
     NumericMatrix& Phi,
     NumericVector& alpha,
@@ -181,6 +182,10 @@ void sample_topics(
       Ck[zd[n]] -= 1;
     }
     
+    // initialize qz here to calc on the fly
+    NumericVector qz(topic_index.length());
+    
+    qz = qz + 1;
     
     // update probabilities of each topic ***
     for (int k = 0; k < qz.length(); k++) {
@@ -396,11 +401,7 @@ List fit_lda_c(
   
   int t, d, n, k, v; // indices for loops
   
-  NumericVector qz(Nk);
-  
   IntegerVector topic_index = seq_len(Nk) - 1;
-  
-  qz = qz + 1; // uniform initialization
 
   IntegerVector z(1); // for sampling topics
   
@@ -459,7 +460,8 @@ List fit_lda_c(
   
   for (t = 0; t < iterations; t++) {
     
-    for (d = 0; d < Nd; d++) {
+    // loop over documents
+    for (d = 0; d < Nd; d++) { //start loop over documents
       
       R_CheckUserInterrupt();
       
@@ -477,7 +479,6 @@ List fit_lda_c(
         Cd, 
         Cv,
         topic_index,
-        qz,
         freeze_topics,
         Phi,
         alpha,
@@ -487,8 +488,7 @@ List fit_lda_c(
         phi_kv
       );
       
-    } // end loop over docs
-    
+    } // end loop over docs    
     // calc likelihood ***
     if (calc_likelihood && ! freeze_topics) {
       

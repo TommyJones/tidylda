@@ -118,7 +118,6 @@ tidylda <- function(
   calc_likelihood = FALSE,
   calc_r2 = FALSE, 
   batch_size = 3000,
-  lda_threads = 1,
   return_data = FALSE, 
   ...
 ) {
@@ -141,7 +140,6 @@ tidylda <- function(
     calc_likelihood = calc_likelihood,
     calc_r2 = calc_r2,
     batch_size = batch_size,
-    lda_threads = lda_threads,
     return_data = return_data,
     mc,
     ...
@@ -166,7 +164,6 @@ tidylda_bridge <- function(
   calc_likelihood, 
   calc_r2,
   batch_size,
-  lda_threads,
   return_data, 
   mc,
   ...
@@ -252,8 +249,7 @@ tidylda_bridge <- function(
     burnin = burnin,
     freeze_topics = FALSE, # this stays FALSE for initial fitting
     calc_likelihood = calc_likelihood,
-    optimize_alpha = optimize_alpha,
-    # lda_threads = lda_threads
+    optimize_alpha = optimize_alpha
   )
 
   ### format the output ----
@@ -269,6 +265,7 @@ tidylda_bridge <- function(
     calc_r2 = calc_r2,
     calc_likelihood = calc_likelihood,
     call = mc, 
+    batch_size = batch_size,
     ...
   )
 

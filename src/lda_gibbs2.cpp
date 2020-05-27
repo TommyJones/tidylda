@@ -1,6 +1,5 @@
 // Functions to make a collapsed gibbs sampler for LDA
-// [[Rcpp::plugins(cpp11)]]
-// [[Rcpp::depends(RcppThread)]]
+
 // [[Rcpp::depends(RcppArmadillo)]]
 #include "RcppThread.h"
 #include <RcppArmadilloExtensions/sample.h>
@@ -39,7 +38,7 @@ List create_lexicon(
   
   List Zd(dtm.n_rows);
   
-  int Nk = Cd.ncol();
+  int Nk = Cd.nrow();
   
   NumericVector qz(Nk);
   
@@ -73,7 +72,7 @@ List create_lexicon(
         
         // calculate probability of topics based on initially-sampled Phi and Cd
         for (int k = 0; k < Nk; k++) {
-          qz[k] = Phi(k, v) * ((double)Cd(d, k) + alpha[k]) / ((double)nd + sum_alpha - 1);
+          qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
         }
         
         int idx = j + dtm(d,v); // where to stop the loop below
@@ -104,7 +103,7 @@ List create_lexicon(
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  IntegerMatrix Cd_out(dtm.n_rows, Nk);
+  IntegerMatrix Cd_out(Nk, dtm.n_rows);
   
   IntegerVector Ck(Nk);
   
@@ -118,7 +117,7 @@ List create_lexicon(
     
     for (int n = 0; n < zd.length(); n++) {
       
-      Cd_out(d, zd[n]) += 1;
+      Cd_out(zd[n], d) += 1;
       
       Ck[zd[n]] += 1;
 
@@ -174,7 +173,7 @@ void sample_topics(
   for (n = 0; n < doc.length(); n++) {
     
     // discount counts from previous run ***
-    Cd(d, zd[n]) -= 1; 
+    Cd(zd[n], d) -= 1; 
     
     
     if (! freeze_topics) {
@@ -199,7 +198,7 @@ void sample_topics(
           ((double)Ck[k] + sum_beta);
       }
       
-      qz[k] =  phi_kv * ((double)Cd(d, k) + alpha[k]) / 
+      qz[k] =  phi_kv * ((double)Cd(k, d) + alpha[k]) / 
         ((double)doc.length() + sum_alpha - 1);
       
     }
@@ -208,7 +207,7 @@ void sample_topics(
     z = RcppArmadillo::sample(topic_index, 1, false, qz);
     
     // update counts ***
-    Cd(d, z[0]) += 1; 
+    Cd(z[0], d) += 1; 
     
     if (! freeze_topics) {
       
@@ -260,11 +259,11 @@ void fcalc_likelihood(
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
     
     for (d = 0; d < Nd; d++) {
-      lg_alpha_count += lgamma(alpha[k] + Cd(d,k));
+      lg_alpha_count += lgamma(alpha[k] + Cd(k, d));
     }
     
     for (v = 0; v < Nv; v++) {
-      lg_beta_count2 += lgamma(beta(k,v) + Cv(k,v));
+      lg_beta_count2 += lgamma(beta(k,v) + Cv(k, v));
     }
     
   }
@@ -320,7 +319,7 @@ void agg_counts_post_burnin(
   for (k = 0; k < Nk; k++) {
     for (d = 0; d < Nd; d++) {
       
-      Cd_sum(d, k) += Cd(d, k);
+      Cd_sum(k, d) += Cd(k, d);
       
     }
     if (! freeze_topics) {
@@ -386,7 +385,7 @@ List fit_lda_c(
   
   int Nv = Cv.cols();
   
-  int Nd = Cd.rows();
+  int Nd = Cd.cols();
   
   NumericVector k_alpha = alpha * Nk;
   
@@ -411,9 +410,9 @@ List fit_lda_c(
   
   NumericMatrix Cv_mean(Nk, Nv);
   
-  IntegerMatrix Cd_sum(Nd, Nk);
+  IntegerMatrix Cd_sum(Nk, Nd);
   
-  NumericMatrix Cd_mean(Nd, Nk);
+  NumericMatrix Cd_mean(Nk, Nd);
   
   // related to the likelihood calculation
   NumericMatrix log_likelihood(2, iterations);
@@ -566,11 +565,11 @@ List fit_lda_c(
     for (k = 0; k < Nk; k++) {
       
       for (d = 0; d < Nd; d++) {
-        Cd_mean(d,k) = ((double)Cd_sum(d,k) / diff);
+        Cd_mean(k, d) = ((double)Cd_sum(k, d) / diff);
       }
       
       for (v = 0; v < Nv; v++) {
-        Cv_mean(k,v) = ((double)Cv_sum(k,v) / diff);
+        Cv_mean(k, v) = ((double)Cv_sum(k, v) / diff);
       }
     }
   }

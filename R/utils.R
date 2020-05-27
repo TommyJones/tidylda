@@ -350,9 +350,17 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #' @note
 #'   All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing
 #'   over Zd in various ways.
-initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
-                                    theta_initial = NULL, freeze_topics = FALSE,
-                                    ...) {
+initialize_topic_counts <- function(
+  dtm, 
+  k, 
+  alpha, 
+  beta, 
+  phi_initial = NULL,
+  theta_initial = NULL, 
+  freeze_topics = FALSE,
+  batch_size = 3000,
+  ...
+) {
 
   # check inputs
 
@@ -396,14 +404,14 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
   )
 
   # Initialize objects with that single Gibbs iteration mentioned above
-  # if we have more than 3000 documents, do it in parallel with furrr::future_map
+  # if we have more than batch_size documents, do it in parallel with furrr::future_map
 
-  batches <- seq(1, nrow(dtm), by = 3000)
+  batches <- seq(1, nrow(dtm), by = batch_size)
 
   lexicon <- furrr::future_map(
     .x = batches,
     .f = function(b) {
-      rows <- b:min(b + 2999, nrow(dtm))
+      rows <- b:min(b + batch_size - 1, nrow(dtm))
 
       # if statement to handle single observations
       if (length(rows) == 1) {
@@ -417,7 +425,7 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
       }
 
       l <- create_lexicon(
-        Cd = cd_tmp,
+        Cd = t(cd_tmp),
         Phi = phi_initial,
         dtm = dtm_tmp,
         alpha = alpha,
@@ -435,7 +443,7 @@ initialize_topic_counts <- function(dtm, k, alpha, beta, phi_initial = NULL,
 
   Ck <- Reduce("+", lapply(lexicon, function(l) l$Ck))
 
-  Cd <- do.call(rbind, lapply(lexicon, function(l) l$Cd))
+  Cd <- do.call(cbind, lapply(lexicon, function(l) l$Cd))
 
   out <- list(
     docs = docs,
@@ -587,17 +595,26 @@ summarize_topics <- function(theta, phi, dtm) {
 #'   The class of \code{call} isn't checked. It's just passed through to the
 #'   object returned by this function. Might be useful if you are using this
 #'   function for troubleshooting or something.
-format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
-                                   alpha = NULL, beta = NULL,
-                                   optimize_alpha = NULL, calc_r2 = NULL,
-                                   calc_likelihood = NULL, call = NULL,
-                                   ...) {
+format_raw_lda_outputs <- function(
+  lda, 
+  dtm, 
+  burnin, 
+  is_prediction = FALSE,
+  alpha = NULL, 
+  beta = NULL,
+  optimize_alpha = NULL, 
+  calc_r2 = NULL,
+  calc_likelihood = NULL, 
+  call = NULL,
+  batch_size = 3000,
+  ...
+) {
 
   ### format theta ----
   if (burnin > -1) {
-    theta <- t(t(lda$Cd_mean) + lda$alpha)
+    theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)
   } else {
-    theta <- t(t(lda$Cd) + lda$alpha)
+    theta <- t(lda$Cd + lda$alpha) # t(t(lda$Cd) + lda$alpha)
   }
 
   theta <- theta / rowSums(theta)
@@ -691,7 +708,7 @@ format_raw_lda_outputs <- function(lda, dtm, burnin, is_prediction = FALSE,
         dtm = dtm,
         theta = theta,
         phi = phi,
-        batch_size = 3000, # hard coded for now
+        batch_size = batch_size, 
         ...
       )
     }

@@ -22,6 +22,10 @@
 #'        Useful for assessing convergence. Defaults to \code{FALSE}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
+#' @param batch_size Number of documents allocated to single batch for parallel
+#'        processing. Defaults to \code{3000}. See Details, below.
+#' @param lda_threads Maximum number of threads used for a parallel approximation
+#'        to Gibbs sampling. Defaults to \code{1}. See Details, below. 
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class \code{tidylda}.
@@ -61,6 +65,22 @@
 #'   has the right shape. However, it is, as of this writing, returning positive
 #'   numbers, rather than the expected negative numbers. Looking into that, but
 #'   in the meantime caveat emptor once again.
+#'   
+#'   Parallelism, if desired, is executed in two ways. For everything except the
+#'   Gibbs sampler, parallelism is executed at the R level by
+#'   \code{\link[future_map]{furrr}}. Control arguments to \code{\link[future_map]{furrr}}
+#'   can be passed through \code{...} as described above. The \code{batch_size}
+#'   parameter controls how many documents are processed by a core/node/thread
+#'   in a single batch.
+#'   
+#'   Parallelism in the Gibbs sampler is executed at the C++ level with
+#'   \code{\link[RcppThread]{RcppThread}}. The \code{lda_threads} parameter
+#'   controls the maximum number of parallel threads used by the Gibbs sampler.
+#'   If set to \code{1}, the default, this is the exact Gibbs algorithm with
+#'   all of its theoretical guarantees intact. If parallel, the algorithm in 
+#'   <doi:10.1145/1577069.1755845> is used as an approximate Gibbs sampler.
+#'   If \code{batch_size} greater than or equal to the number of documents, the
+#'   sampler will be sequential Gibbs regardless of the value of \code{lda_threads}.
 #'
 #' @examples
 #' # load some data
@@ -87,9 +107,20 @@
 #' # compare the methods
 #' barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 #' @export
-tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 0.05,
-                    optimize_alpha = FALSE, calc_likelihood = FALSE,
-                    calc_r2 = FALSE, return_data = FALSE, ...) {
+tidylda <- function(
+  dtm, 
+  k, 
+  iterations = NULL, 
+  burnin = -1, 
+  alpha = 0.1, 
+  beta = 0.05,
+  optimize_alpha = FALSE, 
+  calc_likelihood = FALSE,
+  calc_r2 = FALSE, 
+  batch_size = 3000,
+  return_data = FALSE, 
+  ...
+) {
 
   # not using methods for now as I think this is cleaner
   # UseMethod("tidylda")
@@ -108,6 +139,7 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
     optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
     calc_r2 = calc_r2,
+    batch_size = batch_size,
     return_data = return_data,
     mc,
     ...
@@ -121,9 +153,21 @@ tidylda <- function(dtm, k, iterations = NULL, burnin = -1, alpha = 0.1, beta = 
 #'   Takes in arguments from various \code{tidylda} S3 methods and fits the
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
-tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
-                           optimize_alpha, calc_likelihood, calc_r2,
-                           return_data, mc, ...) {
+tidylda_bridge <- function(
+  dtm, 
+  k, 
+  iterations, 
+  burnin, 
+  alpha, 
+  beta,
+  optimize_alpha, 
+  calc_likelihood, 
+  calc_r2,
+  batch_size,
+  return_data, 
+  mc,
+  ...
+) {
 
   ### check validity of inputs ----
 
@@ -177,13 +221,18 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
   ### format inputs ----
 
 
-  # other formatting
+  # initialize counts
   counts <- initialize_topic_counts(
-    dtm = dtm, k = k,
-    alpha = alpha$alpha, beta = beta$beta,
+    dtm = dtm, 
+    k = 10,
+    alpha = alpha$alpha, 
+    beta = beta$beta,
+    batch_size = batch_size,
     ...
   )
 
+  # divide into batches to enable parallel execution of the Gibbs sampler
+  
 
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(
@@ -206,12 +255,18 @@ tidylda_bridge <- function(dtm, k, iterations, burnin, alpha, beta,
   ### format the output ----
 
   result <- format_raw_lda_outputs(
-    lda = lda, dtm = dtm, burnin = burnin,
+    lda = lda, 
+    dtm = dtm, 
+    burnin = burnin,
     is_prediction = FALSE,
-    alpha = alpha, beta = beta,
-    optimize_alpha = optimize_alpha, calc_r2 = calc_r2,
+    alpha = alpha, 
+    beta = beta,
+    optimize_alpha = optimize_alpha, 
+    calc_r2 = calc_r2,
     calc_likelihood = calc_likelihood,
-    call = mc, ...
+    call = mc, 
+    batch_size = batch_size,
+    ...
   )
 
   ### return the result ----

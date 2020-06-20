@@ -12,6 +12,7 @@ initialize_topic_counts(
   phi_initial = NULL,
   theta_initial = NULL,
   freeze_topics = FALSE,
+  batch_size = 3000,
   ...
 )
 }

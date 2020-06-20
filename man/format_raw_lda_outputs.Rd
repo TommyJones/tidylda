@@ -15,6 +15,7 @@ format_raw_lda_outputs(
   calc_r2 = NULL,
   calc_likelihood = NULL,
   call = NULL,
+  batch_size = 3000,
   ...
 )
 }

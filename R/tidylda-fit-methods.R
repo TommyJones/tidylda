@@ -24,8 +24,6 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param batch_size Number of documents allocated to single batch for parallel
 #'        processing. Defaults to \code{3000}. See Details, below.
-#' @param lda_threads Maximum number of threads used for a parallel approximation
-#'        to Gibbs sampling. Defaults to \code{1}. See Details, below. 
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
 #' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
 #' @return Returns an S3 object of class \code{tidylda}.

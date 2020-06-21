@@ -15,7 +15,8 @@
   return_data = FALSE,
   additional_k = 0,
   phi_as_prior = FALSE,
-  threads = 1
+  threads = 1,
+  ...
 )
 }
 \arguments{
@@ -47,6 +48,8 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 from the previous model as the prior for words over topics?}
 
 \item{threads}{Number of parallel threads, defaults to 1.}
+
+\item{...}{Additional arguments, currently unused}
 }
 \value{
 Returns an S3 object of class c("tidylda").

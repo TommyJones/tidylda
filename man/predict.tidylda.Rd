@@ -11,7 +11,8 @@
   iterations = NULL,
   burnin = -1,
   no_common_tokens = c("default", "zero", "uniform"),
-  threads = 1
+  threads = 1,
+  ...
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ in common with the model. Options are "\code{default}", "\code{zero}",
 or "\code{uniform}". See 'details', below for explanation of behavior.}
 
 \item{threads}{Number of parallel threads, defaults to 1.}
+
+\item{...}{Additional arguments, currently unused}
 }
 \value{
 a "theta" matrix with one row per document and one column per topic

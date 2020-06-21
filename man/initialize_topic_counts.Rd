@@ -12,7 +12,8 @@ initialize_topic_counts(
   phi_initial = NULL,
   theta_initial = NULL,
   freeze_topics = FALSE,
-  threads = 1
+  threads = 1,
+  ...
 )
 }
 \arguments{
@@ -39,6 +40,8 @@ topics in documents. Must be specified for updates as called by
 This is \code{TRUE} for predictions.}
 
 \item{threads}{number of parallel threads; defaults to 1}
+
+\item{...}{Additional arguments, currently unused}
 }
 \value{
 Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},

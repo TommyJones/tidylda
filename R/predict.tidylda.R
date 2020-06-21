@@ -15,6 +15,7 @@
 #'        in common with the model. Options are "\code{default}", "\code{zero}",
 #'        or "\code{uniform}". See 'details', below for explanation of behavior. 
 #' @param threads Number of parallel threads, defaults to 1.
+#' @param ... Additional arguments, currently unused
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @details 
 #'   If \code{predict.tidylda} encounters documents that have no tokens in common
@@ -66,7 +67,8 @@ predict.tidylda <- function(
   iterations = NULL, 
   burnin = -1, 
   no_common_tokens = c("default", "zero", "uniform"),
-  threads = 1
+  threads = 1,
+  ...
 ){
   
   ### Check inputs ----

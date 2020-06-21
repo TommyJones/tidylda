@@ -15,7 +15,8 @@ tidylda(
   calc_likelihood = FALSE,
   calc_r2 = FALSE,
   threads = 1,
-  return_data = FALSE
+  return_data = FALSE,
+  ...
 )
 }
 \arguments{
@@ -53,6 +54,8 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 \item{threads}{Number of parallel threads, defaults to 1. See Details, below.}
 
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
+
+\item{...}{Additional arguments, currently unused}
 }
 \value{
 Returns an S3 object of class \code{tidylda}.

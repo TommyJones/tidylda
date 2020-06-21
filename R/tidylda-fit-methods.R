@@ -24,6 +24,7 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
+#' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class \code{tidylda}.
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 #'   written using the excellent Rcpp package. Some implementation notes follow:
@@ -103,7 +104,8 @@ tidylda <- function(
   calc_likelihood = FALSE,
   calc_r2 = FALSE, 
   threads = 1,
-  return_data = FALSE 
+  return_data = FALSE,
+  ...
 ) {
 
   # not using methods for now as I think this is cleaner
@@ -125,7 +127,8 @@ tidylda <- function(
     calc_r2 = calc_r2,
     threads = threads,
     return_data = return_data,
-    mc
+    mc,
+    ...
   )
 }
 
@@ -148,7 +151,8 @@ tidylda_bridge <- function(
   calc_r2,
   threads,
   return_data, 
-  mc
+  mc,
+  ...
 ) {
 
   ### check validity of inputs ----

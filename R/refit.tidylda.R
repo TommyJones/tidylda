@@ -18,6 +18,7 @@
 #' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
 #'        from the previous model as the prior for words over topics?
 #' @param threads Number of parallel threads, defaults to 1.
+#' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
 #'   \code{refit} allows you to (a) update the probabilities (i.e. weights) of
@@ -111,7 +112,8 @@ refit.tidylda <- function(
   return_data = FALSE,
   additional_k = 0, 
   phi_as_prior = FALSE, 
-  threads = 1
+  threads = 1,
+  ...
 ) {
 
   # first, get the call for reproducibility

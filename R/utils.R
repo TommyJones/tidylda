@@ -328,6 +328,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
 #'   This is \code{TRUE} for predictions.
 #' @param threads number of parallel threads; defaults to 1
+#' @param ... Additional arguments, currently unused
 #' @return
 #'   Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},
 #'   and \code{Ck}. All of these are used by \code{\link[tidylda]{fit_lda_c}}.
@@ -358,7 +359,8 @@ initialize_topic_counts <- function(
   phi_initial = NULL,
   theta_initial = NULL, 
   freeze_topics = FALSE,
-  threads = 1
+  threads = 1,
+  ...
 ) {
   
   # check inputs

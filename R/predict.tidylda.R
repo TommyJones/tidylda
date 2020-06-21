@@ -14,7 +14,7 @@
 #' @param no_common_tokens behavior when encountering documents that have no tokens
 #'        in common with the model. Options are "\code{default}", "\code{zero}",
 #'        or "\code{uniform}". See 'details', below for explanation of behavior. 
-#' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
+#' @param threads Number of parallel threads, defaults to 1.
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @details 
 #'   If \code{predict.tidylda} encounters documents that have no tokens in common
@@ -59,14 +59,16 @@
 #' barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 #' }
 #' @export
-predict.tidylda <- function(object, 
-                            new_data, 
-                            method = c("gibbs", "dot"),
-                            iterations = NULL, 
-                            burnin = -1, 
-                            no_common_tokens = c("default", "zero", "uniform"),
-                            ...){
-
+predict.tidylda <- function(
+  object, 
+  new_data, 
+  method = c("gibbs", "dot"),
+  iterations = NULL, 
+  burnin = -1, 
+  no_common_tokens = c("default", "zero", "uniform"),
+  threads = 1
+){
+  
   ### Check inputs ----
   if (method[1] == "gibbs") {
     if (is.null(iterations)) {
@@ -169,8 +171,12 @@ predict.tidylda <- function(object,
     # format inputs
 
     # get initial distribution with recursive call to "dot" method
-    theta_initial <- predict.tidylda(object = object, new_data = new_data, 
-                                     method = "dot", no_common_tokens = "uniform")
+    theta_initial <- predict.tidylda(
+      object = object, 
+      new_data = new_data, 
+      method = "dot", 
+      no_common_tokens = "uniform"
+    )
 
     # make sure priors are formatted correctly
     beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_new_data))
@@ -186,7 +192,7 @@ predict.tidylda <- function(object,
       phi_initial = object$phi,
       theta_initial = theta_initial,
       freeze_topics = TRUE,
-      ...
+      threads = threads,
     )
 
     # pass inputs to C function for prediciton
@@ -209,8 +215,11 @@ predict.tidylda <- function(object,
 
     # format posterior prediction
     result <- format_raw_lda_outputs(
-      lda = lda, dtm = dtm_new_data,
-      burnin = burnin, is_prediction = TRUE, ...
+      lda = lda, 
+      dtm = dtm_new_data,
+      burnin = burnin, 
+      is_prediction = TRUE, 
+      threads
     )
   }
 

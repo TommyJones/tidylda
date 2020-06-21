@@ -27,7 +27,8 @@ List create_lexicon(
     NumericMatrix &Phi, 
     arma::sp_mat &dtm,
     NumericVector alpha,
-    bool freeze_topics
+    bool freeze_topics,
+    int threads
 ) {
   
   // ***************************************************************************
@@ -35,72 +36,86 @@ List create_lexicon(
   // ***************************************************************************
   
   double sum_alpha = sum(alpha);
-
+  
   List docs(dtm.n_rows); 
   
   List Zd(dtm.n_rows);
   
   int Nk = Cd.nrow();
   
-  NumericVector qz(Nk);
-  
-  IntegerVector topic_index = seq_len(Nk) - 1;
-  
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a 
   // topic for each token within that document
   // ***************************************************************************
-  for (int d = 0; d < dtm.n_rows; d++) {
-    
-    // make a temporary vector to hold token indices
-    int nd = 0;
-    
-    for (int v = 0; v < dtm.n_cols; v++) {
-      nd += dtm(d,v);
-    }
-    
-    IntegerVector doc(nd);
-    
-    IntegerVector zd(nd);
-    
-    IntegerVector z(1);
-    
-    // fill in with token indices
-    int j = 0; // index of doc, advances when we have non-zero entries 
-    
-    for (int v = 0; v < dtm.n_cols; v++) {
+  RcppThread::parallelFor(
+    0, 
+    dtm.n_rows, 
+    [
+  &Cd,
+  &Phi,
+  &dtm,
+  &alpha,
+  &sum_alpha,
+  &docs,
+  &Zd,
+  &Nk
+    ] (unsigned int d) {
       
-      if (dtm(d,v) > 0) { // if non-zero, add elements to doc
-        
-        // calculate probability of topics based on initially-sampled Phi and Cd
-        for (int k = 0; k < Nk; k++) {
-          qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
-        }
-        
-        int idx = j + dtm(d,v); // where to stop the loop below
-        
-        while (j < idx) {
-          
-          doc[j] = v;
-          
-          z = RcppArmadillo::sample(topic_index, 1, false, qz);
-          
-          zd[j] = z[0];
-          
-          j += 1;
-        }
-        
+      NumericVector qz(Nk);
+      
+      IntegerVector topic_index = seq_len(Nk) - 1;
+      
+      // make a temporary vector to hold token indices
+      int nd = 0;
+      
+      for (int v = 0; v < dtm.n_cols; v++) {
+        nd += dtm(d,v);
       }
-    }
-    
-    // fill in docs[d] with the matrix we made
-    docs[d] = doc;
-    
-    Zd[d] = zd;
-    
-    R_CheckUserInterrupt();
-    
-  }
+      
+      IntegerVector doc(nd);
+      
+      IntegerVector zd(nd);
+      
+      IntegerVector z(1);
+      
+      // fill in with token indices
+      int j = 0; // index of doc, advances when we have non-zero entries 
+      
+      for (int v = 0; v < dtm.n_cols; v++) {
+        
+        if (dtm(d,v) > 0) { // if non-zero, add elements to doc
+          
+          // calculate probability of topics based on initially-sampled Phi and Cd
+          for (int k = 0; k < Nk; k++) {
+            qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
+          }
+          
+          int idx = j + dtm(d,v); // where to stop the loop below
+          
+          while (j < idx) {
+            
+            doc[j] = v;
+            
+            z = RcppArmadillo::sample(topic_index, 1, false, qz);
+            
+            zd[j] = z[0];
+            
+            j += 1;
+          }
+          
+        }
+      }
+      
+      // fill in docs[d] with the matrix we made
+      docs[d] = doc;
+      
+      Zd[d] = zd;
+      
+      RcppThread::checkUserInterrupt();
+      
+    }, 
+    threads
+  );
   
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
@@ -111,25 +126,37 @@ List create_lexicon(
   
   IntegerMatrix Cv(Nk, dtm.n_cols);
   
-  for (int d = 0; d < Zd.length(); d++) {
-    
-    IntegerVector zd = Zd[d]; 
-    
-    IntegerVector doc = docs[d];
-    
-    for (int n = 0; n < zd.length(); n++) {
+  RcppThread::parallelFor(
+    0,
+    Zd.length(),
+    [
+  &Zd,
+  &docs,
+  &Cd_out,
+  &Ck,
+  &freeze_topics,
+  &Cv
+    ] (unsigned int d){
+      IntegerVector zd = Zd[d]; 
       
-      Cd_out(zd[n], d) += 1;
+      IntegerVector doc = docs[d];
       
-      Ck[zd[n]] += 1;
-
-      if (! freeze_topics) {
-        Cv(zd[n], doc[n]) += 1;
-      }
+      for (int n = 0; n < zd.length(); n++) {
+        
+        Cd_out(zd[n], d) += 1;
+        
+        Ck[zd[n]] += 1;
+        
+        if (! freeze_topics) {
+          Cv(zd[n], doc[n]) += 1;
+        }
+        
+      } 
       
-    } 
-    
-  }
+    },
+    threads
+  );
+  
   
   // ***************************************************************************
   // Prepare output and expel it from this function
@@ -404,7 +431,7 @@ List fit_lda_c(
   int t, d, n, k, v; // indices for loops
   
   IntegerVector topic_index = seq_len(Nk) - 1;
-
+  
   IntegerVector z(1); // for sampling topics
   
   // related to burnin and averaging

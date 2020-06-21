@@ -11,7 +11,7 @@
   iterations = NULL,
   burnin = -1,
   no_common_tokens = c("default", "zero", "uniform"),
-  ...
+  threads = 1
 )
 }
 \arguments{
@@ -34,7 +34,7 @@ Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.}
 in common with the model. Options are "\code{default}", "\code{zero}",
 or "\code{uniform}". See 'details', below for explanation of behavior.}
 
-\item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
+\item{threads}{Number of parallel threads, defaults to 1.}
 }
 \value{
 a "theta" matrix with one row per document and one column per topic

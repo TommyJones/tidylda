@@ -12,8 +12,7 @@ initialize_topic_counts(
   phi_initial = NULL,
   theta_initial = NULL,
   freeze_topics = FALSE,
-  batch_size = 3000,
-  ...
+  threads = 1
 )
 }
 \arguments{
@@ -39,7 +38,7 @@ topics in documents. Must be specified for updates as called by
 \item{freeze_topics}{if \code{TRUE} does not update counts of tokens in topics.
 This is \code{TRUE} for predictions.}
 
-\item{...}{other items to be passed to \code{\link[furrr]{future_map}}}
+\item{threads}{number of parallel threads; defaults to 1}
 }
 \value{
 Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},

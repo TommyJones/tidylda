@@ -15,8 +15,7 @@ format_raw_lda_outputs(
   calc_r2 = NULL,
   calc_likelihood = NULL,
   call = NULL,
-  batch_size = 3000,
-  ...
+  threads
 )
 }
 \arguments{
@@ -46,6 +45,8 @@ argument is ignored.}
 
 \item{call}{the result of calling \code{\link[base]{match.call}} at the top of
 \code{\link[tidylda]{tidylda}}.}
+
+\item{threads}{number of parallel threads}
 }
 \value{
 Returns an S3 object of class \code{tidylda} with the following slots:

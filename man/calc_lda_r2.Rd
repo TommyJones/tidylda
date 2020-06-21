@@ -4,7 +4,7 @@
 \alias{calc_lda_r2}
 \title{Calculate R-squared for a tidylda Model}
 \usage{
-calc_lda_r2(dtm, theta, phi, batch_size, ...)
+calc_lda_r2(dtm, theta, phi, threads)
 }
 \arguments{
 \item{dtm}{must be of class dgCMatrix}
@@ -13,9 +13,7 @@ calc_lda_r2(dtm, theta, phi, batch_size, ...)
 
 \item{phi}{a phi matrix}
 
-\item{batch_size}{for parallel processing}
-
-\item{...}{other arguments passed to \code{\link[furrr]{future_map}}}
+\item{threads}{number of parallel threads}
 }
 \description{
 Formats inputs and hands off to mvrsquared::calc_rsquared

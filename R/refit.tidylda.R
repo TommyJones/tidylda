@@ -17,7 +17,7 @@
 #' @param additional_k Integer number of topics to add, defaults to 0.
 #' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
 #'        from the previous model as the prior for words over topics?
-#' @param ... Other arguments to be passed to \code{\link[furrr]{future_map}}
+#' @param threads Number of parallel threads, defaults to 1.
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
 #'   \code{refit} allows you to (a) update the probabilities (i.e. weights) of
@@ -100,10 +100,19 @@
 #'   burnin = 175
 #' )
 #' }
-refit.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
-                           optimize_alpha = FALSE, calc_likelihood = FALSE,
-                           calc_r2 = FALSE, return_data = FALSE,
-                           additional_k = 0, phi_as_prior = FALSE, ...) {
+refit.tidylda <- function(
+  object, 
+  dtm, 
+  iterations = NULL, 
+  burnin = -1,
+  optimize_alpha = FALSE, 
+  calc_likelihood = FALSE,
+  calc_r2 = FALSE, 
+  return_data = FALSE,
+  additional_k = 0, 
+  phi_as_prior = FALSE, 
+  threads = 1
+) {
 
   # first, get the call for reproducibility
   mc <- match.call()
@@ -188,7 +197,7 @@ refit.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
     new_data = dtm,
     method = "dot",
     no_common_tokens = "uniform",
-    ...
+    threads = threads
   )
 
   # pull out alpha
@@ -286,7 +295,7 @@ refit.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
     phi_initial = phi_initial,
     theta_initial = theta_initial,
     freeze_topics = FALSE, # false because this is an update
-    ...
+    threads = threads
   )
 
   ### run C++ gibbs sampler ----
@@ -311,12 +320,17 @@ refit.tidylda <- function(object, dtm, iterations = NULL, burnin = -1,
 
   ### Format output correctly ----
   result <- format_raw_lda_outputs(
-    lda = lda, dtm = dtm, burnin = burnin,
+    lda = lda, 
+    dtm = dtm, 
+    burnin = burnin,
     is_prediction = FALSE,
-    alpha = alpha, beta = beta,
-    optimize_alpha = optimize_alpha, calc_r2 = calc_r2,
+    alpha = alpha, 
+    beta = beta,
+    optimize_alpha = optimize_alpha, 
+    calc_r2 = calc_r2,
     calc_likelihood = calc_likelihood,
-    call = mc, ...
+    call = mc, 
+    threads = threads
   )
 
   ### return the result ----

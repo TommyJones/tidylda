@@ -365,6 +365,14 @@ initialize_topic_counts <- function(
   
   # check inputs
   
+  if (! is.numeric(threads)) {
+    stop("threads must be an integer 1 or greater")
+  } else if (threads < 1) {
+    stop("threads must be an integer 1 or greater")
+  } else {
+    threads = as.integer(threads) # ignore decimal inputs
+  }
+  
   # initialize phi if not already specified
   # this phi is used to sample topics for inital counts in the C++ function
   if (is.null(phi_initial)) {

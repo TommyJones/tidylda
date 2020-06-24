@@ -160,6 +160,9 @@ refit.tidylda <- function(
     stop("phi_as_prior must be logical")
   }
 
+  if (! is.logical(optimize_alpha)) {
+    stop("optimize_alpha must be logical")
+  }
 
   ### Pull out objects used for update ----
 

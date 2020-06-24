@@ -49,16 +49,15 @@ List create_lexicon(
   // ***************************************************************************
   RcppThread::parallelFor(
     0, 
-    dtm.n_rows, 
-    [
-  &Cd,
-  &Phi,
-  &dtm,
-  &alpha,
-  &sum_alpha,
-  &docs,
-  &Zd,
-  &Nk
+    dtm.n_cols, 
+    [&Cd,
+     &Phi,
+     &dtm,
+     &alpha,
+     &sum_alpha,
+     &docs,
+     &Zd,
+     &Nk
     ] (unsigned int d) {
       
       NumericVector qz(Nk);
@@ -68,8 +67,8 @@ List create_lexicon(
       // make a temporary vector to hold token indices
       int nd = 0;
       
-      for (int v = 0; v < dtm.n_cols; v++) {
-        nd += dtm(d,v);
+      for (int v = 0; v < dtm.n_rows; v++) {
+        nd += dtm(v, d);
       }
       
       IntegerVector doc(nd);
@@ -81,16 +80,16 @@ List create_lexicon(
       // fill in with token indices
       int j = 0; // index of doc, advances when we have non-zero entries 
       
-      for (int v = 0; v < dtm.n_cols; v++) {
+      for (int v = 0; v < dtm.n_rows; v++) {
         
-        if (dtm(d,v) > 0) { // if non-zero, add elements to doc
+        if (dtm(v, d) > 0) { // if non-zero, add elements to doc
           
           // calculate probability of topics based on initially-sampled Phi and Cd
           for (int k = 0; k < Nk; k++) {
             qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
           }
           
-          int idx = j + dtm(d,v); // where to stop the loop below
+          int idx = j + dtm(v, d); // where to stop the loop below
           
           while (j < idx) {
             
@@ -120,22 +119,21 @@ List create_lexicon(
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  IntegerMatrix Cd_out(Nk, dtm.n_rows);
+  IntegerMatrix Cd_out(Nk, dtm.n_cols);
   
   IntegerVector Ck(Nk);
   
-  IntegerMatrix Cv(Nk, dtm.n_cols);
+  IntegerMatrix Cv(Nk, dtm.n_rows);
   
   RcppThread::parallelFor(
     0,
     Zd.length(),
-    [
-  &Zd,
-  &docs,
-  &Cd_out,
-  &Ck,
-  &freeze_topics,
-  &Cv
+    [&Zd,
+     &docs,
+     &Cd_out,
+     &Ck,
+     &freeze_topics,
+     &Cv
     ] (unsigned int d){
       IntegerVector zd = Zd[d]; 
       

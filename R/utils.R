@@ -410,7 +410,7 @@ initialize_topic_counts <- function(
     create_lexicon(
       Cd = t(Cd_start),
       Phi = phi_initial,
-      dtm = dtm,
+      dtm = Matrix::t(dtm), # take advantage of column major structure for parallelism
       alpha = alpha,
       freeze_topics = freeze_topics,
       threads = threads

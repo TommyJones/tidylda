@@ -276,7 +276,7 @@ test_that("can update models", {
   expect_equal(ncol(l2$beta), length(union(colnames(d1), colnames(d2))))
 })
 
-test_that("errors are thrown for malformed inputs to update.tidylda", {
+test_that("errors are thrown for malformed inputs to refit.tidylda", {
 
   # no vocabulary overlap between models
   nd <- rbind(numeric(10), numeric(10), numeric(10))

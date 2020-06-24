@@ -37,9 +37,9 @@ List create_lexicon(
   
   double sum_alpha = sum(alpha);
   
-  List docs(dtm.n_rows); 
+  List docs(dtm.n_cols); 
   
-  List Zd(dtm.n_rows);
+  List Zd(dtm.n_cols);
   
   int Nk = Cd.nrow();
   

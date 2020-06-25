@@ -1,15 +1,24 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
 // [[Rcpp::depends(RcppArmadillo)]]
+#include <RcppArmadilloExtensions/sample.h>
+#include <RcppArmadillo.h>
+#define ARMA_64BIT_WORD
+
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppThread)]]
 #include "RcppThread.h"
-#include <RcppArmadilloExtensions/sample.h>
+
 #include <R.h>
+
 #include <cmath>
+
 #include <Rcpp.h>
-#define ARMA_64BIT_WORD
 using namespace Rcpp;
+
+#include<vector>
+using namespace std;
+
 
 //' Make a lexicon for looping over in the gibbs sampler
 //' @keywords internal
@@ -23,10 +32,10 @@ using namespace Rcpp;
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
 List create_lexicon(
-    IntegerMatrix &Cd, 
-    NumericMatrix &Phi, 
+    arma::imat &Cd, 
+    arma::mat &Phi, 
     arma::sp_mat &dtm,
-    NumericVector alpha,
+    arma::vec alpha,
     bool freeze_topics,
     int threads
 ) {
@@ -37,11 +46,11 @@ List create_lexicon(
   
   double sum_alpha = sum(alpha);
   
-  List docs(dtm.n_cols); 
+  std::vector<arma::imat> docs(dtm.n_cols); 
   
-  List Zd(dtm.n_cols);
+  std::vector<arma::imat> Zd(dtm.n_cols);
   
-  int Nk = Cd.nrow();
+  int Nk = Cd.n_rows;
   
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a 
@@ -60,9 +69,9 @@ List create_lexicon(
      &Nk
     ] (unsigned int d) {
       
-      NumericVector qz(Nk);
-      
-      IntegerVector topic_index = seq_len(Nk) - 1;
+      arma::vec qz(Nk);
+
+      arma::ivec topic_index = seq_len(Nk) - 1;
       
       // make a temporary vector to hold token indices
       int nd = 0;
@@ -71,11 +80,11 @@ List create_lexicon(
         nd += dtm(v, d);
       }
       
-      IntegerVector doc(nd);
+      arma::ivec doc(nd);
       
-      IntegerVector zd(nd);
+      arma::ivec zd(nd);
       
-      IntegerVector z(1);
+      arma::ivec z(1);
       
       // fill in with token indices
       int j = 0; // index of doc, advances when we have non-zero entries 
@@ -119,15 +128,21 @@ List create_lexicon(
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  IntegerMatrix Cd_out(Nk, dtm.n_cols);
+  arma::imat Cd_out(Nk, dtm.n_cols);
   
-  IntegerVector Ck(Nk);
+  Cd_out.fill(0);
   
-  IntegerMatrix Cv(Nk, dtm.n_rows);
+  arma::ivec Ck(Nk);
+  
+  Ck.fill(0);
+  
+  arma::imat Cv(Nk, dtm.n_rows);
+  
+  Cv.fill(0);
   
   RcppThread::parallelFor(
     0,
-    Zd.length(),
+    Zd.size(),
     [&Zd,
      &docs,
      &Cd_out,
@@ -135,11 +150,11 @@ List create_lexicon(
      &freeze_topics,
      &Cv
     ] (unsigned int d){
-      IntegerVector zd = Zd[d]; 
+      arma::ivec zd = Zd[d]; 
       
-      IntegerVector doc = docs[d];
+      arma::ivec doc = docs[d];
       
-      for (int n = 0; n < zd.length(); n++) {
+      for (int n = 0; n < zd.n_elem; n++) {
         
         Cd_out(zd[n], d) += 1;
         
@@ -161,11 +176,11 @@ List create_lexicon(
   // ***************************************************************************
   
   return List::create(
-    Named("docs") = docs,
-    Named("Zd") = Zd,
-    Named("Cd") = Cd_out,
-    Named("Cv") = Cv,
-    Named("Ck") = Ck
+    Named("docs") = wrap(docs),
+    Named("Zd") = wrap(Zd),
+    Named("Cd") = wrap(Cd_out),
+    Named("Cv") = wrap(Cv),
+    Named("Ck") = as<IntegerVector>(wrap(Ck))
   );
   
 }

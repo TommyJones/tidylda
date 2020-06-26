@@ -14,7 +14,7 @@ tidylda_bridge(
   optimize_alpha,
   calc_likelihood,
   calc_r2,
-  batch_size,
+  threads,
   return_data,
   mc,
   ...

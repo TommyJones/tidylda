@@ -185,3 +185,20 @@ test_that("errors hit for malformed parameters", {
     return_data = "FALSE"
   ))
 })
+
+test_that("parallelism works as expected", {
+  lda <- tidylda(
+    dtm = d1,
+    k = 4,
+    iterations = 20, burnin = 10,
+    alpha = 0.1, beta = 0.05,
+    optimize_alpha = FALSE,
+    calc_likelihood = TRUE,
+    calc_r2 = TRUE,
+    return_data = FALSE,
+    threads = 2
+  )
+  
+  expect_s3_class(lda, "tidylda")
+  
+})

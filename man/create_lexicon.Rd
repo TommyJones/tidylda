@@ -4,7 +4,7 @@
 \alias{create_lexicon}
 \title{Make a lexicon for looping over in the gibbs sampler}
 \usage{
-create_lexicon(Cd, Phi, dtm, alpha, freeze_topics)
+create_lexicon(Cd, Phi, dtm, alpha, freeze_topics, threads)
 }
 \arguments{
 \item{Cd}{IntegerMatrix denoting counts of topics in documents}

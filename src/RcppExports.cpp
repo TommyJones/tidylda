@@ -7,17 +7,18 @@
 using namespace Rcpp;
 
 // create_lexicon
-List create_lexicon(IntegerMatrix& Cd, NumericMatrix& Phi, arma::sp_mat& dtm, NumericVector alpha, bool freeze_topics);
-RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP) {
+List create_lexicon(arma::imat& Cd, arma::mat& Phi, arma::sp_mat& dtm, arma::vec alpha, bool freeze_topics, int threads);
+RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerMatrix& >::type Cd(CdSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix& >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< arma::imat& >::type Cd(CdSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type Phi(PhiSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat& >::type dtm(dtmSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< bool >::type freeze_topics(freeze_topicsSEXP);
-    rcpp_result_gen = Rcpp::wrap(create_lexicon(Cd, Phi, dtm, alpha, freeze_topics));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(create_lexicon(Cd, Phi, dtm, alpha, freeze_topics, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -47,7 +48,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tidylda_create_lexicon", (DL_FUNC) &_tidylda_create_lexicon, 5},
+    {"_tidylda_create_lexicon", (DL_FUNC) &_tidylda_create_lexicon, 6},
     {"_tidylda_fit_lda_c", (DL_FUNC) &_tidylda_fit_lda_c, 14},
     {NULL, NULL, 0}
 };

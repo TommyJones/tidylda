@@ -5,7 +5,6 @@ burnin
 calc
 Cv
 dgCMatrix
-doi
 DTM
 emptor
 gibbs
@@ -19,6 +18,7 @@ mvrsquared
 ncol
 NumericMatrix
 NumericVector
+pre
 Rcpp
 rescaled
 rsquared

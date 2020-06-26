@@ -11,8 +11,8 @@
 #' @param dtm arma::sp_mat document term matrix
 #' @param alpha NumericVector prior for topics over documents
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
-create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics) {
-    .Call(`_tidylda_create_lexicon`, Cd, Phi, dtm, alpha, freeze_topics)
+create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
+    .Call(`_tidylda_create_lexicon`, Cd, Phi, dtm, alpha, freeze_topics, threads)
 }
 
 #' Main C++ Gibbs sampler for Latent Dirichlet Allocation

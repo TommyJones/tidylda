@@ -10,8 +10,7 @@
 ^cran-comments.md$
 ^\.gitignore$
 
-^R/_sandbox_lda_gibbs2.R$
-^R/_tmp.R$
+^R/_*$
 
 ^appveyor\.yml$
 ^LICENSE\.md$

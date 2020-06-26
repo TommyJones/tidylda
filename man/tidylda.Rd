@@ -14,7 +14,7 @@ tidylda(
   optimize_alpha = FALSE,
   calc_likelihood = FALSE,
   calc_r2 = FALSE,
-  batch_size = 3000,
+  threads = 1,
   return_data = FALSE,
   ...
 )
@@ -51,12 +51,11 @@ Useful for assessing convergence. Defaults to \code{FALSE}.}
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
-\item{batch_size}{Number of documents allocated to single batch for parallel
-processing. Defaults to \code{3000}. See Details, below.}
+\item{threads}{Number of parallel threads, defaults to 1. See Details, below.}
 
 \item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
 
-\item{...}{Other arguments to be passed to \code{\link[furrr]{future_map}}}
+\item{...}{Additional arguments, currently unused}
 }
 \value{
 Returns an S3 object of class \code{tidylda}.
@@ -102,21 +101,10 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   numbers, rather than the expected negative numbers. Looking into that, but
   in the meantime caveat emptor once again.
   
-  Parallelism, if desired, is executed in two ways. For everything except the
-  Gibbs sampler, parallelism is executed at the R level by
-  \code{\link[future_map]{furrr}}. Control arguments to \code{\link[future_map]{furrr}}
-  can be passed through \code{...} as described above. The \code{batch_size}
-  parameter controls how many documents are processed by a core/node/thread
-  in a single batch.
-  
-  Parallelism in the Gibbs sampler is executed at the C++ level with
-  \code{\link[RcppThread]{RcppThread}}. The \code{lda_threads} parameter
-  controls the maximum number of parallel threads used by the Gibbs sampler.
-  If set to \code{1}, the default, this is the exact Gibbs algorithm with
-  all of its theoretical guarantees intact. If parallel, the algorithm in 
-  <doi:10.1145/1577069.1755845> is used as an approximate Gibbs sampler.
-  If \code{batch_size} greater than or equal to the number of documents, the
-  sampler will be sequential Gibbs regardless of the value of \code{lda_threads}.
+  Parallelism, is executed using threading at the C++ level using the
+  \code{\link[RcppThread]{RcppThread}} package. As of this writing, parallel
+  processing only happens during pre-processing, not Gibbs sampling. This
+  behavior may change in the future.
 }
 \examples{
 # load some data

@@ -26,7 +26,13 @@ lda <- tidylda(
 
 test_that("can make predictions without error", {
   # one row gibbs with burnin
-  p <- predict(object = lda, new_data = d2[1, ], method = "gibbs", iterations = 20, burnin = 10)
+  p <- predict(
+    object = lda, 
+    new_data = d2[1, ], 
+    method = "gibbs", 
+    iterations = 20, 
+    burnin = 10
+  )
 
   expect_equal(nrow(p), 1)
 
@@ -35,7 +41,13 @@ test_that("can make predictions without error", {
   expect_setequal(colnames(p), colnames(lda$theta))
 
   # multi-row gibbs with burnin
-  p <- predict(object = lda, new_data = d2, method = "gibbs", iterations = 20, burnin = 10)
+  p <- predict(
+    object = lda, 
+    new_data = d2, 
+    method = "gibbs", 
+    iterations = 20, 
+    burnin = 10
+  )
 
   expect_equal(nrow(p), nrow(d2))
 
@@ -264,7 +276,7 @@ test_that("can update models", {
   expect_equal(ncol(l2$beta), length(union(colnames(d1), colnames(d2))))
 })
 
-test_that("errors are thrown for malformed inputs to update.tidylda", {
+test_that("errors are thrown for malformed inputs to refit.tidylda", {
 
   # no vocabulary overlap between models
   nd <- rbind(numeric(10), numeric(10), numeric(10))

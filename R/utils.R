@@ -34,13 +34,13 @@ convert_dtm <- function(dtm) {
         "it needs a names attribute to index tokens"
       )
     }
-
+    
     vocab <- names(dtm)
-
+    
     out <- Matrix::Matrix(dtm, nrow = 1, sparse = TRUE)
-
+    
     colnames(out) <- vocab
-
+    
     rownames(out) <- 1
   } else {
     stop(
@@ -49,7 +49,7 @@ convert_dtm <- function(dtm) {
       "However, I see class(dtm) = ", class(dtm)
     )
   }
-
+  
   out
 }
 
@@ -77,27 +77,27 @@ format_beta <- function(beta, k, Nv) {
          a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
          values and at least one non-zero value.")
   }
-
+  
   if (length(beta) == 1) { # if beta is a scalar
-
+    
     beta <- matrix(beta, nrow = k, ncol = Nv)
-
+    
     beta_class <- "scalar"
   } else if (is.vector(beta)) { # if beta is a vector
-
+    
     if (length(beta) != Nv) { # if you didn't specify this vector right
       stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
          a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
          values and at least one non-zero value.")
     }
-
+    
     # otherwise let's carry on...
     # make beta a matrix to format for C++ funciton
     beta <- t(beta + matrix(0, nrow = length(beta), ncol = k))
-
+    
     beta_class <- "vector"
   } else if (is.matrix(beta)) { # if beta is a matrix
-
+    
     # check dims before moving on
     if (nrow(beta) != k | ncol(beta) != Nv) {
       stop(
@@ -107,11 +107,11 @@ format_beta <- function(beta, k, Nv) {
         "ncol(beta) = ", ncol(beta), " but ncol(dtm) = ", Nv
       )
     }
-
+    
     beta_class <- "matrix"
   }
-
-
+  
+  
   list(
     beta = beta,
     beta_class = beta_class
@@ -139,17 +139,17 @@ format_alpha <- function(alpha, k) {
     stop("alpha must be a numeric scalar or vector of length 'k' with no missing 
           values and at least one non-zero value")
   }
-
+  
   if (length(alpha) == 1 & is.numeric(alpha)) {
     alpha <- numeric(k) + alpha
-
+    
     alpha_class <- "scalar"
   } else if (length(alpha) != k | !is.vector(alpha)) {
     stop("alpha must be a numeric scalar or numeric vector of length 'k'")
   } else {
     alpha_class <- "vector"
   }
-
+  
   list(
     alpha = alpha,
     alpha_class = alpha_class
@@ -327,7 +327,8 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #'   \code{\link[tidylda]{refit.tidylda}}
 #' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
 #'   This is \code{TRUE} for predictions.
-#' @param ... other items to be passed to \code{\link[furrr]{future_map}}
+#' @param threads number of parallel threads; defaults to 1
+#' @param ... Additional arguments, currently unused
 #' @return
 #'   Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},
 #'   and \code{Ck}. All of these are used by \code{\link[tidylda]{fit_lda_c}}.
@@ -358,43 +359,51 @@ initialize_topic_counts <- function(
   phi_initial = NULL,
   theta_initial = NULL, 
   freeze_topics = FALSE,
-  batch_size = 3000,
+  threads = 1,
   ...
 ) {
-
+  
   # check inputs
-
+  
+  if (! is.numeric(threads)) {
+    stop("threads must be an integer 1 or greater")
+  } else if (threads < 1) {
+    stop("threads must be an integer 1 or greater")
+  } else {
+    threads = as.integer(threads) # ignore decimal inputs
+  }
+  
   # initialize phi if not already specified
   # this phi is used to sample topics for inital counts in the C++ function
   if (is.null(phi_initial)) {
     # phi_initial <- gtools::rdirichlet(n = k, alpha = beta)
-
+    
     phi_initial <- apply(beta, 1, function(x) {
       gtools::rdirichlet(n = 1, alpha = x)
     })
-
+    
     phi_initial <- t(phi_initial)
   }
-
+  
   # initialize theta if not already specified
   # if not specified (e.g. if this is a new model) make a matrix by sampling
   # from alpha.
   if (is.null(theta_initial)) {
     theta_initial <- gtools::rdirichlet(n = nrow(dtm), alpha = alpha)
   }
-
+  
   # initialize Cd by calling recover_counts_from_probs
   # we don't need to initialize Cv because we can use the probabilities in phi,
   # along with our sampled Cd to do a single Gibbs iteration to populate all three
   # of Cd, Ck, and Cv
-
+  
   # format alpha to be a matrix to feed into recover_counts_from_probs
   alph <- matrix(0, nrow = ncol(theta_initial), ncol = nrow(theta_initial))
-
+  
   alph <- alpha + alph
-
+  
   alph <- t(alph)
-
+  
   # get Cd itself
   # (note to future Tommy: consider a scalable version of this using future_map)
   Cd_start <- recover_counts_from_probs(
@@ -402,58 +411,20 @@ initialize_topic_counts <- function(
     prior_matrix = alph,
     total_vector = Matrix::rowSums(dtm)
   )
-
+  
   # Initialize objects with that single Gibbs iteration mentioned above
-  # if we have more than batch_size documents, do it in parallel with furrr::future_map
-
-  batches <- seq(1, nrow(dtm), by = batch_size)
-
-  lexicon <- furrr::future_map(
-    .x = batches,
-    .f = function(b) {
-      rows <- b:min(b + batch_size - 1, nrow(dtm))
-
-      # if statement to handle single observations
-      if (length(rows) == 1) {
-        cd_tmp <- Cd_start
-
-        dtm_tmp <- dtm
-      } else {
-        cd_tmp <- Cd_start[rows, ]
-
-        dtm_tmp <- dtm[rows, ]
-      }
-
-      l <- create_lexicon(
-        Cd = t(cd_tmp),
-        Phi = phi_initial,
-        dtm = dtm_tmp,
-        alpha = alpha,
-        freeze_topics = freeze_topics
-      )
-    }, ...
-  )
-
-  # combine
-  Zd <- Reduce("c", lapply(lexicon, function(l) l$Zd))
-
-  docs <- Reduce("c", lapply(lexicon, function(l) l$docs))
-
-  Cv <- Reduce("+", lapply(lexicon, function(l) l$Cv))
-
-  Ck <- Reduce("+", lapply(lexicon, function(l) l$Ck))
-
-  Cd <- do.call(cbind, lapply(lexicon, function(l) l$Cd))
-
-  out <- list(
-    docs = docs,
-    Zd = Zd,
-    Cd = Cd,
-    Cv = Cv,
-    Ck = Ck
-  )
-
-  out
+  # executed in parallel with RcppThread
+  lexicon <- 
+    create_lexicon(
+      Cd = Cd_start,
+      Phi = phi_initial,
+      dtm = dtm, 
+      alpha = alpha,
+      freeze_topics = freeze_topics,
+      threads = threads
+    )
+  
+  lexicon
 }
 
 #' Summarize a topic model consistently across methods/functions
@@ -489,24 +460,24 @@ initialize_topic_counts <- function(
 #'
 #'   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
 summarize_topics <- function(theta, phi, dtm) {
-
+  
   # probabilistic coherence with default M = 5
   coherence <- textmineR::CalcProbCoherence(phi = phi, dtm = dtm)
-
+  
   # prevalence of each topic, weighted by terms
   prevalence <- Matrix::rowSums(dtm) * theta
-
+  
   prevalence <- colSums(prevalence) / sum(prevalence)
-
+  
   prevalence <- round(prevalence * 100, 2)
-
+  
   # top 3 terms
   top_terms <- t(textmineR::GetTopTerms(phi, 3))
-
+  
   top_terms <- apply(top_terms, 1, function(x) {
     paste(c(x, "..."), collapse = ", ")
   })
-
+  
   # combine into a summary
   summary <- data.frame(
     topic = as.numeric(rownames(phi)),
@@ -515,9 +486,9 @@ summarize_topics <- function(theta, phi, dtm) {
     top_terms = top_terms,
     stringsAsFactors = FALSE
   )
-
+  
   summary <- tibble::as_tibble(summary)
-
+  
   summary
 }
 
@@ -546,6 +517,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #'   argument is ignored.
 #' @param call the result of calling \code{\link[base]{match.call}} at the top of
 #'   \code{\link[tidylda]{tidylda}}.
+#' @param threads number of parallel threads
 #' @return
 #'   Returns an S3 object of class \code{tidylda} with the following slots:
 #'
@@ -606,57 +578,56 @@ format_raw_lda_outputs <- function(
   calc_r2 = NULL,
   calc_likelihood = NULL, 
   call = NULL,
-  batch_size = 3000,
-  ...
+  threads
 ) {
-
+  
   ### format theta ----
   if (burnin > -1) {
     theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)
   } else {
     theta <- t(lda$Cd + lda$alpha) # t(t(lda$Cd) + lda$alpha)
   }
-
+  
   theta <- theta / rowSums(theta)
-
+  
   theta[is.na(theta)] <- 0 # just in case of a numeric issue
-
+  
   colnames(theta) <- seq_len(ncol(theta))
-
+  
   rownames(theta) <- rownames(dtm)
-
+  
   ### format phi and all the rest ----
-
+  
   if (!is_prediction) {
     ### format posteriors correctly ----
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-
+      
       phi <- lda$Cv_mean + lda$beta
     } else { # if you didn't use burnin use standard counts (Cd etc.)
-
+      
       phi <- lda$Cv + lda$beta
     }
-
+    
     phi <- phi / rowSums(phi)
-
+    
     phi[is.na(phi)] <- 0 # just in case of a numeric issue
-
+    
     colnames(phi) <- colnames(dtm)
-
+    
     rownames(phi) <- colnames(theta)
-
-
+    
+    
     ### collect the results ----
-
+    
     # gamma
     gamma <- textmineR::CalcGamma(
       phi = phi, theta = theta,
       p_docs = Matrix::rowSums(dtm)
     )
-
+    
     # beta
     colnames(lda$beta) <- colnames(phi)
-
+    
     if (beta$beta_class == "scalar") {
       beta_out <- lda$beta[1, 1]
     } else if (beta$beta_class == "vector") {
@@ -665,30 +636,30 @@ format_raw_lda_outputs <- function(
       beta_out <- lda$beta
     } else { # this should be impossible, but science is hard and I am dumb.
       beta_out <- lda$beta
-
+      
       message("something went wrong with 'beta'. This isn't your fault. Please 
             contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
             error when you ran 'tidylda'.")
     }
-
+    
     # alpha
-
+    
     if (alpha$alpha_class == "scalar" & !optimize_alpha) {
       alpha_out <- lda$alpha[1]
     } else if (alpha$alpha_class == "vector" | optimize_alpha) {
       alpha_out <- lda$alpha
-
+      
       names(alpha_out) <- rownames(phi)
     }
-
+    
     # resulting object
     summary <- summarize_topics(phi = phi, theta = theta, dtm = dtm)
-
+    
     log_likelihood <- as_tibble(data.frame(
       iteration = lda$log_likelihood[1, ],
       log_likelihood = lda$log_likelihood[2, ]
     ))
-
+    
     result <- new_tidylda(
       phi = phi,
       theta = theta,
@@ -699,27 +670,26 @@ format_raw_lda_outputs <- function(
       call = call,
       log_likelihood = log_likelihood
     )
-
+    
     ### calculate and add other things ---
-
+    
     # goodness of fit
     if (calc_r2) {
       result$r2 <- calc_lda_r2(
         dtm = dtm,
         theta = theta,
         phi = phi,
-        batch_size = batch_size, 
-        ...
+        threads
       )
     }
-
+    
     # a little cleanup here
     if (!calc_likelihood) {
       result$log_likelihood <- NULL
     }
   }
-
-
+  
+  
   ### return the final result ----
   if (is_prediction) {
     return(theta)
@@ -734,9 +704,11 @@ format_raw_lda_outputs <- function(
 #' @param dtm must be of class dgCMatrix
 #' @param theta a theta matrix
 #' @param phi a phi matrix
-#' @param batch_size for parallel processing
-#' @param ... other arguments passed to \code{\link[furrr]{future_map}}
-calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
+#' @param threads number of parallel threads
+calc_lda_r2 <- function(dtm, theta, phi, threads) {
+  
+  batch_size = 3000 # needs upgrading when you fix issue #15
+  
   # divide things into batches
   batches <- furrr::future_map(
     .x = seq(1, nrow(dtm), by = batch_size),
@@ -760,7 +732,7 @@ calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
       
       list(y = y, x = x)
     }, 
-    ...
+    .options = furrr::future_options(scheduling = threads)
   )
   
   ybar <- Matrix::colMeans(dtm)
@@ -775,7 +747,7 @@ calc_lda_r2 <- function(dtm, theta, phi, batch_size, ...) {
         ybar = ybar,
         return_ss_only = TRUE)
     },
-    ...
+    .options = furrr::future_options(scheduling = threads)
   )
   
   # REDUCE: get SST and SSE by summation

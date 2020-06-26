@@ -1,13 +1,24 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
 // [[Rcpp::depends(RcppArmadillo)]]
-#include "RcppThread.h"
 #include <RcppArmadilloExtensions/sample.h>
-#include <R.h>
-#include <cmath>
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
+
+// [[Rcpp::plugins(cpp11)]]
+// [[Rcpp::depends(RcppThread)]]
+#include "RcppThread.h"
+
+#include <R.h>
+
+#include <cmath>
+
+#include <Rcpp.h>
 using namespace Rcpp;
+
+#include<vector>
+using namespace std;
+
 
 //' Make a lexicon for looping over in the gibbs sampler
 //' @keywords internal
@@ -21,124 +32,148 @@ using namespace Rcpp;
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
 List create_lexicon(
-    IntegerMatrix &Cd, 
-    NumericMatrix &Phi, 
+    arma::imat &Cd, 
+    arma::mat &Phi, 
     arma::sp_mat &dtm,
-    NumericVector alpha,
-    bool freeze_topics
+    arma::vec alpha,
+    bool freeze_topics,
+    int threads
 ) {
   
   // ***************************************************************************
   // Initialize some variables
   // ***************************************************************************
   
+  dtm = dtm.t(); // transpose dtm to take advantage of column major & parallel
+  
+  Cd = Cd.t(); // transpose to put columns up
+  
   double sum_alpha = sum(alpha);
-
-  List docs(dtm.n_rows); 
   
-  List Zd(dtm.n_rows);
+  std::vector<arma::imat> docs(dtm.n_cols); 
   
-  int Nk = Cd.nrow();
+  std::vector<arma::imat> Zd(dtm.n_cols);
   
-  NumericVector qz(Nk);
-  
-  IntegerVector topic_index = seq_len(Nk) - 1;
+  int Nk = Cd.n_rows;
   
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a 
   // topic for each token within that document
   // ***************************************************************************
-  for (int d = 0; d < dtm.n_rows; d++) {
-    
-    // make a temporary vector to hold token indices
-    int nd = 0;
-    
-    for (int v = 0; v < dtm.n_cols; v++) {
-      nd += dtm(d,v);
-    }
-    
-    IntegerVector doc(nd);
-    
-    IntegerVector zd(nd);
-    
-    IntegerVector z(1);
-    
-    // fill in with token indices
-    int j = 0; // index of doc, advances when we have non-zero entries 
-    
-    for (int v = 0; v < dtm.n_cols; v++) {
+  RcppThread::parallelFor(
+    0, 
+    dtm.n_cols, 
+    [&Cd,
+     &Phi,
+     &dtm,
+     &alpha,
+     &sum_alpha,
+     &docs,
+     &Zd,
+     &Nk
+    ] (unsigned int d) {
       
-      if (dtm(d,v) > 0) { // if non-zero, add elements to doc
-        
-        // calculate probability of topics based on initially-sampled Phi and Cd
-        for (int k = 0; k < Nk; k++) {
-          qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
-        }
-        
-        int idx = j + dtm(d,v); // where to stop the loop below
-        
-        while (j < idx) {
-          
-          doc[j] = v;
-          
-          z = RcppArmadillo::sample(topic_index, 1, false, qz);
-          
-          zd[j] = z[0];
-          
-          j += 1;
-        }
-        
+      arma::vec qz(Nk);
+
+      arma::ivec topic_index = seq_len(Nk) - 1;
+      
+      // make a temporary vector to hold token indices
+      int nd = 0;
+      
+      for (int v = 0; v < dtm.n_rows; v++) {
+        nd += dtm(v, d);
       }
-    }
-    
-    // fill in docs[d] with the matrix we made
-    docs[d] = doc;
-    
-    Zd[d] = zd;
-    
-    R_CheckUserInterrupt();
-    
-  }
+      
+      arma::ivec doc(nd);
+      
+      arma::ivec zd(nd);
+      
+      arma::ivec z(1);
+      
+      // fill in with token indices
+      int j = 0; // index of doc, advances when we have non-zero entries 
+      
+      for (int v = 0; v < dtm.n_rows; v++) {
+        
+        if (dtm(v, d) > 0) { // if non-zero, add elements to doc
+          
+          // calculate probability of topics based on initially-sampled Phi and Cd
+          for (int k = 0; k < Nk; k++) {
+            qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
+          }
+          
+          int idx = j + dtm(v, d); // where to stop the loop below
+          
+          while (j < idx) {
+            
+            doc[j] = v;
+            
+            z = RcppArmadillo::sample(topic_index, 1, false, qz);
+            
+            zd[j] = z[0];
+            
+            j += 1;
+          }
+          
+        }
+      }
+      
+      // fill in docs[d] with the matrix we made
+      docs[d] = doc;
+      
+      Zd[d] = zd;
+      
+      RcppThread::checkUserInterrupt();
+      
+    }, 
+    threads
+  );
   
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  IntegerMatrix Cd_out(Nk, dtm.n_rows);
+  arma::imat Cd_out(Nk, dtm.n_cols);
   
-  IntegerVector Ck(Nk);
+  Cd_out.fill(0);
   
-  IntegerMatrix Cv(Nk, dtm.n_cols);
+  arma::ivec Ck(Nk);
   
-  for (int d = 0; d < Zd.length(); d++) {
-    
-    IntegerVector zd = Zd[d]; 
-    
-    IntegerVector doc = docs[d];
-    
-    for (int n = 0; n < zd.length(); n++) {
+  Ck.fill(0);
+  
+  arma::imat Cv(Nk, dtm.n_rows);
+  
+  Cv.fill(0);
+  
+  for (int d = 0; d < Zd.size(); d++) {
+      arma::ivec zd = Zd[d]; 
       
-      Cd_out(zd[n], d) += 1;
+      arma::ivec doc = docs[d];
       
-      Ck[zd[n]] += 1;
-
-      if (! freeze_topics) {
-        Cv(zd[n], doc[n]) += 1;
-      }
+      for (int n = 0; n < zd.n_elem; n++) {
+        
+        Cd_out(zd[n], d) += 1;
+        
+        Ck[zd[n]] += 1;
+        
+        if (! freeze_topics) {
+          Cv(zd[n], doc[n]) += 1;
+        }
+        
+      } 
       
-    } 
-    
-  }
+    }
+  
   
   // ***************************************************************************
   // Prepare output and expel it from this function
   // ***************************************************************************
   
   return List::create(
-    Named("docs") = docs,
-    Named("Zd") = Zd,
-    Named("Cd") = Cd_out,
-    Named("Cv") = Cv,
-    Named("Ck") = Ck
+    Named("docs") = wrap(docs),
+    Named("Zd") = wrap(Zd),
+    Named("Cd") = wrap(Cd_out),
+    Named("Cv") = wrap(Cv),
+    Named("Ck") = as<IntegerVector>(wrap(Ck))
   );
   
 }
@@ -402,7 +437,7 @@ List fit_lda_c(
   int t, d, n, k, v; // indices for loops
   
   IntegerVector topic_index = seq_len(Nk) - 1;
-
+  
   IntegerVector z(1); // for sampling topics
   
   // related to burnin and averaging

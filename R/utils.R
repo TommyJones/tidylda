@@ -707,57 +707,18 @@ format_raw_lda_outputs <- function(
 #' @param threads number of parallel threads
 calc_lda_r2 <- function(dtm, theta, phi, threads) {
   
-  batch_size = 3000 # needs upgrading when you fix issue #15
+  # weight rows of theta by document length
+  x <- Matrix::rowSums(dtm) * theta
   
-  # divide things into batches
-  batches <- furrr::future_map(
-    .x = seq(1, nrow(dtm), by = batch_size),
-    .f = function(b){
-      # rows to select on
-      rows <- b:min(b + batch_size - 1, nrow(dtm))
-      
-      # rows of the dtm
-      y <- dtm[rows, ]
-      
-      if (! inherits(y, "dgCMatrix")) {
-        y <- methods::as(object = y, Class = "dgCMatrix")
-      }
-      
-      # rows of theta multiplied by doc lengths in y
-      x <- Matrix::rowSums(y) * theta[rows, ]
-      
-      if (! inherits(x, "matrix")) {
-        x <- matrix(x, nrow = 1)
-      }
-      
-      list(y = y, x = x)
-    }, 
-    .options = furrr::future_options(scheduling = threads)
+  # claculate r-squared
+  r2 <- mvrsquared::calc_rsquared(
+    y = dtm,
+    yhat = list(x = x, w = phi),
+    return_ss_only = FALSE,
+    threads = threads
   )
   
-  ybar <- Matrix::colMeans(dtm)
-  
-  # MAP: calculate sum of squares
-  ss <- furrr::future_map(
-    .x = batches,
-    .f = function(batch) {
-      mvrsquared::calc_rsquared(
-        y = batch$y,
-        yhat = list(x = batch$x, w = phi),
-        ybar = ybar,
-        return_ss_only = TRUE)
-    },
-    .options = furrr::future_options(scheduling = threads)
-  )
-  
-  # REDUCE: get SST and SSE by summation
-  ss <- colSums(
-    do.call(rbind, ss)
-  )
-  
-  # return r-squared
-  r2 <- 1 - ss["sse"] / ss["sst"]
-  
+  # had an issue with preserving names
   names(r2) <- NULL
   
   r2

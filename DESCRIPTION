@@ -17,7 +17,6 @@ URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
 Depends: 
 Imports:
-    furrr,
     generics,
     gtools,
     Matrix,

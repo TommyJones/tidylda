@@ -44,6 +44,10 @@ List create_lexicon(
   // Initialize some variables
   // ***************************************************************************
   
+  dtm = dtm.t(); // transpose dtm to take advantage of column major & parallel
+  
+  Cd = Cd.t(); // transpose to put columns up
+  
   double sum_alpha = sum(alpha);
   
   std::vector<arma::imat> docs(dtm.n_cols); 
@@ -140,16 +144,7 @@ List create_lexicon(
   
   Cv.fill(0);
   
-  RcppThread::parallelFor(
-    0,
-    Zd.size(),
-    [&Zd,
-     &docs,
-     &Cd_out,
-     &Ck,
-     &freeze_topics,
-     &Cv
-    ] (unsigned int d){
+  for (int d = 0; d < Zd.size(); d++) {
       arma::ivec zd = Zd[d]; 
       
       arma::ivec doc = docs[d];
@@ -166,9 +161,7 @@ List create_lexicon(
         
       } 
       
-    },
-    threads
-  );
+    }
   
   
   // ***************************************************************************

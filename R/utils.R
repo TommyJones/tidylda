@@ -416,9 +416,9 @@ initialize_topic_counts <- function(
   # executed in parallel with RcppThread
   lexicon <- 
     create_lexicon(
-      Cd = t(Cd_start),
+      Cd = Cd_start,
       Phi = phi_initial,
-      dtm = Matrix::t(dtm), # take advantage of column major structure for parallelism
+      dtm = dtm, 
       alpha = alpha,
       freeze_topics = freeze_topics,
       threads = threads

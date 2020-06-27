@@ -186,16 +186,14 @@ List create_lexicon(
 
 // sample a new topic
 void sample_topics(
+    int &d,
     IntegerVector& doc,
     IntegerVector& zd,
     IntegerVector& z,
-    int& n,
-    int& d,
     IntegerVector& Ck,
     IntegerMatrix& Cd, 
     IntegerMatrix& Cv,
     IntegerVector& topic_index,
-    // NumericVector& qz,
     bool& freeze_topics,
     NumericMatrix& Phi,
     NumericVector& alpha,
@@ -204,8 +202,14 @@ void sample_topics(
     double& sum_beta,
     double& phi_kv
 ) {
+  // initialize some variables
+  NumericVector qz(topic_index.length());
+  
+  qz = qz + 1;
+  
+  
   // for each token instance in the document
-  for (n = 0; n < doc.length(); n++) {
+  for (unsigned int n = 0; n < doc.length(); n++) {
     
     // discount counts from previous run ***
     Cd(zd[n], d) -= 1; 
@@ -217,13 +221,9 @@ void sample_topics(
       Ck[zd[n]] -= 1;
     }
     
-    // initialize qz here to calc on the fly
-    NumericVector qz(topic_index.length());
-    
-    qz = qz + 1;
     
     // update probabilities of each topic ***
-    for (int k = 0; k < qz.length(); k++) {
+    for (unsigned int k = 0; k < qz.length(); k++) {
       
       // get the correct term depending on if we freeze topics or not
       if (freeze_topics) {
@@ -267,9 +267,6 @@ void fcalc_likelihood(
     int& Nk,
     int& Nd,
     int& Nv,
-    int& k,
-    int& d,
-    int& v,
     int& t,
     double& sum_beta,
     IntegerVector& Ck,
@@ -289,15 +286,15 @@ void fcalc_likelihood(
   lg_beta_count2 = 0.0;
   lg_alpha_count = 0.0;
   
-  for (k = 0; k < Nk; k++) {
+  for (unsigned int k = 0; k < Nk; k++) {
     
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
     
-    for (d = 0; d < Nd; d++) {
+    for (unsigned int d = 0; d < Nd; d++) {
       lg_alpha_count += lgamma(alpha[k] + Cd(k, d));
     }
     
-    for (v = 0; v < Nv; v++) {
+    for (unsigned int v = 0; v < Nv; v++) {
       lg_beta_count2 += lgamma(beta(k,v) + Cv(k, v));
     }
     
@@ -319,13 +316,12 @@ void foptimize_alpha(
     IntegerVector& Ck,
     int& sumtokens,
     double& sum_alpha,
-    int& Nk,
-    int& k
+    int& Nk
 ) {
   
   NumericVector new_alpha(Nk);
   
-  for (k = 0; k < Nk; k++) {
+  for (unsigned int k = 0; k < Nk; k++) {
     
     new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
     
@@ -342,23 +338,20 @@ void agg_counts_post_burnin(
     int& Nk,
     int& Nd,
     int& Nv,
-    int& k,
-    int& d,
-    int& v,
     bool& freeze_topics,
     IntegerMatrix& Cd,
     IntegerMatrix& Cd_sum,
     IntegerMatrix& Cv,
     IntegerMatrix& Cv_sum
 ) {
-  for (k = 0; k < Nk; k++) {
-    for (d = 0; d < Nd; d++) {
+  for (unsigned int k = 0; k < Nk; k++) {
+    for (unsigned int d = 0; d < Nd; d++) {
       
       Cd_sum(k, d) += Cd(k, d);
       
     }
     if (! freeze_topics) {
-      for (v = 0; v < Nv; v++) {
+      for (unsigned int v = 0; v < Nv; v++) {
         
         Cv_sum(k, v) += Cv(k, v);
         
@@ -505,11 +498,10 @@ List fit_lda_c(
       IntegerVector zd = Zd[d];
       
       sample_topics(
+        d,
         doc,
         zd,
         z,
-        n,
-        d,
         Ck,
         Cd, 
         Cv,
@@ -526,7 +518,6 @@ List fit_lda_c(
     } // end loop over docs    
     // calc likelihood ***
     if (calc_likelihood && ! freeze_topics) {
-      
       fcalc_likelihood(
         lg_beta_count1,
         lg_beta_count2,
@@ -534,9 +525,6 @@ List fit_lda_c(
         Nk,
         Nd,
         Nv,
-        k,
-        d,
-        v,
         t,
         sum_beta,
         Ck,
@@ -549,39 +537,30 @@ List fit_lda_c(
         lg_alpha_len,
         log_likelihood
       );
-      
     }
     // optimize alpha ***
     if (optimize_alpha && ! freeze_topics) {
-      
       foptimize_alpha(
         alpha, 
         Ck,
         sumtokens,
         sum_alpha,
-        Nk,
-        k
+        Nk
       );  
-      
     }
     
     // aggregate counts after burnin ***
     if (burnin > -1 && t >= burnin) {
-      
       agg_counts_post_burnin(
         Nk,
         Nd,
         Nv,
-        k,
-        d,
-        v,
         freeze_topics,
         Cd,
         Cd_sum,
         Cv,
         Cv_sum
       );
-      
     }
     
   } // end iterations

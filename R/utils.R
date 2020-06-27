@@ -644,6 +644,8 @@ format_raw_lda_outputs <- function(
     
     # alpha
     
+    lda$alpha <- as.numeric(lda$alpha) # armadillo vectors come out as matrices
+    
     if (alpha$alpha_class == "scalar" & !optimize_alpha) {
       alpha_out <- lda$alpha[1]
     } else if (alpha$alpha_class == "vector" | optimize_alpha) {

@@ -202,12 +202,6 @@ void sample_topics(
     double& sum_beta,
     double& phi_kv
 ) {
-  // initialize some variables
-  arma::vec qz(Ck.n_elem);
-  
-  qz.fill(1.0);
-  
-  arma::uvec z(1);
   
   // loop over documents
   for (unsigned int d = 0; d < docs.size(); d++) { //start loop over documents
@@ -232,10 +226,17 @@ void sample_topics(
         Ck[zd[n]] -= 1;
       }
       
+      // initialize probability vector and sample target
+      arma::vec qz(Ck.n_elem);
+      
+      qz.fill(1.0);
+      
+      arma::uvec z(1); 
       
       // update probabilities of each topic ***
-      for (unsigned int k = 0; k < qz.n_elem; k++) {
+      for (unsigned int k = 0; k < Ck.n_elem; k++) {
         
+
         // get the correct term depending on if we freeze topics or not
         if (freeze_topics) {
           phi_kv = log(Phi(k, doc[n]));

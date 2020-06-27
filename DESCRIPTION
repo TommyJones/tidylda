@@ -21,7 +21,7 @@ Imports:
     gtools,
     Matrix,
     methods,
-    mvrsquared,
+    mvrsquared (>= 0.1.0),
     Rcpp (>= 1.0.2),
     stats,
     stringr,

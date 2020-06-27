@@ -186,7 +186,7 @@ List create_lexicon(
 
 // sample a new topic
 void sample_topics(
-    int &d,
+    unsigned int &d,
     IntegerVector& doc,
     IntegerVector& zd,
     IntegerVector& z,
@@ -264,7 +264,7 @@ void fcalc_likelihood(
     double& lg_beta_count1,
     double& lg_beta_count2,
     double& lg_alpha_count,
-    int& t,
+    unsigned int& t,
     double& sum_beta,
     IntegerVector& Ck,
     IntegerMatrix& Cd,
@@ -398,16 +398,10 @@ List fit_lda_c(
 ) {
   
   // ***********************************************************************
-  // TODO Check quality of inputs to minimize risk of crashing the program
-  // ***********************************************************************
-  
-  
-  
-  
-  // ***********************************************************************
   // Variables and other set up
   // ***********************************************************************
   
+  // set up some global variables
   int Nv = Cv.cols();
   
   int Nd = Cd.cols();
@@ -424,13 +418,11 @@ List fit_lda_c(
   
   double phi_kv(0.0);
   
-  int t, d, n, k; // indices for loops
-  
   IntegerVector topic_index = seq_len(Nk) - 1;
   
   IntegerVector z(1); // for sampling topics
   
-  // related to burnin and averaging
+  // variables for averaging post burn in
   IntegerMatrix Cv_sum(Nk, Nv);
   
   NumericMatrix Cv_mean(Nk, Nv);
@@ -439,7 +431,7 @@ List fit_lda_c(
   
   NumericMatrix Cd_mean(Nk, Nd);
   
-  // related to the likelihood calculation
+  // variables related to the likelihood calculation
   NumericMatrix log_likelihood(2, iterations);
   
   double lgbeta(0.0); // calculated immediately below
@@ -456,19 +448,19 @@ List fit_lda_c(
   
   if (calc_likelihood && ! freeze_topics) { // if calc_likelihood, actually populate this stuff
     
-    for (n = 0; n < Nv; n++) {
+    for (unsigned int n = 0; n < Nv; n++) {
       lgbeta += lgamma(beta[n]);
     }
     
     lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; // rcpp sugar here
     
-    for (k = 0; k < Nk; k++) {
+    for (unsigned int k = 0; k < Nk; k++) {
       lgalpha += lgamma(alpha[k]);
     }
     
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
     
-    for (d = 0; d < Nd; d++) {
+    for (unsigned int d = 0; d < Nd; d++) {
       IntegerVector doc = docs[d];
       
       lg_alpha_len += lgamma(sum_alpha + doc.length());
@@ -483,10 +475,10 @@ List fit_lda_c(
   // BEGIN ITERATIONS
   // ***********************************************************************
   
-  for (t = 0; t < iterations; t++) {
+  for (unsigned int t = 0; t < iterations; t++) {
     
     // loop over documents
-    for (d = 0; d < Nd; d++) { //start loop over documents
+    for (unsigned int d = 0; d < Nd; d++) { //start loop over documents
       
       R_CheckUserInterrupt();
       

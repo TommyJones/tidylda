@@ -76,8 +76,6 @@ List create_lexicon(
       
       arma::vec qz(Nk);
       
-      arma::uvec topic_index = arma::linspace<arma::uvec>(0L, Nk - 1L, Nk);
-      
       // make a temporary vector to hold token indices
       int nd = 0;
       
@@ -100,7 +98,10 @@ List create_lexicon(
           
           // calculate probability of topics based on initially-sampled Phi and Cd
           for (unsigned int k = 0; k < Nk; k++) {
-            qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
+            // log probability
+            qz[k] = log(Phi(k, v)) + 
+              log((double)Cd(k, d) + alpha[k]) - 
+              log((double)nd + sum_alpha - 1);
           }
           
           int idx = j + dtm(v, d); // where to stop the loop below
@@ -110,7 +111,7 @@ List create_lexicon(
             doc[j] = v;
             
             // z = RcppArmadillo::sample(topic_index, 1, false, qz);
-            z = samp_one(qz);
+            z = lsamp_one(qz);
             
             zd[j] = z[0];
             
@@ -193,7 +194,6 @@ void sample_topics(
     arma::uvec& Ck,
     arma::umat& Cd, 
     arma::mat& Cv,
-    arma::uvec& topic_index,
     bool& freeze_topics,
     arma::mat& Phi,
     arma::vec& alpha,
@@ -203,7 +203,7 @@ void sample_topics(
     double& phi_kv
 ) {
   // initialize some variables
-  arma::vec qz(topic_index.n_elem);
+  arma::vec qz(Ck.n_elem);
   
   qz.fill(1.0);
   
@@ -238,20 +238,20 @@ void sample_topics(
         
         // get the correct term depending on if we freeze topics or not
         if (freeze_topics) {
-          phi_kv = Phi(k, doc[n]);
+          phi_kv = log(Phi(k, doc[n]));
         } else {
-          phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
-            ((double)Ck[k] + sum_beta);
+          phi_kv = log((double)Cv(k, doc[n]) + beta(k, doc[n])) -
+            log((double)Ck[k] + sum_beta);
         }
         
-        qz[k] =  phi_kv * ((double)Cd(k, d) + alpha[k]) / 
-          ((double)doc.n_elem + sum_alpha - 1);
+        qz[k] =  phi_kv + 
+          log((double)Cd(k, d) + alpha[k]) - 
+          log((double)doc.n_elem + sum_alpha - 1);
         
       }
       
       // sample a topic ***
-      //z = RcppArmadillo::sample(topic_index, 1, false, qz);
-      z = samp_one(qz);
+      z = lsamp_one(qz);
       
       // update counts ***
       Cd(z[0], d) += 1; 
@@ -433,9 +433,7 @@ List fit_lda_c(
   unsigned int sumtokens = sum(Ck);
   
   double phi_kv(0.0);
-  
-  arma::uvec topic_index = arma::linspace<arma::uvec>(0L, Nk - 1L, Nk);
-  
+
   // variables for averaging post burn in
   arma::mat Cv_sum(Nk, Nv);
   
@@ -497,7 +495,6 @@ List fit_lda_c(
       Ck,
       Cd, 
       Cv,
-      topic_index,
       freeze_topics,
       Phi,
       alpha,

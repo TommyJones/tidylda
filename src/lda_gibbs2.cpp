@@ -1,6 +1,6 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
-#include "log_sample.h"
+#include "sample_int.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadilloExtensions/sample.h>

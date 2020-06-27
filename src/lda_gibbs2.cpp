@@ -264,9 +264,6 @@ void fcalc_likelihood(
     double& lg_beta_count1,
     double& lg_beta_count2,
     double& lg_alpha_count,
-    int& Nk,
-    int& Nd,
-    int& Nv,
     int& t,
     double& sum_beta,
     IntegerVector& Ck,
@@ -286,15 +283,15 @@ void fcalc_likelihood(
   lg_beta_count2 = 0.0;
   lg_alpha_count = 0.0;
   
-  for (unsigned int k = 0; k < Nk; k++) {
+  for (unsigned int k = 0; k < Ck.length(); k++) {
     
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
     
-    for (unsigned int d = 0; d < Nd; d++) {
+    for (unsigned int d = 0; d < Cd.cols(); d++) {
       lg_alpha_count += lgamma(alpha[k] + Cd(k, d));
     }
     
-    for (unsigned int v = 0; v < Nv; v++) {
+    for (unsigned int v = 0; v < Cv.cols(); v++) {
       lg_beta_count2 += lgamma(beta(k,v) + Cv(k, v));
     }
     
@@ -522,9 +519,6 @@ List fit_lda_c(
         lg_beta_count1,
         lg_beta_count2,
         lg_alpha_count,
-        Nk,
-        Nd,
-        Nv,
         t,
         sum_beta,
         Ck,

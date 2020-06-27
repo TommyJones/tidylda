@@ -186,9 +186,8 @@ List create_lexicon(
 
 // sample a new topic
 void sample_topics(
-    unsigned int &d,
-    arma::ivec& doc,
-    IntegerVector& zd,
+    std::vector<arma::ivec>& docs,
+    std::vector<IntegerVector>& Zd,
     arma::ivec& Ck,
     arma::imat& Cd, 
     arma::mat& Cv,
@@ -208,54 +207,66 @@ void sample_topics(
   
   arma::ivec z(1);
   
-  // for each token instance in the document
-  for (unsigned int n = 0; n < doc.n_elem; n++) {
+  // loop over documents
+  for (unsigned int d = 0; d < docs.size(); d++) { //start loop over documents
     
-    // discount counts from previous run ***
-    Cd(zd[n], d) -= 1; 
+    R_CheckUserInterrupt();
+    
+    arma::ivec doc = docs[d];
+    
+    IntegerVector zd = Zd[d];
     
     
-    if (! freeze_topics) {
-      Cv(zd[n], doc[n]) -= 1; 
+    // for each token instance in the document
+    for (unsigned int n = 0; n < doc.n_elem; n++) {
       
-      Ck[zd[n]] -= 1;
-    }
-    
-    
-    // update probabilities of each topic ***
-    for (unsigned int k = 0; k < qz.n_elem; k++) {
+      // discount counts from previous run ***
+      Cd(zd[n], d) -= 1; 
       
-      // get the correct term depending on if we freeze topics or not
-      if (freeze_topics) {
-        phi_kv = Phi(k, doc[n]);
-      } else {
-        phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
-          ((double)Ck[k] + sum_beta);
+      
+      if (! freeze_topics) {
+        Cv(zd[n], doc[n]) -= 1; 
+        
+        Ck[zd[n]] -= 1;
       }
       
-      qz[k] =  phi_kv * ((double)Cd(k, d) + alpha[k]) / 
-        ((double)doc.n_elem + sum_alpha - 1);
       
-    }
-    
-    // sample a topic ***
-    z = RcppArmadillo::sample(topic_index, 1, false, qz);
-    
-    // update counts ***
-    Cd(z[0], d) += 1; 
-    
-    if (! freeze_topics) {
+      // update probabilities of each topic ***
+      for (unsigned int k = 0; k < qz.n_elem; k++) {
+        
+        // get the correct term depending on if we freeze topics or not
+        if (freeze_topics) {
+          phi_kv = Phi(k, doc[n]);
+        } else {
+          phi_kv = ((double)Cv(k, doc[n]) + beta(k, doc[n])) /
+            ((double)Ck[k] + sum_beta);
+        }
+        
+        qz[k] =  phi_kv * ((double)Cd(k, d) + alpha[k]) / 
+          ((double)doc.n_elem + sum_alpha - 1);
+        
+      }
       
-      Cv(z[0], doc[n]) += 1; 
+      // sample a topic ***
+      z = RcppArmadillo::sample(topic_index, 1, false, qz);
       
-      Ck[z[0]] += 1;
+      // update counts ***
+      Cd(z[0], d) += 1; 
       
-    }
+      if (! freeze_topics) {
+        
+        Cv(z[0], doc[n]) += 1; 
+        
+        Ck[z[0]] += 1;
+        
+      }
+      
+      // record this topic for this token/doc combination
+      zd[n] = z[0];
+      
+    } // end loop over each token in doc
     
-    // record this topic for this token/doc combination
-    zd[n] = z[0];
-    
-  } // end loop over each token in doc
+  } // end loop over docs
   
 }
 
@@ -477,33 +488,22 @@ List fit_lda_c(
   
   for (unsigned int t = 0; t < iterations; t++) {
     
-    // loop over documents
-    for (unsigned int d = 0; d < Nd; d++) { //start loop over documents
-      
-      R_CheckUserInterrupt();
-      
-      arma::ivec doc = docs[d];
-      
-      IntegerVector zd = Zd[d];
-      
-      sample_topics(
-        d,
-        doc,
-        zd,
-        Ck,
-        Cd, 
-        Cv,
-        topic_index,
-        freeze_topics,
-        Phi,
-        alpha,
-        beta,
-        sum_alpha,
-        sum_beta,
-        phi_kv
-      );
-      
-    } // end loop over docs    
+    sample_topics(
+      docs,
+      Zd,
+      Ck,
+      Cd, 
+      Cv,
+      topic_index,
+      freeze_topics,
+      Phi,
+      alpha,
+      beta,
+      sum_alpha,
+      sum_beta,
+      phi_kv
+    );
+    
     // calc likelihood ***
     if (calc_likelihood && ! freeze_topics) {
       fcalc_likelihood(

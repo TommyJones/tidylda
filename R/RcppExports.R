@@ -6,10 +6,10 @@
 #' @description
 #'   One run of the Gibbs sampler and other magic to initialize some objects.
 #'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-#' @param Cd IntegerMatrix denoting counts of topics in documents
-#' @param Phi NumericMatrix denoting probability of words in topics
+#' @param Cd arma::imat denoting counts of topics in documents
+#' @param Phi arma::mat denoting probability of words in topics
 #' @param dtm arma::sp_mat document term matrix
-#' @param alpha NumericVector prior for topics over documents
+#' @param alpha arma::vec prior for topics over documents
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
     .Call(`_tidylda_create_lexicon`, Cd, Phi, dtm, alpha, freeze_topics, threads)

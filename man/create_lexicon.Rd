@@ -7,13 +7,13 @@
 create_lexicon(Cd, Phi, dtm, alpha, freeze_topics, threads)
 }
 \arguments{
-\item{Cd}{IntegerMatrix denoting counts of topics in documents}
+\item{Cd}{arma::imat denoting counts of topics in documents}
 
-\item{Phi}{NumericMatrix denoting probability of words in topics}
+\item{Phi}{arma::mat denoting probability of words in topics}
 
 \item{dtm}{arma::sp_mat document term matrix}
 
-\item{alpha}{NumericVector prior for topics over documents}
+\item{alpha}{arma::vec prior for topics over documents}
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 }

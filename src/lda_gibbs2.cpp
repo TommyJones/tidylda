@@ -25,10 +25,10 @@ using namespace std;
 //' @description
 //'   One run of the Gibbs sampler and other magic to initialize some objects.
 //'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-//' @param Cd IntegerMatrix denoting counts of topics in documents
-//' @param Phi NumericMatrix denoting probability of words in topics
+//' @param Cd arma::imat denoting counts of topics in documents
+//' @param Phi arma::mat denoting probability of words in topics
 //' @param dtm arma::sp_mat document term matrix
-//' @param alpha NumericVector prior for topics over documents
+//' @param alpha arma::vec prior for topics over documents
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
 List create_lexicon(
@@ -50,11 +50,11 @@ List create_lexicon(
   
   double sum_alpha = sum(alpha);
   
-  std::vector<arma::imat> docs(dtm.n_cols); 
+  std::vector<arma::ivec> docs(dtm.n_cols); 
   
-  std::vector<arma::imat> Zd(dtm.n_cols);
+  std::vector<arma::ivec> Zd(dtm.n_cols);
   
-  int Nk = Cd.n_rows;
+  unsigned int Nk = Cd.n_rows;
   
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a 
@@ -91,14 +91,14 @@ List create_lexicon(
       arma::ivec z(1);
       
       // fill in with token indices
-      int j = 0; // index of doc, advances when we have non-zero entries 
+      unsigned int j = 0; // index of doc, advances when we have non-zero entries 
       
-      for (int v = 0; v < dtm.n_rows; v++) {
+      for (unsigned int v = 0; v < dtm.n_rows; v++) {
         
         if (dtm(v, d) > 0) { // if non-zero, add elements to doc
           
           // calculate probability of topics based on initially-sampled Phi and Cd
-          for (int k = 0; k < Nk; k++) {
+          for (unsigned int k = 0; k < Nk; k++) {
             qz[k] = Phi(k, v) * ((double)Cd(k, d) + alpha[k]) / ((double)nd + sum_alpha - 1);
           }
           
@@ -144,12 +144,12 @@ List create_lexicon(
   
   Cv.fill(0);
   
-  for (int d = 0; d < Zd.size(); d++) {
+  for (unsigned int d = 0; d < Zd.size(); d++) {
       arma::ivec zd = Zd[d]; 
       
       arma::ivec doc = docs[d];
       
-      for (int n = 0; n < zd.n_elem; n++) {
+      for (unsigned int n = 0; n < zd.n_elem; n++) {
         
         Cd_out(zd[n], d) += 1;
         
@@ -173,7 +173,7 @@ List create_lexicon(
     Named("Zd") = wrap(Zd),
     Named("Cd") = wrap(Cd_out),
     Named("Cv") = wrap(Cv),
-    Named("Ck") = as<IntegerVector>(wrap(Ck))
+    Named("Ck") = wrap(Ck)
   );
   
 }
@@ -622,5 +622,3 @@ List fit_lda_c(
     Named("beta") = beta
   );  
 }
-
-

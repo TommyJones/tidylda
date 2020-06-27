@@ -311,7 +311,7 @@ void fcalc_likelihood(
 void foptimize_alpha(
     NumericVector& alpha, 
     IntegerVector& Ck,
-    int& sumtokens,
+    unsigned int& sumtokens,
     double& sum_alpha
 ) {
   
@@ -402,9 +402,9 @@ List fit_lda_c(
   // ***********************************************************************
   
   // set up some global variables
-  int Nv = Cv.cols();
+  unsigned int Nv = Cv.cols();
   
-  int Nd = Cd.cols();
+  unsigned int Nd = Cd.cols();
   
   NumericVector k_alpha = alpha * Nk;
   
@@ -414,7 +414,7 @@ List fit_lda_c(
   
   double sum_beta = sum(beta(1, _));
   
-  int sumtokens = sum(Ck);
+  unsigned int sumtokens = sum(Ck);
   
   double phi_kv(0.0);
   

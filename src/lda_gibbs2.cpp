@@ -203,9 +203,9 @@ void sample_topics(
     double& phi_kv
 ) {
   // initialize some variables
-  NumericVector qz(topic_index.length());
+  arma::vec qz(topic_index.length());
   
-  qz = qz + 1;
+  qz.fill(1.0);
   
   
   // for each token instance in the document
@@ -223,7 +223,7 @@ void sample_topics(
     
     
     // update probabilities of each topic ***
-    for (unsigned int k = 0; k < qz.length(); k++) {
+    for (unsigned int k = 0; k < qz.n_elem; k++) {
       
       // get the correct term depending on if we freeze topics or not
       if (freeze_topics) {

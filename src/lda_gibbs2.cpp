@@ -1,8 +1,9 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
+#include "log_sample.h"
+
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadilloExtensions/sample.h>
-#include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
 
 // [[Rcpp::plugins(cpp11)]]
@@ -75,7 +76,7 @@ List create_lexicon(
       
       arma::vec qz(Nk);
       
-      arma::ivec topic_index = seq_len(Nk) - 1;
+      arma::uvec topic_index = arma::linspace<arma::uvec>(0L, Nk - 1L, Nk);
       
       // make a temporary vector to hold token indices
       int nd = 0;
@@ -88,7 +89,7 @@ List create_lexicon(
       
       arma::ivec zd(nd);
       
-      arma::ivec z(1);
+      arma::uvec z(1);
       
       // fill in with token indices
       unsigned int j = 0; // index of doc, advances when we have non-zero entries 
@@ -108,7 +109,8 @@ List create_lexicon(
             
             doc[j] = v;
             
-            z = RcppArmadillo::sample(topic_index, 1, false, qz);
+            // z = RcppArmadillo::sample(topic_index, 1, false, qz);
+            z = samp_one(qz);
             
             zd[j] = z[0];
             
@@ -248,7 +250,8 @@ void sample_topics(
       }
       
       // sample a topic ***
-      z = RcppArmadillo::sample(topic_index, 1, false, qz);
+      //z = RcppArmadillo::sample(topic_index, 1, false, qz);
+      z = samp_one(qz);
       
       // update counts ***
       Cd(z[0], d) += 1; 

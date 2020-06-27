@@ -186,7 +186,7 @@ List create_lexicon(
 
 // sample a new topic
 void sample_topics(
-    std::vector<arma::ivec>& docs,
+    std::vector<arma::uvec>& docs,
     std::vector<IntegerVector>& Zd,
     arma::uvec& Ck,
     arma::umat& Cd, 
@@ -212,7 +212,7 @@ void sample_topics(
     
     R_CheckUserInterrupt();
     
-    arma::ivec doc = docs[d];
+    arma::uvec doc = docs[d];
     
     IntegerVector zd = Zd[d];
     
@@ -394,7 +394,7 @@ void agg_counts_post_burnin(
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
 List fit_lda_c(
-    std::vector<arma::ivec> &docs,
+    std::vector<arma::uvec> &docs,
     unsigned int &Nk,
     arma::mat &beta,
     arma::vec alpha,
@@ -472,7 +472,7 @@ List fit_lda_c(
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
     
     for (unsigned int d = 0; d < Nd; d++) {
-      arma::ivec doc = docs[d];
+      arma::uvec doc = docs[d];
       
       lg_alpha_len += lgamma(sum_alpha + doc.n_elem);
     }

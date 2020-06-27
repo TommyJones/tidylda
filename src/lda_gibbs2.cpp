@@ -574,14 +574,19 @@ List fit_lda_c(
     double diff = iterations - burnin;
     
     // average over chain after burnin 
-    for (k = 0; k < Nk; k++) {
-      
-      for (d = 0; d < Nd; d++) {
+    for (unsigned int d = 0; d < Nd; d++) { // consider parallelization
+      for (unsigned int k = 0; k < Nk; k++) {
+        
         Cd_mean(k, d) = ((double)Cd_sum(k, d) / diff);
+        
       }
-      
-      for (v = 0; v < Nv; v++) {
+    }
+    
+    for (unsigned int v = 0; v < Nv; v++) { // consider parallelization
+      for (unsigned int k = 0; k < Nk; k++) {
+        
         Cv_mean(k, v) = ((double)Cv_sum(k, v) / diff);
+        
       }
     }
   }

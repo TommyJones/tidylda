@@ -7,12 +7,12 @@
 using namespace Rcpp;
 
 // create_lexicon
-List create_lexicon(arma::imat& Cd, arma::mat& Phi, arma::sp_mat& dtm, arma::vec alpha, bool freeze_topics, int threads);
+List create_lexicon(arma::umat& Cd, arma::mat& Phi, arma::sp_mat& dtm, arma::vec alpha, bool freeze_topics, int threads);
 RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::imat& >::type Cd(CdSEXP);
+    Rcpp::traits::input_parameter< arma::umat& >::type Cd(CdSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type Phi(PhiSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat& >::type dtm(dtmSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
@@ -23,7 +23,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // fit_lda_c
-List fit_lda_c(std::vector<arma::ivec>& docs, unsigned int& Nk, arma::mat& beta, arma::vec alpha, arma::imat Cd, arma::mat Cv, arma::ivec Ck, std::vector<IntegerVector> Zd, arma::mat& Phi, int& iterations, int& burnin, bool& freeze_topics, bool& calc_likelihood, bool& optimize_alpha);
+List fit_lda_c(std::vector<arma::ivec>& docs, unsigned int& Nk, arma::mat& beta, arma::vec alpha, arma::umat Cd, arma::mat Cv, arma::uvec Ck, std::vector<IntegerVector> Zd, arma::mat& Phi, int& iterations, int& burnin, bool& freeze_topics, bool& calc_likelihood, bool& optimize_alpha);
 RcppExport SEXP _tidylda_fit_lda_c(SEXP docsSEXP, SEXP NkSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP CdSEXP, SEXP CvSEXP, SEXP CkSEXP, SEXP ZdSEXP, SEXP PhiSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP freeze_topicsSEXP, SEXP calc_likelihoodSEXP, SEXP optimize_alphaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -32,9 +32,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int& >::type Nk(NkSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type beta(betaSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< arma::imat >::type Cd(CdSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type Cd(CdSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type Cv(CvSEXP);
-    Rcpp::traits::input_parameter< arma::ivec >::type Ck(CkSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type Ck(CkSEXP);
     Rcpp::traits::input_parameter< std::vector<IntegerVector> >::type Zd(ZdSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type Phi(PhiSEXP);
     Rcpp::traits::input_parameter< int& >::type iterations(iterationsSEXP);

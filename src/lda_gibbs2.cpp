@@ -32,7 +32,7 @@ using namespace std;
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //[[Rcpp::export]]
 List create_lexicon(
-    arma::imat &Cd, 
+    arma::umat &Cd, 
     arma::mat &Phi, 
     arma::sp_mat &dtm,
     arma::vec alpha,
@@ -132,15 +132,15 @@ List create_lexicon(
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  arma::imat Cd_out(Nk, dtm.n_cols);
+  arma::umat Cd_out(Nk, dtm.n_cols);
   
   Cd_out.fill(0);
   
-  arma::ivec Ck(Nk);
+  arma::uvec Ck(Nk);
   
   Ck.fill(0);
   
-  arma::imat Cv(Nk, dtm.n_rows);
+  arma::umat Cv(Nk, dtm.n_rows);
   
   Cv.fill(0);
   
@@ -188,10 +188,10 @@ List create_lexicon(
 void sample_topics(
     std::vector<arma::ivec>& docs,
     std::vector<IntegerVector>& Zd,
-    arma::ivec& Ck,
-    arma::imat& Cd, 
+    arma::uvec& Ck,
+    arma::umat& Cd, 
     arma::mat& Cv,
-    arma::ivec& topic_index,
+    arma::uvec& topic_index,
     bool& freeze_topics,
     arma::mat& Phi,
     arma::vec& alpha,
@@ -205,7 +205,7 @@ void sample_topics(
   
   qz.fill(1.0);
   
-  arma::ivec z(1);
+  arma::uvec z(1);
   
   // loop over documents
   for (unsigned int d = 0; d < docs.size(); d++) { //start loop over documents
@@ -277,8 +277,8 @@ void fcalc_likelihood(
     double& lg_alpha_count,
     unsigned int& t,
     double& sum_beta,
-    arma::ivec& Ck,
-    arma::imat& Cd,
+    arma::uvec& Ck,
+    arma::umat& Cd,
     arma::mat& Cv,
     arma::vec& alpha,
     arma::mat& beta,
@@ -321,7 +321,7 @@ void fcalc_likelihood(
 // procedure likely to change similar to what Mimno does in Mallet
 void foptimize_alpha(
     arma::vec& alpha, 
-    arma::ivec& Ck,
+    arma::uvec& Ck,
     unsigned int& sumtokens,
     double& sum_alpha
 ) {
@@ -345,8 +345,8 @@ void foptimize_alpha(
 // Function aggregates counts across iterations after burnin iterations
 void agg_counts_post_burnin(
     bool& freeze_topics,
-    arma::imat& Cd,
-    arma::imat& Cd_sum,
+    arma::umat& Cd,
+    arma::umat& Cd_sum,
     arma::mat& Cv,
     arma::mat& Cv_sum
 ) {
@@ -398,9 +398,9 @@ List fit_lda_c(
     unsigned int &Nk,
     arma::mat &beta,
     arma::vec alpha,
-    arma::imat Cd,
+    arma::umat Cd,
     arma::mat Cv,
-    arma::ivec Ck,
+    arma::uvec Ck,
     std::vector<IntegerVector> Zd,
     arma::mat &Phi,
     int &iterations,
@@ -431,14 +431,14 @@ List fit_lda_c(
   
   double phi_kv(0.0);
   
-  arma::ivec topic_index = seq_len(Nk) - 1;
+  arma::uvec topic_index = arma::linspace<arma::uvec>(0L, Nk - 1L, Nk);
   
   // variables for averaging post burn in
   arma::mat Cv_sum(Nk, Nv);
   
   arma::mat Cv_mean(Nk, Nv);
   
-  arma::imat Cd_sum(Nk, Nd);
+  arma::umat Cd_sum(Nk, Nd);
   
   arma::mat Cd_mean(Nk, Nd);
   

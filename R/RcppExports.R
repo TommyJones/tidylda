@@ -22,14 +22,14 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @param docs List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
 #' @param Nk int number of topics
-#' @param beta NumericMatrix for prior of tokens over topics
-#' @param alpha NumericVector prior for topics over documents
-#' @param Cd IntegerMatrix denoting counts of topics in documents
-#' @param Cv IntegerMatrix denoting counts of tokens in topics
-#' @param Ck IntegerVector denoting counts of topics across all tokens
+#' @param beta arma::mat for prior of tokens over topics
+#' @param alpha arma::vec prior for topics over documents
+#' @param Cd arma::imat denoting counts of topics in documents
+#' @param Cv arma::imat denoting counts of tokens in topics
+#' @param Ck arma::ivec denoting counts of topics across all tokens
 #' @param Zd List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-#' @param Phi NumericMatrix denoting probability of tokens in topics
+#' @param Phi arma::mat denoting probability of tokens in topics
 #' @param iterations int number of gibbs iterations to run in total
 #' @param burnin int number of burn in iterations
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}

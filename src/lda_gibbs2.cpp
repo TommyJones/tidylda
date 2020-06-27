@@ -189,10 +189,10 @@ void sample_topics(
     unsigned int &d,
     IntegerVector& doc,
     IntegerVector& zd,
-    IntegerVector& Ck,
-    IntegerMatrix& Cd, 
+    arma::ivec& Ck,
+    arma::imat& Cd, 
     arma::mat& Cv,
-    IntegerVector& topic_index,
+    arma::ivec& topic_index,
     bool& freeze_topics,
     arma::mat& Phi,
     arma::vec& alpha,
@@ -202,7 +202,7 @@ void sample_topics(
     double& phi_kv
 ) {
   // initialize some variables
-  arma::vec qz(topic_index.length());
+  arma::vec qz(topic_index.n_elem);
   
   qz.fill(1.0);
   
@@ -266,15 +266,15 @@ void fcalc_likelihood(
     double& lg_alpha_count,
     unsigned int& t,
     double& sum_beta,
-    IntegerVector& Ck,
-    IntegerMatrix& Cd,
+    arma::ivec& Ck,
+    arma::imat& Cd,
     arma::mat& Cv,
     arma::vec& alpha,
     arma::mat& beta,
     double& lgalpha,
     double& lgbeta,
     double& lg_alpha_len,
-    NumericMatrix& log_likelihood
+    arma::mat& log_likelihood
 ) {
   
   // calculate lg_beta_count1, lg_beta_count2, lg_alph_count for this iter
@@ -283,11 +283,11 @@ void fcalc_likelihood(
   lg_beta_count2 = 0.0;
   lg_alpha_count = 0.0;
   
-  for (unsigned int k = 0; k < Ck.length(); k++) {
+  for (unsigned int k = 0; k < Ck.n_elem; k++) {
     
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
     
-    for (unsigned int d = 0; d < Cd.cols(); d++) {
+    for (unsigned int d = 0; d < Cd.n_cols; d++) {
       lg_alpha_count += lgamma(alpha[k] + Cd(k, d));
     }
     
@@ -310,7 +310,7 @@ void fcalc_likelihood(
 // procedure likely to change similar to what Mimno does in Mallet
 void foptimize_alpha(
     arma::vec& alpha, 
-    IntegerVector& Ck,
+    arma::ivec& Ck,
     unsigned int& sumtokens,
     double& sum_alpha
 ) {
@@ -334,14 +334,14 @@ void foptimize_alpha(
 // Function aggregates counts across iterations after burnin iterations
 void agg_counts_post_burnin(
     bool& freeze_topics,
-    IntegerMatrix& Cd,
-    IntegerMatrix& Cd_sum,
+    arma::imat& Cd,
+    arma::imat& Cd_sum,
     arma::mat& Cv,
     arma::mat& Cv_sum
 ) {
   
-  for (unsigned int d = 0; d < Cd.cols(); d++) { // consider parallelization here
-    for (unsigned int k = 0; k < Cd.rows(); k++) {
+  for (unsigned int d = 0; d < Cd.n_cols; d++) { // consider parallelization here
+    for (unsigned int k = 0; k < Cd.n_rows; k++) {
       
       Cd_sum(k, d) += Cd(k, d);
       
@@ -368,14 +368,14 @@ void agg_counts_post_burnin(
 //' @param docs List with one element for each document and one entry for each token
 //'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
 //' @param Nk int number of topics
-//' @param beta NumericMatrix for prior of tokens over topics
-//' @param alpha NumericVector prior for topics over documents
-//' @param Cd IntegerMatrix denoting counts of topics in documents
-//' @param Cv IntegerMatrix denoting counts of tokens in topics
-//' @param Ck IntegerVector denoting counts of topics across all tokens
+//' @param beta arma::mat for prior of tokens over topics
+//' @param alpha arma::vec prior for topics over documents
+//' @param Cd arma::imat denoting counts of topics in documents
+//' @param Cv arma::imat denoting counts of tokens in topics
+//' @param Ck arma::ivec denoting counts of topics across all tokens
 //' @param Zd List with one element for each document and one entry for each token
 //'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-//' @param Phi NumericMatrix denoting probability of tokens in topics
+//' @param Phi arma::mat denoting probability of tokens in topics
 //' @param iterations int number of gibbs iterations to run in total
 //' @param burnin int number of burn in iterations
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
@@ -383,14 +383,14 @@ void agg_counts_post_burnin(
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
 List fit_lda_c(
-    List &docs,
-    int &Nk,
+    std::vector<IntegerVector> &docs,
+    unsigned int &Nk,
     arma::mat &beta,
     arma::vec alpha,
-    IntegerMatrix Cd,
+    arma::imat Cd,
     arma::mat Cv,
-    IntegerVector Ck,
-    List Zd,
+    arma::ivec Ck,
+    std::vector<IntegerVector> Zd,
     arma::mat &Phi,
     int &iterations,
     int &burnin,
@@ -406,7 +406,7 @@ List fit_lda_c(
   // set up some global variables
   unsigned int Nv = Cv.n_cols;
   
-  unsigned int Nd = Cd.cols();
+  unsigned int Nd = Cd.n_cols;
   
   arma::vec k_alpha = alpha * Nk;
   
@@ -420,19 +420,19 @@ List fit_lda_c(
   
   double phi_kv(0.0);
   
-  IntegerVector topic_index = seq_len(Nk) - 1;
+  arma::ivec topic_index = seq_len(Nk) - 1;
   
   // variables for averaging post burn in
   arma::mat Cv_sum(Nk, Nv);
   
   arma::mat Cv_mean(Nk, Nv);
   
-  IntegerMatrix Cd_sum(Nk, Nd);
+  arma::imat Cd_sum(Nk, Nd);
   
-  NumericMatrix Cd_mean(Nk, Nd);
+  arma::mat Cd_mean(Nk, Nd);
   
   // variables related to the likelihood calculation
-  NumericMatrix log_likelihood(2, iterations);
+  arma::mat log_likelihood(2, iterations);
   
   double lgbeta(0.0); // calculated immediately below
   

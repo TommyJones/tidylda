@@ -27,20 +27,20 @@ as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
 \item{Nk}{int number of topics}
 
-\item{beta}{NumericMatrix for prior of tokens over topics}
+\item{beta}{arma::mat for prior of tokens over topics}
 
-\item{alpha}{NumericVector prior for topics over documents}
+\item{alpha}{arma::vec prior for topics over documents}
 
-\item{Cd}{IntegerMatrix denoting counts of topics in documents}
+\item{Cd}{arma::imat denoting counts of topics in documents}
 
-\item{Cv}{IntegerMatrix denoting counts of tokens in topics}
+\item{Cv}{arma::imat denoting counts of tokens in topics}
 
-\item{Ck}{IntegerVector denoting counts of topics across all tokens}
+\item{Ck}{arma::ivec denoting counts of topics across all tokens}
 
 \item{Zd}{List with one element for each document and one entry for each token
 as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
-\item{Phi}{NumericMatrix denoting probability of tokens in topics}
+\item{Phi}{arma::mat denoting probability of tokens in topics}
 
 \item{iterations}{int number of gibbs iterations to run in total}
 

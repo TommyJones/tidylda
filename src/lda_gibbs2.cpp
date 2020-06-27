@@ -74,7 +74,7 @@ List create_lexicon(
     ] (unsigned int d) {
       
       arma::vec qz(Nk);
-
+      
       arma::ivec topic_index = seq_len(Nk) - 1;
       
       // make a temporary vector to hold token indices
@@ -145,23 +145,23 @@ List create_lexicon(
   Cv.fill(0);
   
   for (unsigned int d = 0; d < Zd.size(); d++) {
-      arma::ivec zd = Zd[d]; 
+    arma::ivec zd = Zd[d]; 
+    
+    arma::ivec doc = docs[d];
+    
+    for (unsigned int n = 0; n < zd.n_elem; n++) {
       
-      arma::ivec doc = docs[d];
+      Cd_out(zd[n], d) += 1;
       
-      for (unsigned int n = 0; n < zd.n_elem; n++) {
-        
-        Cd_out(zd[n], d) += 1;
-        
-        Ck[zd[n]] += 1;
-        
-        if (! freeze_topics) {
-          Cv(zd[n], doc[n]) += 1;
-        }
-        
-      } 
+      Ck[zd[n]] += 1;
       
-    }
+      if (! freeze_topics) {
+        Cv(zd[n], doc[n]) += 1;
+      }
+      
+    } 
+    
+  }
   
   
   // ***************************************************************************
@@ -335,23 +335,24 @@ void foptimize_alpha(
 
 // Function aggregates counts across iterations after burnin iterations
 void agg_counts_post_burnin(
-    int& Nk,
-    int& Nd,
-    int& Nv,
     bool& freeze_topics,
     IntegerMatrix& Cd,
     IntegerMatrix& Cd_sum,
     IntegerMatrix& Cv,
     IntegerMatrix& Cv_sum
 ) {
-  for (unsigned int k = 0; k < Nk; k++) {
-    for (unsigned int d = 0; d < Nd; d++) {
+  
+  for (unsigned int d = 0; d < Cd.cols(); d++) { // consider parallelization here
+    for (unsigned int k = 0; k < Cd.rows(); k++) {
       
       Cd_sum(k, d) += Cd(k, d);
       
     }
-    if (! freeze_topics) {
-      for (unsigned int v = 0; v < Nv; v++) {
+  }
+  
+  if (! freeze_topics) {
+    for (unsigned int v = 0; v < Cv.cols(); v++) { // consider parallelization
+      for (unsigned int k = 0; k < Cv.rows(); k++) { 
         
         Cv_sum(k, v) += Cv(k, v);
         
@@ -552,9 +553,6 @@ List fit_lda_c(
     // aggregate counts after burnin ***
     if (burnin > -1 && t >= burnin) {
       agg_counts_post_burnin(
-        Nk,
-        Nd,
-        Nv,
         freeze_topics,
         Cd,
         Cd_sum,

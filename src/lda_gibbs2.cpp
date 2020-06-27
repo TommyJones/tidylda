@@ -51,9 +51,9 @@ List create_lexicon(
   
   double sum_alpha = sum(alpha);
   
-  std::vector<arma::ivec> docs(dtm.n_cols); 
+  std::vector<arma::uvec> docs(dtm.n_cols); 
   
-  std::vector<arma::ivec> Zd(dtm.n_cols);
+  std::vector<arma::uvec> Zd(dtm.n_cols);
   
   unsigned int Nk = Cd.n_rows;
   
@@ -83,9 +83,9 @@ List create_lexicon(
         nd += dtm(v, d);
       }
       
-      arma::ivec doc(nd);
+      arma::uvec doc(nd);
       
-      arma::ivec zd(nd);
+      arma::uvec zd(nd);
       
       arma::uvec z(1);
       
@@ -148,9 +148,9 @@ List create_lexicon(
   Cv.fill(0);
   
   for (unsigned int d = 0; d < Zd.size(); d++) {
-    arma::ivec zd = Zd[d]; 
+    arma::uvec zd = Zd[d]; 
     
-    arma::ivec doc = docs[d];
+    arma::uvec doc = docs[d];
     
     for (unsigned int n = 0; n < zd.n_elem; n++) {
       

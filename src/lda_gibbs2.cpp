@@ -189,15 +189,14 @@ void sample_topics(
     unsigned int &d,
     IntegerVector& doc,
     IntegerVector& zd,
-    IntegerVector& z,
     IntegerVector& Ck,
     IntegerMatrix& Cd, 
     IntegerMatrix& Cv,
     IntegerVector& topic_index,
     bool& freeze_topics,
-    NumericMatrix& Phi,
-    NumericVector& alpha,
-    NumericMatrix& beta,
+    arma::mat& Phi,
+    arma::vec& alpha,
+    arma::mat& beta,
     double& sum_alpha,
     double& sum_beta,
     double& phi_kv
@@ -207,6 +206,7 @@ void sample_topics(
   
   qz.fill(1.0);
   
+  arma::ivec z(1);
   
   // for each token instance in the document
   for (unsigned int n = 0; n < doc.length(); n++) {
@@ -269,8 +269,8 @@ void fcalc_likelihood(
     IntegerVector& Ck,
     IntegerMatrix& Cd,
     IntegerMatrix& Cv,
-    NumericVector& alpha,
-    NumericVector& beta,
+    arma::vec& alpha,
+    arma::mat& beta,
     double& lgalpha,
     double& lgbeta,
     double& lg_alpha_len,
@@ -309,15 +309,17 @@ void fcalc_likelihood(
 // if user wants to optimize alpha, do that here.
 // procedure likely to change similar to what Mimno does in Mallet
 void foptimize_alpha(
-    NumericVector& alpha, 
+    arma::vec& alpha, 
     IntegerVector& Ck,
     unsigned int& sumtokens,
     double& sum_alpha
 ) {
   
-  NumericVector new_alpha(alpha.length());
+  arma::vec new_alpha(alpha.n_elem);
   
-  for (unsigned int k = 0; k < alpha.length(); k++) {
+  new_alpha.fill(0.0);
+  
+  for (unsigned int k = 0; k < alpha.n_elem; k++) {
     
     new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
     
@@ -383,13 +385,13 @@ void agg_counts_post_burnin(
 List fit_lda_c(
     List &docs,
     int &Nk,
-    NumericMatrix &beta,
-    NumericVector alpha,
+    arma::mat &beta,
+    arma::vec alpha,
     IntegerMatrix Cd,
     IntegerMatrix Cv,
     IntegerVector Ck,
     List Zd,
-    NumericMatrix &Phi,
+    arma::mat &Phi,
     int &iterations,
     int &burnin,
     bool &freeze_topics,
@@ -406,21 +408,19 @@ List fit_lda_c(
   
   unsigned int Nd = Cd.cols();
   
-  NumericVector k_alpha = alpha * Nk;
+  arma::vec k_alpha = alpha * Nk;
   
-  NumericMatrix v_beta = beta * Nv;
+  arma::mat v_beta = beta * Nv;
   
-  double sum_alpha = sum(alpha);
+  double sum_alpha = arma::sum(alpha);
   
-  double sum_beta = sum(beta(1, _));
+  double sum_beta = arma::sum(beta.col(0));
   
   unsigned int sumtokens = sum(Ck);
   
   double phi_kv(0.0);
   
   IntegerVector topic_index = seq_len(Nk) - 1;
-  
-  IntegerVector z(1); // for sampling topics
   
   // variables for averaging post burn in
   IntegerMatrix Cv_sum(Nk, Nv);
@@ -490,7 +490,6 @@ List fit_lda_c(
         d,
         doc,
         zd,
-        z,
         Ck,
         Cd, 
         Cv,

@@ -315,13 +315,12 @@ void foptimize_alpha(
     NumericVector& alpha, 
     IntegerVector& Ck,
     int& sumtokens,
-    double& sum_alpha,
-    int& Nk
+    double& sum_alpha
 ) {
   
-  NumericVector new_alpha(Nk);
+  NumericVector new_alpha(alpha.length());
   
-  for (unsigned int k = 0; k < Nk; k++) {
+  for (unsigned int k = 0; k < alpha.length(); k++) {
     
     new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
     
@@ -428,7 +427,7 @@ List fit_lda_c(
   
   double phi_kv(0.0);
   
-  int t, d, n, k, v; // indices for loops
+  int t, d, n, k; // indices for loops
   
   IntegerVector topic_index = seq_len(Nk) - 1;
   
@@ -545,8 +544,7 @@ List fit_lda_c(
         alpha, 
         Ck,
         sumtokens,
-        sum_alpha,
-        Nk
+        sum_alpha
       );  
     }
     

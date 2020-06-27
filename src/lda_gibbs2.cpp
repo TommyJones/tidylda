@@ -187,7 +187,7 @@ List create_lexicon(
 // sample a new topic
 void sample_topics(
     unsigned int &d,
-    IntegerVector& doc,
+    arma::ivec& doc,
     IntegerVector& zd,
     arma::ivec& Ck,
     arma::imat& Cd, 
@@ -209,7 +209,7 @@ void sample_topics(
   arma::ivec z(1);
   
   // for each token instance in the document
-  for (unsigned int n = 0; n < doc.length(); n++) {
+  for (unsigned int n = 0; n < doc.n_elem; n++) {
     
     // discount counts from previous run ***
     Cd(zd[n], d) -= 1; 
@@ -234,7 +234,7 @@ void sample_topics(
       }
       
       qz[k] =  phi_kv * ((double)Cd(k, d) + alpha[k]) / 
-        ((double)doc.length() + sum_alpha - 1);
+        ((double)doc.n_elem + sum_alpha - 1);
       
     }
     
@@ -383,7 +383,7 @@ void agg_counts_post_burnin(
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
 List fit_lda_c(
-    std::vector<IntegerVector> &docs,
+    std::vector<arma::ivec> &docs,
     unsigned int &Nk,
     arma::mat &beta,
     arma::vec alpha,
@@ -461,9 +461,9 @@ List fit_lda_c(
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
     
     for (unsigned int d = 0; d < Nd; d++) {
-      IntegerVector doc = docs[d];
+      arma::ivec doc = docs[d];
       
-      lg_alpha_len += lgamma(sum_alpha + doc.length());
+      lg_alpha_len += lgamma(sum_alpha + doc.n_elem);
     }
     
     lg_alpha_len *= -1;
@@ -482,7 +482,7 @@ List fit_lda_c(
       
       R_CheckUserInterrupt();
       
-      IntegerVector doc = docs[d];
+      arma::ivec doc = docs[d];
       
       IntegerVector zd = Zd[d];
       

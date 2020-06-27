@@ -337,7 +337,7 @@ void agg_counts_post_burnin(
     IntegerMatrix& Cd,
     IntegerMatrix& Cd_sum,
     arma::mat& Cv,
-    IntegerMatrix& Cv_sum
+    arma::mat& Cv_sum
 ) {
   
   for (unsigned int d = 0; d < Cd.cols(); d++) { // consider parallelization here
@@ -423,9 +423,9 @@ List fit_lda_c(
   IntegerVector topic_index = seq_len(Nk) - 1;
   
   // variables for averaging post burn in
-  IntegerMatrix Cv_sum(Nk, Nv);
+  arma::mat Cv_sum(Nk, Nv);
   
-  NumericMatrix Cv_mean(Nk, Nv);
+  arma::mat Cv_mean(Nk, Nv);
   
   IntegerMatrix Cd_sum(Nk, Nd);
   

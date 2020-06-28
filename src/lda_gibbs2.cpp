@@ -1,6 +1,6 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
-#include <RcppArmadilloExtensions/sample.h>
+#include "sample_int.h"
 #include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
 
@@ -77,7 +77,7 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
 
             while (j < idx) {
               doc[j] = v;
-              z      = Rcpp::RcppArmadillo::sample(topic_index, 1, false, qz);
+              z      = samp_one(qz);
               zd[j]  = z[0];
               j++;
             }
@@ -189,7 +189,7 @@ void sample_topics(const std::vector<int>&    doc,
     }
 
     // sample a topic ***
-    z = Rcpp::RcppArmadillo::sample(topic_index, 1, false, qz);
+    z = samp_one(qz);
 
     // update counts ***
     Cd(z[0], d)++;

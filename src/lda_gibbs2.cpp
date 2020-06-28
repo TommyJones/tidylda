@@ -100,8 +100,8 @@ List create_lexicon(
           for (unsigned int k = 0; k < Nk; k++) {
             // log probability
             qz[k] = log(Phi(k, v)) + 
-              log((double)Cd(k, d) + alpha[k]) - 
-              log((double)nd + sum_alpha - 1);
+              log(static_cast<double>(Cd(k, d)) + alpha[k]) - 
+              log(static_cast<double>(nd) + sum_alpha - 1);
           }
           
           int idx = j + dtm(v, d); // where to stop the loop below
@@ -247,13 +247,13 @@ void sample_topics(
         if (freeze_topics) {
           phi_kv = log(Phi(k, doc[n]));
         } else {
-          phi_kv = log((double)Cv(k, doc[n]) + beta(k, doc[n])) -
-            log((double)Ck[k] + sum_beta);
+          phi_kv = log(static_cast<double>(Cv(k, doc[n])) + beta(k, doc[n])) -
+            log(static_cast<double>(Ck[k]) + sum_beta);
         }
         
         qz[k] =  phi_kv + 
-          log((double)Cd(k, d) + alpha[k]) - 
-          log((double)doc.n_elem + sum_alpha - 1);
+          log(static_cast<double>(Cd(k, d)) + alpha[k]) - 
+          log(static_cast<double>(doc.n_elem) + sum_alpha - 1);
         
       }
       
@@ -342,7 +342,8 @@ void foptimize_alpha(
   
   for (unsigned int k = 0; k < alpha.n_elem; k++) {
     
-    new_alpha[k] += (double)Ck[k] / (double)sumtokens * (double)sum_alpha;
+    new_alpha[k] += static_cast<double>(Ck[k]) / 
+      static_cast<double>(sumtokens) * static_cast<double>(sum_alpha);
     
     new_alpha[k] += (new_alpha[k] + alpha[k]) / 2;
     
@@ -567,7 +568,7 @@ List fit_lda_c(
     for (unsigned int d = 0; d < Nd; d++) { // consider parallelization
       for (unsigned int k = 0; k < Nk; k++) {
         
-        Cd_mean(k, d) = ((double)Cd_sum(k, d) / diff);
+        Cd_mean(k, d) = (static_cast<double>(Cd_sum(k, d)) / diff);
         
       }
     }
@@ -575,7 +576,7 @@ List fit_lda_c(
     for (unsigned int v = 0; v < Nv; v++) { // consider parallelization
       for (unsigned int k = 0; k < Nk; k++) {
         
-        Cv_mean(k, v) = ((double)Cv_sum(k, v) / diff);
+        Cv_mean(k, v) = (static_cast<double>(Cv_sum(k, v)) / diff);
         
       }
     }

@@ -194,12 +194,12 @@ void sample_topics(
     arma::uvec& Ck,
     arma::umat& Cd, 
     arma::mat& Cv,
-    bool& freeze_topics,
-    arma::mat& Phi,
-    arma::vec& alpha,
-    arma::mat& beta,
-    double& sum_alpha,
-    double& sum_beta,
+    const bool& freeze_topics,
+    const arma::mat& Phi,
+    const arma::vec& alpha,
+    const arma::mat& beta,
+    const double& sum_alpha,
+    const double& sum_beta,
     double& phi_kv
 ) {
   
@@ -280,18 +280,19 @@ void sample_topics(
   
 }
 
-// self explanatory: calculates the (log) likelihood
+// calculates the (log) likelihood
+// this calculation is kind of a mess. 
 void fcalc_likelihood(
     double& lg_beta_count1,
     double& lg_beta_count2,
     double& lg_alpha_count,
-    unsigned int& t,
-    double& sum_beta,
-    arma::uvec& Ck,
-    arma::umat& Cd,
-    arma::mat& Cv,
-    arma::vec& alpha,
-    arma::mat& beta,
+    const unsigned int& t,
+    const double& sum_beta,
+    const arma::uvec& Ck,
+    const arma::umat& Cd,
+    const arma::mat& Cv,
+    const arma::vec& alpha,
+    const arma::mat& beta,
     double& lgalpha,
     double& lgbeta,
     double& lg_alpha_len,
@@ -331,9 +332,9 @@ void fcalc_likelihood(
 // procedure likely to change similar to what Mimno does in Mallet
 void foptimize_alpha(
     arma::vec& alpha, 
-    arma::uvec& Ck,
-    unsigned int& sumtokens,
-    double& sum_alpha
+    const arma::uvec& Ck,
+    const unsigned int& sumtokens,
+    const double& sum_alpha
 ) {
   
   arma::vec new_alpha(alpha.n_elem);
@@ -355,10 +356,10 @@ void foptimize_alpha(
 
 // Function aggregates counts across iterations after burnin iterations
 void agg_counts_post_burnin(
-    bool& freeze_topics,
-    arma::umat& Cd,
+    const bool& freeze_topics,
+    const arma::umat& Cd,
     arma::umat& Cd_sum,
-    arma::mat& Cv,
+    const arma::mat& Cv,
     arma::mat& Cv_sum
 ) {
   

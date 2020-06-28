@@ -148,28 +148,29 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
 // sample a new topic
 void sample_topics(const std::vector<int>&    doc,
                    std::vector<int>&          zd,
-                   arma::ivec                 z,
                    const int                  d,
-                   std::vector<int>&          Ck,
-                   Rcpp::IntegerMatrix&       Cd,
-                   Rcpp::IntegerMatrix&       Cv,
-                   const std::vector<int>&    topic_index,
+                   arma::uvec&                Ck,
+                   arma::umat&                Cd,
+                   arma::mat&                 Cv,
                    const bool                 freeze_topics,
-                   const Rcpp::NumericMatrix& Phi,
-                   const std::vector<double>& alpha,
-                   const Rcpp::NumericMatrix& beta,
+                   const arma::mat&           Phi,
+                   const arma::vec&           alpha,
+                   const arma::mat&           beta,
                    const double               sum_alpha,
-                   const double               sum_beta,
-                   double                     phi_kv) {
+                   const double               sum_beta) {
 
   // initialize qz before loop and reset at end of each iteration
-  std::vector<double> qz(topic_index.size(), 1.0);
+  std::vector<double> qz(Ck.n_elem, 1.0);
+  
+  
   // for each token instance in the document
   for (std::size_t n = 0; n < doc.size(); n++) {
     // discount counts from previous run ***
     Cd(zd[n], d)--;
 
     // update probabilities of each topic ***
+    auto phi_kv(0.0);
+    
     if (freeze_topics) {
       for (std::size_t k = 0; k < qz.size(); ++k) {
         // get the correct term depending on if we freeze topics or not
@@ -188,6 +189,9 @@ void sample_topics(const std::vector<int>&    doc,
       }
     }
 
+    // initialize z 
+    arma::uvec z(1);
+    
     // sample a topic ***
     z = samp_one(qz);
 
@@ -207,20 +211,20 @@ void sample_topics(const std::vector<int>&    doc,
 }
 
 // self explanatory: calculates the (log) likelihood
-void fcalc_likelihood(const std::size_t          Nk,
-                      const R_xlen_t             Nd,
-                      const R_xlen_t             Nv,
-                      const R_xlen_t             t,
-                      const double               sum_beta,
-                      const std::vector<int>&    Ck,
-                      const Rcpp::IntegerMatrix& Cd,
-                      const Rcpp::IntegerMatrix& Cv,
-                      const std::vector<double>& alpha,
-                      const Rcpp::NumericMatrix& beta,
-                      const double               lgalpha,
-                      const double               lgbeta,
-                      const double               lg_alpha_len,
-                      Rcpp::NumericMatrix&       log_likelihood) {
+void fcalc_likelihood(const std::size_t Nk,
+                      const std::size_t Nd,
+                      const std::size_t Nv,
+                      const std::size_t t,
+                      const double      sum_beta,
+                      const arma::uvec& Ck,
+                      const arma::umat& Cd,
+                      const arma::mat&  Cv,
+                      const arma::vec&  alpha,
+                      const arma::mat&  beta,
+                      const double      lgalpha,
+                      const double      lgbeta,
+                      const double      lg_alpha_len,
+                      arma::mat&        log_likelihood) {
   // calculate lg_beta_count1, lg_beta_count2, lg_alph_count for this iter
   // start by zeroing them out
   auto lg_beta_count1(0.0);
@@ -247,11 +251,12 @@ void fcalc_likelihood(const std::size_t          Nk,
 
 // if user wants to optimize alpha, do that here.
 // procedure likely to change similar to what Mimno does in Mallet
-void foptimize_alpha(std::vector<double>&    alpha,
-                     const std::vector<int>& Ck,
-                     const std::size_t       sumtokens,
-                     const double            sum_alpha,
-                     const std::size_t       Nk) {
+void foptimize_alpha(arma::vec&        alpha,
+                     const arma::uvec& Ck,
+                     const std::size_t sumtokens,
+                     const double      sum_alpha,
+                     const std::size_t Nk) {
+  
   constexpr double denom = 2.0;
   for (std::size_t k = 0; k < Nk; ++k) {
     alpha[k] += ((Ck[k] / static_cast<double>(sumtokens) * sum_alpha) + alpha[k]) / denom;
@@ -259,14 +264,14 @@ void foptimize_alpha(std::vector<double>&    alpha,
 }
 
 // Function aggregates counts across iterations after burnin iterations
-void agg_counts_post_burnin(const std::size_t          Nk,
-                            const std::size_t          Nd,
-                            const std::size_t          Nv,
-                            const bool                 freeze_topics,
-                            const Rcpp::IntegerMatrix& Cd,
-                            Rcpp::IntegerMatrix&       Cd_sum,
-                            const Rcpp::IntegerMatrix& Cv,
-                            Rcpp::IntegerMatrix&       Cv_sum) {
+void agg_counts_post_burnin(const std::size_t Nk,
+                            const std::size_t Nd,
+                            const std::size_t Nv,
+                            const bool        freeze_topics,
+                            const arma::umat& Cd,
+                            arma::umat&       Cd_sum,
+                            const arma::mat&  Cv,
+                            arma::mat&        Cv_sum) {
 
   if (freeze_topics) { // split these up to prevent branching inside loop
     for (std::size_t k = 0; k < Nk; ++k) {
@@ -312,54 +317,47 @@ void agg_counts_post_burnin(const std::size_t          Nk,
 // [[Rcpp::export]]
 Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
                      const int                            Nk,
-                     const Rcpp::NumericMatrix&           beta,
-                     std::vector<double>&                 alpha,
-                     Rcpp::IntegerMatrix&                 Cd,
-                     Rcpp::IntegerMatrix&                 Cv,
-                     std::vector<int>&                    Ck,
+                     const arma::mat&                     beta,
+                     arma::vec&                           alpha,
+                     arma::umat&                          Cd,
+                     arma::mat&                           Cv,
+                     arma::uvec&                          Ck,
                      std::vector<std::vector<int>>&       Zd,
-                     const Rcpp::NumericMatrix&           Phi,
+                     const arma::mat&                     Phi,
                      const int                            iterations,
                      const int                            burnin,
                      const bool                           freeze_topics,
                      const bool                           calc_likelihood,
                      const bool                           optimize_alpha) {
-  // ***********************************************************************
-  // TODO Check quality of inputs to minimize risk of crashing the program
-  // ***********************************************************************
-
+  
   // ***********************************************************************
   // Variables and other set up
   // ***********************************************************************
 
-  const auto Nv = Cv.cols();
-  const auto Nd = Cd.cols();
+  const auto Nv = Cv.n_cols;
+  const auto Nd = Cd.n_cols;
 
-  std::vector<double> k_alpha(alpha.size());
-  std::transform(std::begin(alpha),
-                 std::end(alpha),
-                 std::begin(k_alpha),
-                 [&Nk](double x) { return x * Nk; });
+  // std::vector<double> k_alpha(alpha.size());
+  // std::transform(std::begin(alpha),
+  //                std::end(alpha),
+  //                std::begin(k_alpha),
+  //                [&Nk](double x) { return x * Nk; });
+  
+  arma::vec k_alpha = alpha * Nk;
 
-  const Rcpp::NumericMatrix v_beta = beta * Nv;
-  const auto sum_alpha = std::accumulate(std::begin(alpha), std::end(alpha), 0.0);
-  const auto sum_beta  = sum(beta(1, Rcpp::_));
-  const auto sumtokens = std::accumulate(std::begin(Ck), std::end(Ck), 0ULL);
-  auto       phi_kv(0.0);
-
-  std::vector<int> topic_index(Nk);
-  std::iota(std::begin(topic_index), std::end(topic_index), 0);
-
-  arma::ivec z(1); // for sampling topics
+  const arma::mat v_beta = beta * Nv;
+  const auto sum_alpha = arma::sum(alpha);
+  const auto sum_beta  = arma::sum(beta.row(1)); // needs updating for topic seeding
+  const auto sumtokens = arma::sum(Ck);
 
   // related to burnin and averaging
-  Rcpp::IntegerMatrix Cv_sum(Nk, Nv);
-  Rcpp::NumericMatrix Cv_mean(Nk, Nv);
-  Rcpp::IntegerMatrix Cd_sum(Nk, Nd);
-  Rcpp::NumericMatrix Cd_mean(Nk, Nd);
+  arma::mat Cv_sum(Nk, Nv);
+  arma::mat Cv_mean(Nk, Nv);
+  arma::umat Cd_sum(Nk, Nd);
+  arma::mat Cd_mean(Nk, Nd);
 
   // related to the likelihood calculation
-  Rcpp::NumericMatrix log_likelihood(2, iterations);
+  arma::mat log_likelihood(2, iterations);
 
   auto lgbeta(0.0);       // calculated immediately below
   auto lgalpha(0.0);      // calculated immediately below
@@ -405,22 +403,20 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
       R_CheckUserInterrupt();
 
       auto doc = docs[d];
+      auto zd = Zd[d];
 
       sample_topics(doc,
-                    Zd[d],
-                    z,
+                    zd,
                     d,
                     Ck,
                     Cd,
                     Cv,
-                    topic_index,
                     freeze_topics,
                     Phi,
                     alpha,
                     beta,
                     sum_alpha,
-                    sum_beta,
-                    phi_kv);
+                    sum_beta);
 
     } // end loop over docs
     // calc likelihood ***

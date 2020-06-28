@@ -7,17 +7,17 @@
 using namespace Rcpp;
 
 // create_lexicon
-List create_lexicon(arma::umat& Cd, arma::mat& Phi, arma::sp_mat& dtm, arma::vec alpha, bool freeze_topics, int threads);
+List create_lexicon(arma::umat& Cd, const arma::mat& Phi, arma::sp_mat& dtm, const arma::vec alpha, const bool freeze_topics, const int threads);
 RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::umat& >::type Cd(CdSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Phi(PhiSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat& >::type dtm(dtmSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< bool >::type freeze_topics(freeze_topicsSEXP);
-    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const bool >::type freeze_topics(freeze_topicsSEXP);
+    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
     rcpp_result_gen = Rcpp::wrap(create_lexicon(Cd, Phi, dtm, alpha, freeze_topics, threads));
     return rcpp_result_gen;
 END_RCPP

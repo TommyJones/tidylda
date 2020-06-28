@@ -34,11 +34,11 @@ using namespace std;
 //[[Rcpp::export]]
 List create_lexicon(
     arma::umat &Cd, 
-    arma::mat &Phi, 
+    const arma::mat &Phi, 
     arma::sp_mat &dtm,
-    arma::vec alpha,
-    bool freeze_topics,
-    int threads
+    const arma::vec alpha,
+    const bool freeze_topics,
+    const int threads
 ) {
   
   // ***************************************************************************

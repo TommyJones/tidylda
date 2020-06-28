@@ -7,7 +7,13 @@ Authors@R:
            family = "Jones",
            role = c("aut", "cre"),
            email = "jones.thos.w@gmail.com",
-           comment = c(ORCID = "0000-0001-6457-2452"))
+           comment = c(ORCID = "0000-0001-6457-2452")
+           )
+    person(given = "Barum",
+           family = "Park",
+           role = c("ctb"),
+           email = "baruuum@gmail.com"
+           )
 Description: Implements an algorithm for Latent Dirichlet
     Allocation (LDA) using style conventions from the 'tidyverse' and
     specifically 'tidymodels'.  Also implements several novel features for

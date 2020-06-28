@@ -211,10 +211,7 @@ void sample_topics(const std::vector<int>&    doc,
 }
 
 // self explanatory: calculates the (log) likelihood
-void fcalc_likelihood(const std::size_t Nk,
-                      const std::size_t Nd,
-                      const std::size_t Nv,
-                      const std::size_t t,
+void fcalc_likelihood(const std::size_t t,
                       const double      sum_beta,
                       const arma::uvec& Ck,
                       const arma::umat& Cd,
@@ -231,14 +228,18 @@ void fcalc_likelihood(const std::size_t Nk,
   auto lg_beta_count2(0.0);
   auto lg_alpha_count(0.0);
 
-  for (std::size_t k = 0; k < Nk; ++k) {
+  for (std::size_t k = 0; k < Cd.n_rows; k++) {
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
-
-    for (R_xlen_t d = 0; d < Nd; ++d) {
+  }
+  
+  for (std::size_t d = 0; d < Cd.n_cols; d++) {
+    for (std::size_t k = 0; k < Cd.n_rows; k++) {
       lg_alpha_count += lgamma(alpha[k] + Cd(k, d));
     }
-
-    for (R_xlen_t v = 0; v < Nv; v++) {
+  }
+  
+  for (std::size_t v = 0; v < Cv.n_cols; v++) {
+    for (std::size_t k = 0; k < Cv.n_rows; k++) {
       lg_beta_count2 += lgamma(beta(k, v) + Cv(k, v));
     }
   }
@@ -264,28 +265,29 @@ void foptimize_alpha(arma::vec&        alpha,
 }
 
 // Function aggregates counts across iterations after burnin iterations
-void agg_counts_post_burnin(const std::size_t Nk,
-                            const std::size_t Nd,
-                            const std::size_t Nv,
-                            const bool        freeze_topics,
+void agg_counts_post_burnin(const bool        freeze_topics,
                             const arma::umat& Cd,
                             arma::umat&       Cd_sum,
                             const arma::mat&  Cv,
                             arma::mat&        Cv_sum) {
 
   if (freeze_topics) { // split these up to prevent branching inside loop
-    for (std::size_t k = 0; k < Nk; ++k) {
-      for (std::size_t d = 0; d < Nd; ++d) {
+    
+    for (std::size_t d = 0; d < Cd.n_cols; d++) { // consider parallelization
+      for (std::size_t k = 0; k < Cd.n_rows; k++) {
         Cd_sum(k, d) += Cd(k, d);
       }
-      for (std::size_t v = 0; v < Nv; ++v) {
+    }
+    
+    for (std::size_t v = 0; v < Cv.n_cols; v++) {
+      for (std::size_t k = 0; k < Cv.n_rows; k++) {
         Cv_sum(k, v) += Cv(k, v);
       }
     }
 
   } else {
-    for (std::size_t k = 0; k < Nk; ++k) {
-      for (std::size_t d = 0; d < Nd; ++d) {
+    for (std::size_t d = 0; d < Cd.n_cols; ++d) {
+      for (std::size_t k = 0; k < Cd.n_rows; ++k) {
         Cd_sum(k, d) += Cd(k, d);
       }
     }
@@ -421,10 +423,7 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
     } // end loop over docs
     // calc likelihood ***
     if (calc_likelihood && !freeze_topics) {
-      fcalc_likelihood(Nk,
-                       Nd,
-                       Nv,
-                       t,
+      fcalc_likelihood(t,
                        sum_beta,
                        Ck,
                        Cd,
@@ -443,7 +442,7 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
 
     // aggregate counts after burnin ***
     if (burnin > -1 && t >= burnin) {
-      agg_counts_post_burnin(Nk, Nd, Nv, freeze_topics, Cd, Cd_sum, Cv, Cv_sum);
+      agg_counts_post_burnin(freeze_topics, Cd, Cd_sum, Cv, Cv_sum);
     }
 
   } // end iterations

@@ -241,7 +241,7 @@ void sample_topics(
           Rcout << "\nCv(k, doc[n]) = " << Cv(k, doc[n]) << "\n" <<
             "Ck[k] = " << Ck[k] << "\n" <<
               "Cd(k, d) = " << Cd(k, d) << "\n" <<
-                "[k, d, v] = [" << k << ", " << d << ", " << doc[n] << "]\n";
+                "[k, d, doc[n]] = [" << k << ", " << d << ", " << doc[n] << "]\n";
         }
 
         // get the correct term depending on if we freeze topics or not

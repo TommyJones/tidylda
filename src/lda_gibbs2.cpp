@@ -238,9 +238,10 @@ void sample_topics(
         
         // error checking
         if (Cv(k, doc[n]) < 0 || Ck[k] < 0 || Cd(k, d) < 0) {
-          Rcout << "Cv(k, doc[n]) = " << Cv(k, doc[n]) << "\n" <<
+          Rcout << "\nCv(k, doc[n]) = " << Cv(k, doc[n]) << "\n" <<
             "Ck[k] = " << Ck[k] << "\n" <<
-              "Cd(k, d) = " << Cd(k, d) << "\n";
+              "Cd(k, d) = " << Cd(k, d) << "\n" <<
+                "[k, d, v] = [" << k << ", " << d << ", " << doc[n] << "]\n";
         }
 
         // get the correct term depending on if we freeze topics or not

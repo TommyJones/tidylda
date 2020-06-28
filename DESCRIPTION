@@ -10,6 +10,11 @@ Authors@R:
            email = "jones.thos.w@gmail.com",
            comment = c(ORCID = "0000-0001-6457-2452")
            ),
+    person("Brendan", "Knapp", 
+           email = "brendan.g.knapp@gmail.com", 
+           role = "ctb",
+           comment = c(ORCID = "0000-0003-3284-4972")
+           ),
     person(given = "Barum",
            family = "Park",
            role = c("ctb"),

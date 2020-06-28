@@ -189,7 +189,7 @@ List create_lexicon(
 
 // sample a new topic
 void sample_topics(
-    std::vector<arma::uvec>& docs,
+    const std::vector<arma::uvec>& docs,
     std::vector<IntegerVector>& Zd,
     arma::uvec& Ck,
     arma::umat& Cd, 
@@ -208,7 +208,7 @@ void sample_topics(
     
     R_CheckUserInterrupt();
     
-    arma::uvec doc = docs[d];
+    const arma::uvec doc = docs[d];
     
     IntegerVector zd = Zd[d];
     
@@ -236,6 +236,12 @@ void sample_topics(
       // update probabilities of each topic ***
       for (unsigned int k = 0; k < Ck.n_elem; k++) {
         
+        // error checking
+        if (Cv(k, doc[n]) < 0 || Ck[k] < 0 || Cd(k, d) < 0) {
+          Rcout << "Cv(k, doc[n]) = " << Cv(k, doc[n]) << "\n" <<
+            "Ck[k] = " << Ck[k] << "\n" <<
+              "Cd(k, d) = " << Cd(k, d) << "\n";
+        }
 
         // get the correct term depending on if we freeze topics or not
         if (freeze_topics) {
@@ -398,7 +404,7 @@ void agg_counts_post_burnin(
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 // [[Rcpp::export]]
 List fit_lda_c(
-    std::vector<arma::uvec> &docs,
+    const std::vector<arma::uvec> &docs,
     unsigned int &Nk,
     arma::mat &beta,
     arma::vec alpha,
@@ -474,7 +480,7 @@ List fit_lda_c(
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
     
     for (unsigned int d = 0; d < Nd; d++) {
-      arma::uvec doc = docs[d];
+      const arma::uvec doc = docs[d];
       
       lg_alpha_len += lgamma(sum_alpha + doc.n_elem);
     }

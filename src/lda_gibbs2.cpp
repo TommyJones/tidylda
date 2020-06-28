@@ -70,14 +70,14 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
           
           // calculate probability of topics based on initially-sampled Phi and Cd
           for (std::size_t k = 0; k < Nk; ++k) {
-            qz[k] = Phi(k, v) * (Cd(k, d) + alpha[k]) / (nd + sum_alpha - 1);
+            qz[k] = log(Phi(k, v)) + log(Cd(k, d) + alpha[k]) - log(nd + sum_alpha - 1);
           }
           
           std::size_t idx(j + dtm(v, d)); // where to stop the loop below
           
           while (j < idx) {
             doc[j] = v;
-            z      = samp_one(qz);
+            z      = lsamp_one(qz); // sample a topic here
             zd[j]  = z[0];
             j++;
           }
@@ -176,7 +176,7 @@ void sample_topics(const std::vector<int>&    doc,
         // get the correct term depending on if we freeze topics or not
         // prevent branching inside loop by when `freeze_topics` condition
         phi_kv = Phi(k, doc[n]);
-        qz[k]  = phi_kv * (Cd(k, d) + alpha[k]) / (doc.size() + sum_alpha - 1);
+        qz[k]  = log(phi_kv) + log(Cd(k, d) + alpha[k]) - log(doc.size() + sum_alpha - 1);
       }
       
     } else {
@@ -184,8 +184,8 @@ void sample_topics(const std::vector<int>&    doc,
       Ck[zd[n]]--;
       
       for (std::size_t k = 0; k < qz.size(); ++k) {
-        phi_kv = (Cv(k, doc[n]) + beta(k, doc[n])) / (Ck[k] + sum_beta);
-        qz[k]  = phi_kv * (Cd(k, d) + alpha[k]) / (doc.size() + sum_alpha - 1);
+        phi_kv = log(Cv(k, doc[n]) + beta(k, doc[n])) - log(Ck[k] + sum_beta);
+        qz[k]  = phi_kv + log(Cd(k, d) + alpha[k]) - log(doc.size() + sum_alpha - 1);
       }
     }
     
@@ -193,7 +193,7 @@ void sample_topics(const std::vector<int>&    doc,
     arma::uvec z(1);
     
     // sample a topic ***
-    z = samp_one(qz);
+    z = lsamp_one(qz);
     
     // update counts ***
     Cd(z[0], d)++;

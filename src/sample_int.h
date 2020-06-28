@@ -43,6 +43,9 @@ arma::uword lsamp_one(const arma::vec &lpvec) {
   if (lpvec.has_inf())
     Rcpp::stop("log-probabilities have to be finite");
   
+  if (lpvec.has_nan())
+    Rcpp::stop("log-probability vector contains a missing value");
+  
   // get indices of elements in descending order
   arma::uvec indx = arma::sort_index(lpvec, "descend");
   // logarithm of accumulated probabilities

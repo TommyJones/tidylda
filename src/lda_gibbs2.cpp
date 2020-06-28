@@ -27,97 +27,97 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
   // ***************************************************************************
   // Initialize some variables
   // ***************************************************************************
-
+  
   dtm = dtm.t(); // transpose dtm to take advantage of column major & parallel
   Cd  = Cd.t();  // transpose to put columns up
-
+  
   auto                    sum_alpha = sum(alpha);
   std::vector<arma::imat> docs(dtm.n_cols);
   std::vector<arma::imat> Zd(dtm.n_cols);
-
+  
   auto Nk = Cd.n_rows;
-
+  
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a
   // topic for each token within that document
   // ***************************************************************************
   RcppThread::parallelFor(
-      0,
-      dtm.n_cols,
-      [&Cd, &Phi, &dtm, &alpha, &sum_alpha, &docs, &Zd, &Nk](unsigned int d) {
-        arma::vec qz(Nk);
-
-        // arma::ivec       topic_index = Rcpp::seq_len(Nk) - 1;
-        std::vector<int> topic_index(Nk);
-        std::iota(std::begin(topic_index), std::end(topic_index), 0);
-
-        // make a temporary vector to hold token indices
-        auto nd(0);
-
-        for (std::size_t v = 0; v < dtm.n_rows; ++v) {
-          nd += dtm(v, d);
-        }
-
-        arma::ivec doc(nd);
-        arma::ivec zd(nd);
-        arma::ivec z(1);
-
-        // fill in with token indices
-        std::size_t j = 0; // index of doc, advances when we have non-zero entries
-
-        for (std::size_t v = 0; v < dtm.n_rows; ++v) {
-          if (dtm(v, d) > 0) { // if non-zero, add elements to doc
-
-            // calculate probability of topics based on initially-sampled Phi and Cd
-            for (std::size_t k = 0; k < Nk; ++k) {
-              qz[k] = Phi(k, v) * (Cd(k, d) + alpha[k]) / (nd + sum_alpha - 1);
-            }
-
-            std::size_t idx(j + dtm(v, d)); // where to stop the loop below
-
-            while (j < idx) {
-              doc[j] = v;
-              z      = samp_one(qz);
-              zd[j]  = z[0];
-              j++;
-            }
+    0,
+    dtm.n_cols,
+    [&Cd, &Phi, &dtm, &alpha, &sum_alpha, &docs, &Zd, &Nk](unsigned int d) {
+      arma::vec qz(Nk);
+      
+      // arma::ivec       topic_index = Rcpp::seq_len(Nk) - 1;
+      std::vector<int> topic_index(Nk);
+      std::iota(std::begin(topic_index), std::end(topic_index), 0);
+      
+      // make a temporary vector to hold token indices
+      auto nd(0);
+      
+      for (std::size_t v = 0; v < dtm.n_rows; ++v) {
+        nd += dtm(v, d);
+      }
+      
+      arma::ivec doc(nd);
+      arma::ivec zd(nd);
+      arma::ivec z(1);
+      
+      // fill in with token indices
+      std::size_t j = 0; // index of doc, advances when we have non-zero entries
+      
+      for (std::size_t v = 0; v < dtm.n_rows; ++v) {
+        if (dtm(v, d) > 0) { // if non-zero, add elements to doc
+          
+          // calculate probability of topics based on initially-sampled Phi and Cd
+          for (std::size_t k = 0; k < Nk; ++k) {
+            qz[k] = Phi(k, v) * (Cd(k, d) + alpha[k]) / (nd + sum_alpha - 1);
+          }
+          
+          std::size_t idx(j + dtm(v, d)); // where to stop the loop below
+          
+          while (j < idx) {
+            doc[j] = v;
+            z      = samp_one(qz);
+            zd[j]  = z[0];
+            j++;
           }
         }
-
-        // fill in docs[d] with the matrix we made
-        docs[d] = doc;
-
-        Zd[d] = zd;
-
-        RcppThread::checkUserInterrupt();
-      },
-      threads);
-
+      }
+      
+      // fill in docs[d] with the matrix we made
+      docs[d] = doc;
+      
+      Zd[d] = zd;
+      
+      RcppThread::checkUserInterrupt();
+    },
+    threads);
+  
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
   arma::imat Cd_out(Nk, dtm.n_cols);
-
+  
   Cd_out.fill(0);
-
+  
   arma::ivec Ck(Nk);
-
+  
   Ck.fill(0);
-
+  
   arma::imat Cv(Nk, dtm.n_rows);
-
+  
   Cv.fill(0);
-
+  
   for (std::size_t d = 0; d < Zd.size(); ++d) {
     arma::ivec zd  = Zd[d];
     arma::ivec doc = docs[d];
-
+    
     if (freeze_topics) {
       for (std::size_t n = 0; n < zd.n_elem; ++n) {
         Cd_out(zd[n], d)++;
         Ck[zd[n]]++;
       }
-
+      
     } else {
       for (std::size_t n = 0; n < zd.n_elem; ++n) {
         Cd_out(zd[n], d)++;
@@ -126,17 +126,17 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
       }
     }
   }
-
+  
   // ***************************************************************************
   // Prepare output and expel it from this function
   // ***************************************************************************
   using Rcpp::_;
   return Rcpp::List::create(          //
-      _["docs"] = Rcpp::wrap(docs),   //
-      _["Zd"]   = Rcpp::wrap(Zd),     //
-      _["Cd"]   = Rcpp::wrap(Cd_out), //
-      _["Cv"]   = Rcpp::wrap(Cv),     //
-      _["Ck"]   = Ck                  //
+    _["docs"] = Rcpp::wrap(docs),   //
+    _["Zd"]   = Rcpp::wrap(Zd),     //
+    _["Cd"]   = Rcpp::wrap(Cd_out), //
+    _["Cv"]   = Rcpp::wrap(Cv),     //
+    _["Ck"]   = Ck                  //
   );                                  //
 }
 
@@ -158,7 +158,7 @@ void sample_topics(const std::vector<int>&    doc,
                    const arma::mat&           beta,
                    const double               sum_alpha,
                    const double               sum_beta) {
-
+  
   // initialize qz before loop and reset at end of each iteration
   std::vector<double> qz(Ck.n_elem, 1.0);
   
@@ -167,7 +167,7 @@ void sample_topics(const std::vector<int>&    doc,
   for (std::size_t n = 0; n < doc.size(); n++) {
     // discount counts from previous run ***
     Cd(zd[n], d)--;
-
+    
     // update probabilities of each topic ***
     auto phi_kv(0.0);
     
@@ -178,34 +178,34 @@ void sample_topics(const std::vector<int>&    doc,
         phi_kv = Phi(k, doc[n]);
         qz[k]  = phi_kv * (Cd(k, d) + alpha[k]) / (doc.size() + sum_alpha - 1);
       }
-
+      
     } else {
       Cv(zd[n], doc[n])--;
       Ck[zd[n]]--;
-
+      
       for (std::size_t k = 0; k < qz.size(); ++k) {
         phi_kv = (Cv(k, doc[n]) + beta(k, doc[n])) / (Ck[k] + sum_beta);
         qz[k]  = phi_kv * (Cd(k, d) + alpha[k]) / (doc.size() + sum_alpha - 1);
       }
     }
-
+    
     // initialize z 
     arma::uvec z(1);
     
     // sample a topic ***
     z = samp_one(qz);
-
+    
     // update counts ***
     Cd(z[0], d)++;
-
+    
     if (!freeze_topics) {
       Cv(z[0], doc[n])++;
       Ck[z[0]]++;
     }
-
+    
     // record this topic for this token/doc combination
     zd[n] = z[0];
-
+    
     std::fill(std::begin(qz), std::end(qz), 1.0); // reset qz before next iteration
   }                                               // end loop over each token in doc
 }
@@ -227,7 +227,7 @@ void fcalc_likelihood(const std::size_t t,
   auto lg_beta_count1(0.0);
   auto lg_beta_count2(0.0);
   auto lg_alpha_count(0.0);
-
+  
   for (std::size_t k = 0; k < Cd.n_rows; k++) {
     lg_beta_count1 += lgamma(sum_beta + Ck[k]);
   }
@@ -243,11 +243,11 @@ void fcalc_likelihood(const std::size_t t,
       lg_beta_count2 += lgamma(beta(k, v) + Cv(k, v));
     }
   }
-
+  
   lg_beta_count1 *= -1;
   log_likelihood(0, t) = t;
   log_likelihood(1, t) =
-      lgalpha + lgbeta + lg_alpha_len + lg_alpha_count + lg_beta_count1 + lg_beta_count2;
+    lgalpha + lgbeta + lg_alpha_len + lg_alpha_count + lg_beta_count1 + lg_beta_count2;
 }
 
 // if user wants to optimize alpha, do that here.
@@ -270,7 +270,7 @@ void agg_counts_post_burnin(const bool        freeze_topics,
                             arma::umat&       Cd_sum,
                             const arma::mat&  Cv,
                             arma::mat&        Cv_sum) {
-
+  
   if (freeze_topics) { // split these up to prevent branching inside loop
     
     for (std::size_t d = 0; d < Cd.n_cols; d++) { // consider parallelization
@@ -284,7 +284,7 @@ void agg_counts_post_burnin(const bool        freeze_topics,
         Cv_sum(k, v) += Cv(k, v);
       }
     }
-
+    
   } else {
     for (std::size_t d = 0; d < Cd.n_cols; ++d) {
       for (std::size_t k = 0; k < Cd.n_rows; ++k) {
@@ -335,10 +335,10 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   // ***********************************************************************
   // Variables and other set up
   // ***********************************************************************
-
+  
   const auto Nv = Cv.n_cols;
   const auto Nd = Cd.n_cols;
-
+  
   // std::vector<double> k_alpha(alpha.size());
   // std::transform(std::begin(alpha),
   //                std::end(alpha),
@@ -346,67 +346,67 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   //                [&Nk](double x) { return x * Nk; });
   
   arma::vec k_alpha = alpha * Nk;
-
+  
   const arma::mat v_beta = beta * Nv;
   const auto sum_alpha = arma::sum(alpha);
   const auto sum_beta  = arma::sum(beta.row(1)); // needs updating for topic seeding
   const auto sumtokens = arma::sum(Ck);
-
+  
   // related to burnin and averaging
   arma::mat Cv_sum(Nk, Nv);
-  Cv_sum.fill(0.0);
-  
   arma::mat Cv_mean(Nk, Nv);
-  Cv_mean.fill(0.0);
-  
   arma::umat Cd_sum(Nk, Nd);
-  Cd_sum.fill(0);
-  
   arma::mat Cd_mean(Nk, Nd);
-  Cd_mean.fill(0.0);
-
+  
   // related to the likelihood calculation
   arma::mat log_likelihood(2, iterations);
-
+  
   auto lgbeta(0.0);       // calculated immediately below
   auto lgalpha(0.0);      // calculated immediately below
   auto lg_alpha_len(0.0); // calculated immediately below
-
+  
+  // indices for loops
+  auto t(0);
+  auto d(0);
+  auto n(0);
+  auto k(0);
+  auto v(0);
+  
   if (calc_likelihood &&
       !freeze_topics) { // if calc_likelihood, actually populate this stuff
-
-    for (std::size_t n = 0; n < Cv.n_cols; ++n) {
-      lgbeta += lgamma(beta[n]);
-    }
-
-    lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; // rcpp sugar here
-
-    for (std::size_t k = 0; k < Cd.n_rows; ++k) {
+      
+      for (; n < Nv; ++n) {
+        lgbeta += lgamma(beta[n]);
+      }
+      
+      lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; // rcpp sugar here
+    
+    for (; k < Nk; ++k) {
       lgalpha += lgamma(alpha[k]);
     }
-
+    
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
-
-    for (std::size_t d = 0; d < Cd.n_cols; ++d) {
+    
+    for (d = 0; d < Nd; ++d) {
       lg_alpha_len += lgamma(sum_alpha + docs[d].size());
     }
-
+    
     lg_alpha_len *= -1;
   }
-
+  
   // ***********************************************************************
   // BEGIN ITERATIONS
   // ***********************************************************************
-
-  for (std::size_t t = 0; t < iterations; ++t) {
-    
-    for (std::size_t d = 0; d < Zd.size(); ++d) { // start loop over documents
-
+  
+  for (; t < iterations; ++t) {
+    // loop over documents
+    for (; d < Nd; ++d) { // start loop over documents
+      
       R_CheckUserInterrupt();
-
+      
       auto doc = docs[d];
       auto zd = Zd[d];
-
+      
       sample_topics(doc,
                     zd,
                     d,
@@ -419,7 +419,7 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
                     beta,
                     sum_alpha,
                     sum_beta);
-
+      
     } // end loop over docs
     // calc likelihood ***
     if (calc_likelihood && !freeze_topics) {
@@ -439,48 +439,44 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
     if (optimize_alpha && !freeze_topics) {
       foptimize_alpha(alpha, Ck, sumtokens, sum_alpha, Nk);
     }
-
+    
     // aggregate counts after burnin ***
     if (burnin > -1 && t >= burnin) {
       agg_counts_post_burnin(freeze_topics, Cd, Cd_sum, Cv, Cv_sum);
     }
-
+    
   } // end iterations
-
+  
   // ***********************************************************************
   // Cleanup and return list
   // ***********************************************************************
-
+  
   // change sum over iterations to average over iterations ***
   if (burnin > -1) {
     const double diff(iterations - burnin);
-
-    // average over chain after burnin for Cd
-    for (std::size_t d = 0; d < Cd_sum.n_cols; ++d) {
-      for (std::size_t k = 0; k < Cd_sum.n_rows; ++k) {
+    
+    // average over chain after burnin
+    for (; k < Nk; ++k) {
+      for (; d < Nd; ++d) {
         Cd_mean(k, d) = Cd_sum(k, d) / diff;
       }
-    }
-    
-    // average over chain after burnin for Cv
-    for (std::size_t v = 0; v < Cv_sum.n_cols; ++v) {
-      for (std::size_t k = 0; k < Cv_sum.n_rows; ++k) {
+      
+      for (; v < Nv; ++v) {
         Cv_mean(k, v) = Cv_sum(k, v) / diff;
       }
     }
-    
   }
-
+  
   // Return the final list ***
   using Rcpp::_;
   return Rcpp::List::create(                //
-      _["Cd"]             = Cd,             //
-      _["Cv"]             = Cv,             //
-      _["Ck"]             = Ck,             //
-      _["Cd_mean"]        = Cd_mean,        //
-      _["Cv_mean"]        = Cv_mean,        //
-      _["log_likelihood"] = log_likelihood, //
-      _["alpha"]          = alpha,          //
-      _["beta"]           = beta            //
+    _["Cd"]             = Cd,             //
+    _["Cv"]             = Cv,             //
+    _["Ck"]             = Ck,             //
+    _["Cd_mean"]        = Cd_mean,        //
+    _["Cv_mean"]        = Cv_mean,        //
+    _["log_likelihood"] = log_likelihood, //
+    _["alpha"]          = alpha,          //
+    _["beta"]           = beta            //
   );                                        //
 }

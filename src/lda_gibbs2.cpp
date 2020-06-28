@@ -4,6 +4,7 @@
 #include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
 
+
 #include <RcppThread.h>
 
 //' Make a lexicon for looping over in the gibbs sampler

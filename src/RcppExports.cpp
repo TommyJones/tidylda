@@ -7,12 +7,12 @@
 using namespace Rcpp;
 
 // create_lexicon
-List create_lexicon(arma::umat& Cd, const arma::mat& Phi, arma::sp_mat& dtm, const arma::vec alpha, const bool freeze_topics, const int threads);
+Rcpp::List create_lexicon(arma::imat& Cd, const arma::mat& Phi, arma::sp_mat& dtm, const arma::vec alpha, const bool freeze_topics, const int threads);
 RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::umat& >::type Cd(CdSEXP);
+    Rcpp::traits::input_parameter< arma::imat& >::type Cd(CdSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Phi(PhiSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat& >::type dtm(dtmSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type alpha(alphaSEXP);
@@ -23,25 +23,25 @@ BEGIN_RCPP
 END_RCPP
 }
 // fit_lda_c
-List fit_lda_c(const std::vector<arma::uvec>& docs, unsigned int& Nk, arma::mat& beta, arma::vec alpha, arma::umat Cd, arma::mat Cv, arma::uvec Ck, std::vector<IntegerVector> Zd, arma::mat& Phi, int& iterations, int& burnin, bool& freeze_topics, bool& calc_likelihood, bool& optimize_alpha);
+Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs, const int Nk, const Rcpp::NumericMatrix& beta, std::vector<double>& alpha, Rcpp::IntegerMatrix& Cd, Rcpp::IntegerMatrix& Cv, std::vector<int>& Ck, std::vector<std::vector<int>>& Zd, const Rcpp::NumericMatrix& Phi, const int iterations, const int burnin, const bool freeze_topics, const bool calc_likelihood, const bool optimize_alpha);
 RcppExport SEXP _tidylda_fit_lda_c(SEXP docsSEXP, SEXP NkSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP CdSEXP, SEXP CvSEXP, SEXP CkSEXP, SEXP ZdSEXP, SEXP PhiSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP freeze_topicsSEXP, SEXP calc_likelihoodSEXP, SEXP optimize_alphaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector<arma::uvec>& >::type docs(docsSEXP);
-    Rcpp::traits::input_parameter< unsigned int& >::type Nk(NkSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type Cd(CdSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Cv(CvSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type Ck(CkSEXP);
-    Rcpp::traits::input_parameter< std::vector<IntegerVector> >::type Zd(ZdSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type Phi(PhiSEXP);
-    Rcpp::traits::input_parameter< int& >::type iterations(iterationsSEXP);
-    Rcpp::traits::input_parameter< int& >::type burnin(burninSEXP);
-    Rcpp::traits::input_parameter< bool& >::type freeze_topics(freeze_topicsSEXP);
-    Rcpp::traits::input_parameter< bool& >::type calc_likelihood(calc_likelihoodSEXP);
-    Rcpp::traits::input_parameter< bool& >::type optimize_alpha(optimize_alphaSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::vector<int>>& >::type docs(docsSEXP);
+    Rcpp::traits::input_parameter< const int >::type Nk(NkSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< std::vector<double>& >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix& >::type Cd(CdSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix& >::type Cv(CvSEXP);
+    Rcpp::traits::input_parameter< std::vector<int>& >::type Ck(CkSEXP);
+    Rcpp::traits::input_parameter< std::vector<std::vector<int>>& >::type Zd(ZdSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< const int >::type iterations(iterationsSEXP);
+    Rcpp::traits::input_parameter< const int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type freeze_topics(freeze_topicsSEXP);
+    Rcpp::traits::input_parameter< const bool >::type calc_likelihood(calc_likelihoodSEXP);
+    Rcpp::traits::input_parameter< const bool >::type optimize_alpha(optimize_alphaSEXP);
     rcpp_result_gen = Rcpp::wrap(fit_lda_c(docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha));
     return rcpp_result_gen;
 END_RCPP

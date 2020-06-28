@@ -6,10 +6,10 @@
 #' @description
 #'   One run of the Gibbs sampler and other magic to initialize some objects.
 #'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-#' @param Cd arma::imat denoting counts of topics in documents
-#' @param Phi arma::mat denoting probability of words in topics
+#' @param Cd IntegerMatrix denoting counts of topics in documents
+#' @param Phi NumericMatrix denoting probability of words in topics
 #' @param dtm arma::sp_mat document term matrix
-#' @param alpha arma::vec prior for topics over documents
+#' @param alpha NumericVector prior for topics over documents
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
     .Call(`_tidylda_create_lexicon`, Cd, Phi, dtm, alpha, freeze_topics, threads)
@@ -22,19 +22,21 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @param docs List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
 #' @param Nk int number of topics
-#' @param beta arma::mat for prior of tokens over topics
-#' @param alpha arma::vec prior for topics over documents
-#' @param Cd arma::imat denoting counts of topics in documents
-#' @param Cv arma::imat denoting counts of tokens in topics
-#' @param Ck arma::ivec denoting counts of topics across all tokens
+#' @param beta NumericMatrix for prior of tokens over topics
+#' @param alpha NumericVector prior for topics over documents
+#' @param Cd IntegerMatrix denoting counts of topics in documents
+#' @param Cv IntegerMatrix denoting counts of tokens in topics
+#' @param Ck IntegerVector denoting counts of topics across all tokens
 #' @param Zd List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-#' @param Phi arma::mat denoting probability of tokens in topics
+#' @param Phi NumericMatrix denoting probability of tokens in topics
 #' @param iterations int number of gibbs iterations to run in total
 #' @param burnin int number of burn in iterations
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
-#' @param calc_likelihood bool do you want to calculate the log likelihood each iteration?
+#' @param calc_likelihood bool do you want to calculate the log likelihood each
+#'   iteration?
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
+#'
 fit_lda_c <- function(docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha) {
     .Call(`_tidylda_fit_lda_c`, docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha)
 }

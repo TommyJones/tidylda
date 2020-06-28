@@ -354,9 +354,16 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
 
   // related to burnin and averaging
   arma::mat Cv_sum(Nk, Nv);
+  Cv_sum.fill(0.0);
+  
   arma::mat Cv_mean(Nk, Nv);
+  Cv_mean.fill(0.0);
+  
   arma::umat Cd_sum(Nk, Nd);
+  Cd_sum.fill(0);
+  
   arma::mat Cd_mean(Nk, Nd);
+  Cd_mean.fill(0.0);
 
   // related to the likelihood calculation
   arma::mat log_likelihood(2, iterations);
@@ -365,29 +372,22 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   auto lgalpha(0.0);      // calculated immediately below
   auto lg_alpha_len(0.0); // calculated immediately below
 
-  // indices for loops
-  auto t(0);
-  auto d(0);
-  auto n(0);
-  auto k(0);
-  auto v(0);
-
   if (calc_likelihood &&
       !freeze_topics) { // if calc_likelihood, actually populate this stuff
 
-    for (; n < Nv; ++n) {
+    for (std::size_t n = 0; n < Cv.n_cols; ++n) {
       lgbeta += lgamma(beta[n]);
     }
 
     lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; // rcpp sugar here
 
-    for (; k < Nk; ++k) {
+    for (std::size_t k = 0; k < Cd.n_rows; ++k) {
       lgalpha += lgamma(alpha[k]);
     }
 
     lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
 
-    for (d = 0; d < Nd; ++d) {
+    for (std::size_t d = 0; d < Cd.n_cols; ++d) {
       lg_alpha_len += lgamma(sum_alpha + docs[d].size());
     }
 
@@ -398,9 +398,9 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   // BEGIN ITERATIONS
   // ***********************************************************************
 
-  for (; t < iterations; ++t) {
-    // loop over documents
-    for (; d < Nd; ++d) { // start loop over documents
+  for (std::size_t t = 0; t < iterations; ++t) {
+    
+    for (std::size_t d = 0; d < Zd.size(); ++d) { // start loop over documents
 
       R_CheckUserInterrupt();
 
@@ -455,16 +455,20 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   if (burnin > -1) {
     const double diff(iterations - burnin);
 
-    // average over chain after burnin
-    for (; k < Nk; ++k) {
-      for (; d < Nd; ++d) {
+    // average over chain after burnin for Cd
+    for (std::size_t d = 0; d < Cd_sum.n_cols; ++d) {
+      for (std::size_t k = 0; k < Cd_sum.n_rows; ++k) {
         Cd_mean(k, d) = Cd_sum(k, d) / diff;
       }
-
-      for (; v < Nv; ++v) {
+    }
+    
+    // average over chain after burnin for Cv
+    for (std::size_t v = 0; v < Cv_sum.n_cols; ++v) {
+      for (std::size_t k = 0; k < Cv_sum.n_rows; ++k) {
         Cv_mean(k, v) = Cv_sum(k, v) / diff;
       }
     }
+    
   }
 
   // Return the final list ***

@@ -3,11 +3,24 @@ Package: tidylda
 Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
 Version: 0.0.0.999
 Authors@R: 
+    c(
     person(given = "Tommy",
            family = "Jones",
            role = c("aut", "cre"),
            email = "jones.thos.w@gmail.com",
-           comment = c(ORCID = "0000-0001-6457-2452"))
+           comment = c(ORCID = "0000-0001-6457-2452")
+           ),
+    person("Brendan", "Knapp", 
+           email = "brendan.g.knapp@gmail.com", 
+           role = "ctb",
+           comment = c(ORCID = "0000-0003-3284-4972")
+           ),
+    person(given = "Barum",
+           family = "Park",
+           role = c("ctb"),
+           email = "baruuum@gmail.com"
+           )
+    )
 Description: Implements an algorithm for Latent Dirichlet
     Allocation (LDA) using style conventions from the 'tidyverse' and
     specifically 'tidymodels'.  Also implements several novel features for
@@ -21,7 +34,7 @@ Imports:
     gtools,
     Matrix,
     methods,
-    mvrsquared,
+    mvrsquared (>= 0.1.0),
     Rcpp (>= 1.0.2),
     stats,
     stringr,

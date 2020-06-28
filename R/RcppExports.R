@@ -33,8 +33,10 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @param iterations int number of gibbs iterations to run in total
 #' @param burnin int number of burn in iterations
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
-#' @param calc_likelihood bool do you want to calculate the log likelihood each iteration?
+#' @param calc_likelihood bool do you want to calculate the log likelihood each
+#'   iteration?
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
+#'
 fit_lda_c <- function(docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha) {
     .Call(`_tidylda_fit_lda_c`, docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha)
 }

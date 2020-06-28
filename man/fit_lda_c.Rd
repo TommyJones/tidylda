@@ -48,7 +48,8 @@ as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 
-\item{calc_likelihood}{bool do you want to calculate the log likelihood each iteration?}
+\item{calc_likelihood}{bool do you want to calculate the log likelihood each
+iteration?}
 
 \item{optimize_alpha}{bool do you want to optimize alpha each iteration?}
 }

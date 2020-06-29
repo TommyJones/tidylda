@@ -359,6 +359,11 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   arma::umat Cd_sum(Nk, Nd);
   arma::mat Cd_mean(Nk, Nd);
   
+  Cv_sum.zeros();
+  Cv_mean.zeros();
+  Cd_sum.zeros();
+  Cd_mean.zeros();
+
   // related to the likelihood calculation
   arma::mat log_likelihood(2, iterations);
   

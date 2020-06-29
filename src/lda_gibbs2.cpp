@@ -475,6 +475,8 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
     _["Ck"]             = Ck,             //
     _["Cd_mean"]        = Cd_mean,        //
     _["Cv_mean"]        = Cv_mean,        //
+    _["Cd_sum"]         = Cd_sum,        //
+    _["Cv_sum"]         = Cv_sum,        //
     _["log_likelihood"] = log_likelihood, //
     _["alpha"]          = alpha,          //
     _["beta"]           = beta            //

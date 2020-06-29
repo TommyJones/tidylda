@@ -279,16 +279,17 @@ void agg_counts_post_burnin(const bool        freeze_topics,
       }
     }
     
-    for (std::size_t v = 0; v < Cv.n_cols; v++) {
-      for (std::size_t k = 0; k < Cv.n_rows; k++) {
-        Cv_sum(k, v) += Cv(k, v);
-      }
-    }
-    
   } else {
+    
     for (std::size_t d = 0; d < Cd.n_cols; ++d) {
       for (std::size_t k = 0; k < Cd.n_rows; ++k) {
         Cd_sum(k, d) += Cd(k, d);
+      }
+    }
+    
+    for (std::size_t v = 0; v < Cv.n_cols; v++) {
+      for (std::size_t k = 0; k < Cv.n_rows; k++) {
+        Cv_sum(k, v) += Cv(k, v);
       }
     }
   }

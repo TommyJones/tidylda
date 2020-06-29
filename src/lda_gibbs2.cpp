@@ -456,12 +456,14 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
     const double diff(iterations - burnin);
     
     // average over chain after burnin
-    for (; k < Nk; ++k) {
-      for (; d < Nd; ++d) {
+    for (d = 0; d < Nd; d++) {
+      for (k = 0; k < Nk; k++) {
         Cd_mean(k, d) = Cd_sum(k, d) / diff;
       }
-      
-      for (; v < Nv; ++v) {
+    }
+    
+    for (v = 0; v < Nv; v++) {
+      for (k = 0; k < Nk; k++) {
         Cv_mean(k, v) = Cv_sum(k, v) / diff;
       }
     }

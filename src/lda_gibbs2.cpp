@@ -375,13 +375,13 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   if (calc_likelihood &&
       !freeze_topics) { // if calc_likelihood, actually populate this stuff
       
-      for (; n < Nv; ++n) {
+      for (v = 0; n < Nv; ++n) {
         lgbeta += lgamma(beta[n]);
       }
       
       lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; // rcpp sugar here
     
-    for (; k < Nk; ++k) {
+    for (k = 0; k < Nk; ++k) {
       lgalpha += lgamma(alpha[k]);
     }
     
@@ -421,6 +421,7 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
                     sum_beta);
       
     } // end loop over docs
+    
     // calc likelihood ***
     if (calc_likelihood && !freeze_topics) {
       fcalc_likelihood(t,

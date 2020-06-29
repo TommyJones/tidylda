@@ -281,7 +281,7 @@ void agg_counts_post_burnin(const bool        freeze_topics,
     
   } else {
     
-    for (std::size_t d = 0; d < Cd.n_cols; ++d) {
+    for (std::size_t d = 0; d < Cd.n_cols; ++d) { // consider parallelization
       for (std::size_t k = 0; k < Cd.n_rows; ++k) {
         Cd_sum(k, d) += Cd(k, d);
       }
@@ -399,7 +399,7 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   // BEGIN ITERATIONS
   // ***********************************************************************
   
-  for (; t < iterations; ++t) {
+  for (t = 0; t < iterations; ++t) {
     // loop over documents
     for (; d < Nd; ++d) { // start loop over documents
       

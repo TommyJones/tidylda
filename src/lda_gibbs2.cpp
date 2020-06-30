@@ -406,15 +406,14 @@ Rcpp::List fit_lda_c(const std::vector<std::vector<int>>& docs,
   
   for (t = 0; t < iterations; ++t) {
     // loop over documents
-    for (; d < Nd; ++d) { // start loop over documents
+    for (d = 0; d < Nd; ++d) { // start loop over documents
       
       R_CheckUserInterrupt();
       
       auto doc = docs[d];
-      auto zd = Zd[d];
-      
+
       sample_topics(doc,
-                    zd,
+                    Zd[d],
                     d,
                     Ck,
                     Cd,

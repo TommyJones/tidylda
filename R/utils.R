@@ -235,7 +235,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
       } else {
         idx <- 
           try({
-            sample(seq_along(x), remainder, prob = sample_prob)
+            sample(seq_along(x), remainder, replace = TRUE, prob = sample_prob)
           })
         
         if (inherits(x = idx, what = "try-error")) {
@@ -274,7 +274,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
         
         idx <- 
           try({
-            sample(x = sample_from, size = sample_size, prob = sample_prob)
+            sample(x = sample_from, size = sample_size, replace = TRUE, prob = sample_prob)
           })
         
         if (inherits(x = idx, what = "try-error")) {

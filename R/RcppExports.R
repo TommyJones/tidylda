@@ -41,3 +41,7 @@ fit_lda_c <- function(docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, bu
     .Call(`_tidylda_fit_lda_c`, docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha)
 }
 
+# Register entry points for exported C++ functions
+methods::setLoadAction(function(ns) {
+    .Call('_tidylda_RcppExport_registerCCallable', PACKAGE = 'tidylda')
+})

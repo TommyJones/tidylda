@@ -1,5 +1,8 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
+// Export this as a header for use in other packages
+// [[Rcpp::interfaces(r, cpp)]] 
+
 #include "sample_int.h"
 #include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD

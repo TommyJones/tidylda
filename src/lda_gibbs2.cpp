@@ -262,9 +262,17 @@ void foptimize_alpha(arma::vec&        alpha,
                      const std::size_t Nk) {
   
   constexpr double denom = 2.0;
-  for (std::size_t k = 0; k < Nk; ++k) {
-    alpha[k] += ((Ck[k] / static_cast<double>(sumtokens) * sum_alpha) + alpha[k]) / denom;
+  
+  arma::vec new_alpha(alpha.n_elem);
+  
+  new_alpha.fill(0.0);
+  
+  arma::uword sum_ck = arma::sum(Ck);
+  
+  for (std::size_t k = 0; k < Nk; k++) {
+    alpha[k] = static_cast<double>(Ck[k]) / static_cast<double>(sum_ck) * sum_alpha;
   }
+  
 }
 
 // Function aggregates counts across iterations after burnin iterations

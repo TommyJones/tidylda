@@ -6,6 +6,7 @@
 
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
+#include <Rmath.h>
 
 // a function to calculate the logarithm of the sum of two exponentials
 inline double log_add_exp(const double x, const double y) {

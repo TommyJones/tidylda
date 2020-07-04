@@ -15,3 +15,8 @@
 ^appveyor\.yml$
 ^LICENSE\.md$
 ^README\.Rmd$
+
+^src/benchmarking$
+^src/nuclear_option$
+
+^ignore$

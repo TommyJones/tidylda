@@ -12,7 +12,7 @@ tidylda(
   alpha = 0.1,
   beta = 0.05,
   optimize_alpha = FALSE,
-  calc_likelihood = FALSE,
+  calc_likelihood = TRUE,
   calc_r2 = FALSE,
   threads = 1,
   return_data = FALSE,
@@ -46,7 +46,7 @@ This is the prior for words over topics.}
 Defaults to \code{FALSE}. See 'details' below for more information.}
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
-Useful for assessing convergence. Defaults to \code{FALSE}.}
+Useful for assessing convergence. Defaults to \code{TRUE}.}
 
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}

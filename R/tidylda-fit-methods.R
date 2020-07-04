@@ -19,7 +19,7 @@
 #' @param optimize_alpha Logical. Do you want to optimize alpha every iteration?
 #'        Defaults to \code{FALSE}. See 'details' below for more information.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
-#'        Useful for assessing convergence. Defaults to \code{FALSE}.
+#'        Useful for assessing convergence. Defaults to \code{TRUE}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
@@ -101,7 +101,7 @@ tidylda <- function(
   alpha = 0.1, 
   beta = 0.05,
   optimize_alpha = FALSE, 
-  calc_likelihood = FALSE,
+  calc_likelihood = TRUE,
   calc_r2 = FALSE, 
   threads = 1,
   return_data = FALSE,
@@ -221,20 +221,19 @@ tidylda_bridge <- function(
 
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(
-    docs = counts$docs,
-    Nk = k,
-    alpha = alpha$alpha,
-    beta = beta$beta,
-    Cd = counts$Cd,
-    Cv = counts$Cv,
-    Ck = counts$Ck,
-    Zd = counts$Zd,
-    Phi = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
+    Docs = counts$docs,
+    Zd_in = counts$Zd,
+    Cd_in = counts$Cd,
+    Cv_in = counts$Cv,
+    Ck_in = counts$Ck,
+    alpha_in = alpha$alpha,
+    beta_in = beta$beta,
     iterations = iterations,
     burnin = burnin,
-    freeze_topics = FALSE, # this stays FALSE for initial fitting
+    optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    optimize_alpha = optimize_alpha
+    Phi_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
+    freeze_topics = FALSE # this stays FALSE for initial fitting
   )
 
   ### format the output ----

@@ -305,24 +305,21 @@ refit.tidylda <- function(
 
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(
-    docs = counts$docs,
-    Nk = nrow(phi_initial),
-    alpha = alpha$alpha,
-    beta = beta$beta,
-    Cd = counts$Cd,
-    Cv = counts$Cv,
-    Ck = counts$Ck,
-    Zd = counts$Zd,
-    Phi = counts$Cv, # this is actually ignored as freeze_topics = FALSE
+    Docs = counts$docs,
+    Zd_in = counts$Zd,
+    Cd_in = counts$Cd,
+    Cv_in = counts$Cv,
+    Ck_in = counts$Ck,
+    alpha_in = alpha$alpha,
+    beta_in = beta$beta,
     iterations = iterations,
     burnin = burnin,
-    freeze_topics = FALSE, # this stays FALSE for updates
+    optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    optimize_alpha = optimize_alpha
+    Phi_in = object$phi, # ignored for updates as freeze_topics = FALSE
+    freeze_topics = FALSE
   )
-
-
-
+  
   ### Format output correctly ----
   result <- format_raw_lda_outputs(
     lda = lda, 

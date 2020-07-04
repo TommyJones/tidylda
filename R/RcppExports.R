@@ -19,26 +19,30 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @keywords internal
 #' @description
 #'   This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
-#' @param docs List with one element for each document and one entry for each token
+#' @param Docs List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-#' @param Nk int number of topics
-#' @param beta NumericMatrix for prior of tokens over topics
-#' @param alpha NumericVector prior for topics over documents
-#' @param Cd IntegerMatrix denoting counts of topics in documents
-#' @param Cv IntegerMatrix denoting counts of tokens in topics
-#' @param Ck IntegerVector denoting counts of topics across all tokens
-#' @param Zd List with one element for each document and one entry for each token
+#' @param Zd_in List with one element for each document and one entry for each token
 #'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-#' @param Phi NumericMatrix denoting probability of tokens in topics
+#' @param Cd_in IntegerMatrix denoting counts of topics in documents
+#' @param Cv_in IntegerMatrix denoting counts of tokens in topics
+#' @param Ck_in IntegerVector denoting counts of topics across all tokens
+#' @param beta_in NumericMatrix for prior of tokens over topics
+#' @param alpha_in NumericVector prior for topics over documents
 #' @param iterations int number of gibbs iterations to run in total
 #' @param burnin int number of burn in iterations
-#' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @param calc_likelihood bool do you want to calculate the log likelihood each
 #'   iteration?
+#' @param Phi_in NumericMatrix denoting probability of tokens in topics
+#' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
-#'
-fit_lda_c <- function(docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha) {
-    .Call(`_tidylda_fit_lda_c`, docs, Nk, beta, alpha, Cd, Cv, Ck, Zd, Phi, iterations, burnin, freeze_topics, calc_likelihood, optimize_alpha)
+#' @details
+#'   Arguments ending in \code{_in} are copied and their copies modified in
+#'   some way by this function. In the case of \code{beta} and \code{Phi},
+#'   the only modification is that they are converted from matrices to nested
+#'   \code{std::vector} for speed, reliability, and thread safety. In the case
+#'   of all others, they may be explicitly modified during training. 
+fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics) {
+    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics)
 }
 
 # Register entry points for exported C++ functions

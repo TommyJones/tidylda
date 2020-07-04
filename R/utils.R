@@ -581,10 +581,7 @@ format_raw_lda_outputs <- function(
   threads
 ) {
   
-  ### format alpha from armadillo column vector to R numeric vector ----
-  lda$alpha <- as.numeric(lda$alpha) # armadillo vectors come out as matrices
-  
-  
+
   ### format theta ----
   if (burnin > -1) {
     theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)

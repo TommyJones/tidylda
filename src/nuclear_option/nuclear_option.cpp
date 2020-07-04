@@ -162,33 +162,55 @@ Rcpp::List fit_lda_c(
       
       for (std::size_t n = 0; n < doc.size(); n++) { // for each word in that document
         
-        // discount for the n-th word with topic z
-        Cd[d][zd[n]]--; 
-        
-        Cv[zd[n]][doc[n]]--;
-        
-        Ck[zd[n]]--;
-        
-        // sample topic index
-        for (std::size_t k = 0; k < Nk; k++) {
-          qz[k] = (Cv[k][doc[n]] + beta[k][doc[n]]) / 
-            (Ck[k] + sum_beta) *
-            (Cd[d][k] + alpha[k]) / 
-            (doc.size() + sum_alpha);
-        }
-        
-        // update counts
-        z = samp_one(qz);
-        
-        zd[n] = z;
-        
-        Cd[d][zd[n]] += 1; // update document topic count
-        
-        Cv[zd[n]][doc[n]] += 1; // update topic word count
-        
-        Ck[zd[n]] += 1; // update the total topic count
-        
-      }
+        // handle things differently based on freeze_topics
+        // note some copied code, but minimizes number of checks in this loop
+        if (! freeze_topics) {
+          
+          // discount for the n-th word with topic z
+          Cd[d][zd[n]]--; 
+          Cv[zd[n]][doc[n]]--;
+          Ck[zd[n]]--;
+          
+          // calculate probability vector
+          for (std::size_t k = 0; k < Nk; k++) {
+            qz[k] = (Cv[k][doc[n]] + beta[k][doc[n]]) / 
+              (Ck[k] + sum_beta) *
+              (Cd[d][k] + alpha[k]) / 
+              (doc.size() + sum_alpha);
+          }
+          
+          // sample topic
+          z = samp_one(qz);
+          
+          // update counts based on sampled topic
+          zd[n] = z;
+          
+          Cd[d][zd[n]]++; 
+          Cv[zd[n]][doc[n]]++; 
+          Ck[zd[n]]++; 
+          
+        } else {
+          
+          // discount for the n-th word with topic z
+          Cd[d][zd[n]]--; 
+
+          // calculate probability vector
+          for (std::size_t k = 0; k < Nk; k++) {
+            qz[k] = Phi[k][doc[n]] *
+              (Cd[d][k] + alpha[k]) / 
+              (doc.size() + sum_alpha);
+          }
+          
+          // sample topic
+          z = samp_one(qz);
+          
+          // update counts based on sampled topic
+          zd[n] = z;
+          
+          Cd[d][zd[n]]++; 
+          
+        } // end if
+      } // end loop over tokens
       
       Zd[d] = zd; // update vector of sampled topics
       
@@ -203,15 +225,19 @@ Rcpp::List fit_lda_c(
         }
       }
       
-      for (std::size_t k = 0; k < Nk; k++) {
-        for (std::size_t v = 0; v < Nv; v++) {
-          Cv_sum[k][v] += Cv[k][v];
+      if (! freeze_topics) {
+        for (std::size_t k = 0; k < Nk; k++) {
+          for (std::size_t v = 0; v < Nv; v++) {
+            Cv_sum[k][v] += Cv[k][v];
+          }
         }
       }
     }
     
     // if calculating log likelihood, do so 
-    
+    if (calc_likelihood && !freeze_topics) {
+      Rcout << "I like likelihoods!";
+    }
     // if optimizing alpha, do so
     if (optimize_alpha) {
       for (std::size_t k = 0; k < Nk; k++) {
@@ -238,18 +264,16 @@ Rcpp::List fit_lda_c(
       }
     }
     
-    for (std::size_t v = 0; v < Nv; v++) {
-      for (std::size_t k = 0; k < Nk; k++) {
-        Cv_mean[k][v] = Cv_sum[k][v] / diff;
+    if (! freeze_topics) {
+      for (std::size_t v = 0; v < Nv; v++) {
+        for (std::size_t k = 0; k < Nk; k++) {
+          Cv_mean[k][v] = Cv_sum[k][v] / diff;
+        }
       }
     }
   }
   
-  // convert things that should be matrices into matrices
-  
-  
   // Return the final list ***
-  
   return Rcpp::List::create(
     _["Cd"]             = vec_to_mat(Cd, true),
     _["Cv"]             = vec_to_mat(Cv, true),

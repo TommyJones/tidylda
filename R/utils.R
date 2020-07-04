@@ -589,6 +589,8 @@ format_raw_lda_outputs <- function(
     theta <- t(lda$Cd + lda$alpha) # t(t(lda$Cd) + lda$alpha)
   }
   
+  theta <- t(theta)
+  
   theta <- theta / rowSums(theta)
   
   theta[is.na(theta)] <- 0 # just in case of a numeric issue

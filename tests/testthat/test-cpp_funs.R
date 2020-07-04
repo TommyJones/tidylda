@@ -10,7 +10,7 @@ alpha <- rep(0.1, k)
 beta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
 
 counts <- 
-  tidylda:::initialize_topic_counts(
+  initialize_topic_counts(
     dtm = dtm, 
     k = 10,
     alpha = rep(0.1, 10), 
@@ -41,7 +41,8 @@ test_that("average coherence for Cv is greater than 0.1",{
   
   rownames(p) <- 1:k
   
-  expect_true(mean(p) >= 0.1)
+  expect_true(mean(textmineR::CalcProbCoherence(p, dtm)) >= 0.1)
+  
 })
 
 test_that("average coherence for Cv_mean is greater than 0.1",{
@@ -51,7 +52,7 @@ test_that("average coherence for Cv_mean is greater than 0.1",{
   
   rownames(p) <- 1:k
   
-  summary(textmineR::CalcProbCoherence(p, dtm))
+  expect_true(mean(textmineR::CalcProbCoherence(p, dtm)) >= 0.1)
 })
 
 test_that("checksums match expectation",{

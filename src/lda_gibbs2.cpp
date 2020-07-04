@@ -248,6 +248,11 @@ Rcpp::List fit_lda_c(
   // ***********************************************************************
   std::vector<std::vector<double>> log_likelihood(iterations);
   
+  for (std::size_t t = 0; t < iterations; t++) { // fill in empty likelihood
+    std::vector<double> tmp(3);
+    log_likelihood[t] = tmp;
+  }
+  
   double lgbeta(0.0); // if calc_likelihood, we need this term
   
   double lgalpha(0.0); // if calc_likelihood, we need this term

@@ -484,4 +484,10 @@ test_that("checksums match expectation",{
 })
 
 
+test_that("optimize_alpha doesn't break anything",{
+  expect_equal(sum(m$alpha), sum(alpha))
+  
+  expect_true(sum(is.na(rowSums(m$log_likelihood))) == 0, "log likelihood check")
+})
+
 */

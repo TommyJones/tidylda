@@ -95,7 +95,7 @@ Rcpp::List fit_lda_c(
   // ***********************************************************************
   auto Zd = Zd_in;
   
-  auto Cd = mat_to_vec(Cd_in, false);
+  auto Cd = mat_to_vec(Cd_in);
   auto Cv = mat_to_vec(Cv_in, true);
   auto Ck = Ck_in;
   
@@ -251,16 +251,16 @@ Rcpp::List fit_lda_c(
   // Return the final list ***
   
   return Rcpp::List::create(
-    _["Cd"]             = Cd,
-    _["Cv"]             = Cv,
+    _["Cd"]             = vec_to_mat(Cd, true),
+    _["Cv"]             = vec_to_mat(Cv, true),
     _["Ck"]             = Ck,
-    _["Cd_mean"]        = Cd_mean,
-    _["Cv_mean"]        = Cv_mean,
-    _["Cd_sum"]         = Cd_sum,
-    _["Cv_sum"]         = Cv_sum,
+    _["Cd_mean"]        = vec_to_mat(Cd_mean, true),
+    _["Cv_mean"]        = vec_to_mat(Cv_mean, true),
+    _["Cd_sum"]         = vec_to_mat(Cd_sum, true),
+    _["Cv_sum"]         = vec_to_mat(Cv_sum, true),
     _["log_likelihood"] = log_likelihood,
     _["alpha"]          = alpha,
-    _["beta"]           = beta
+    _["beta"]           = beta_in // does not get modified, so don't waste compute converting beta
   );
 }
 

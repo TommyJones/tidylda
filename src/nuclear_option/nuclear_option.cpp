@@ -82,7 +82,7 @@ Rcpp::List fit_lda_c(
     const std::vector<double>                     alpha_in, 
     const NumericMatrix&                          beta_in, 
     const std::size_t&                            iterations, 
-    const std::size_t&                            burnin,
+    const int&                                    burnin,
     const bool&                                   optimize_alpha, 
     const bool&                                   calc_likelihood,
     const NumericMatrix&                          Phi_in,
@@ -321,7 +321,7 @@ microbenchmark::microbenchmark({
     Ck_in = counts$Ck,
     Phi = counts$Cv, # ignored
     iterations = 200,
-    burnin = -1,
+    burnin = 175,
     freeze_topics = FALSE,
     calc_likelihood = FALSE,
     optimize_alpha = FALSE
@@ -340,7 +340,7 @@ m <- fit_lda_c(
   Ck_in = counts$Ck,
   Phi = counts$Cv, # ignored
   iterations = 200,
-  burnin = -1,
+  burnin = 175,
   freeze_topics = FALSE,
   calc_likelihood = FALSE,
   optimize_alpha = FALSE
@@ -374,9 +374,9 @@ test_that("checksums match expectation",{
   
   expect_equal(sum(m$Cv), sum_tokens)
   
-  # expect_equal(sum(m$Cd_mean), sum_tokens)
-  
-  # expect_equal(sum(m$Cv_mean), sum_tokens)
+  expect_equal(sum(m$Cd_mean), sum_tokens)
+
+  expect_equal(sum(m$Cv_mean), sum_tokens)
   
   
 })

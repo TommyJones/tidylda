@@ -144,7 +144,27 @@ Rcpp::List fit_lda_c(
   // ***********************************************************************
   // Variables and other set up for the log likelihood function
   // ***********************************************************************
-  arma::mat log_likelihood(3, iterations); // total placeholder
+  std::vector<std::vector<double>> log_likelihood(iterations);
+  
+  double lgbeta(0.0); // if calc_likelihood, we need this term
+  
+  double lgalpha(0.0); // if calc_likelihood, we need this term
+  
+  if (calc_likelihood) { // if calc_likelihood, actuAllocationy populate this stuff
+    
+    for (std::size_t n = 0; n < Nv; n++) {
+      lgbeta += lgamma(beta[0][n]);
+    }
+    
+    lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; 
+    
+    for (std::size_t k = 0; k < Nk; k++) {
+      lgalpha += lgamma(alpha[k]);
+    }
+    
+    lgalpha = (lgalpha - lgamma(sum_alpha)) * Nd;
+  }
+  
   
   // ***********************************************************************
   // Main Gibbs iterations
@@ -236,7 +256,88 @@ Rcpp::List fit_lda_c(
     
     // if calculating log likelihood, do so 
     if (calc_likelihood && !freeze_topics) {
-      Rcout << "I like likelihoods!";
+      
+      std::vector<double> tmp(3);
+      
+      // get phi probability matrix @ this iteration
+      std::vector<std::vector<double>> phi_prob(Nk);
+
+      double denom(0.0);
+      
+      double lp_beta(0.0); // log probability of beta prior
+      
+      for (std::size_t k = 0; k < Nk; k++) {
+        
+        std::vector<double> tmp(Nv);
+        
+        phi_prob[k] = tmp;
+        
+        // get the denominator
+        for (std::size_t v = 0; v < Nv; v++) {
+          denom += Cv[k][v] + beta[k][v];
+        }
+        
+        // get the probability
+        for (std::size_t v = 0; v < Nv; v++) {
+          phi_prob[k][v] = ((double)Cv[k][v] + beta[k][v]) / denom;
+          
+          lp_beta += (beta[k][v] - 1) * log(phi_prob[k][v]);
+        }
+      }
+      
+      lp_beta += lgbeta;
+      
+      // for each document, get the log probability of the words
+      
+      double lp_alpha(0.0); // log probability of alpha prior
+      
+      double lpd(0.0); // log probability of documents
+      
+      for (std::size_t d = 0; d < Nd; d++) {
+        
+        std::vector<double> theta_prob(Nk); // probability of each topic in this document
+        
+        auto doc = Docs[d];
+        
+        NumericVector lp(doc.size()); // log probability of each word under the model
+        
+        double denom(0.0);
+        
+        for (std::size_t k = 0; k < Nk; k++) {
+          denom += (double)Cd[d][k] + alpha[k];
+        }
+        
+        for (std::size_t k = 0; k < Nk; k++) {
+          theta_prob[k] = ((double)Cd[d][k] + alpha[k]) / denom;
+          
+          lp_alpha += (alpha[k] - 1) * log(theta_prob[k]);
+        }
+        
+        for (std::size_t n = 0; n < doc.size(); n++) {
+          
+          lp[n] = 0.0;
+          
+          for (std::size_t k = 0; k < Nk; k++) {
+            
+            lp[n] += theta_prob[k] * phi_prob[k][doc[n]];
+            
+          }
+          
+          lpd += log(lp[n]);
+        }
+      }
+      
+      lp_alpha += lgalpha;
+      
+
+      tmp[0] = static_cast<double>(t);
+      
+      tmp[1] = lpd; // log probability of whole corpus under the model w/o priors
+      
+      tmp[2] = lpd + lp_alpha + lp_beta; // second likelihood calculation here
+      
+      log_likelihood[t] = tmp;
+      
     }
     // if optimizing alpha, do so
     if (optimize_alpha) {
@@ -282,7 +383,7 @@ Rcpp::List fit_lda_c(
     _["Cv_mean"]        = vec_to_mat(Cv_mean, true),
     _["Cd_sum"]         = vec_to_mat(Cd_sum, true),
     _["Cv_sum"]         = vec_to_mat(Cv_sum, true),
-    _["log_likelihood"] = log_likelihood,
+    _["log_likelihood"] = vec_to_mat(log_likelihood),
     _["alpha"]          = alpha,
     _["beta"]           = beta_in // does not get modified, so don't waste compute converting beta
   );
@@ -342,7 +443,7 @@ m <- fit_lda_c(
   iterations = 200,
   burnin = 175,
   freeze_topics = FALSE,
-  calc_likelihood = FALSE,
+  calc_likelihood = TRUE,
   optimize_alpha = FALSE
 )
 

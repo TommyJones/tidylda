@@ -265,6 +265,10 @@ Rcpp::List fit_lda_c(
 }
 
 /*** R
+library(tidyverse)
+
+library(testthat)
+
 dtm <- textmineR::nih_sample_dtm
 
 k <- 10
@@ -283,29 +287,6 @@ counts <-
   )
 
 microbenchmark::microbenchmark({
-  
-  # Cd_vec <- vector(mode = "list", length = ncol(counts$Cd))
-  # 
-  # for (j in seq_along(Cd_vec)) {
-  #   Cd_vec[[j]] = counts$Cd[, j]
-  # }
-  # 
-  # Cv_vec <- vector(mode = "list", length = nrow(counts$Cv))
-  # 
-  # for (j in seq_along(Cv_vec)) {
-  #   Cv_vec[[j]] = counts$Cv[j, ]
-  # }
-  # 
-  # alph <- alpha
-  # 
-  # beta_vec <- vector(mode = "list", length = nrow(beta))
-  # 
-  # for (j in seq_along(beta_vec)) {
-  #   beta_vec[[j]] <- beta[j, ]
-  # }
-  # 
-  # Zd_vec <- counts$Zd
-  
   fit_lda_c(
     Docs = counts$docs,
     Zd_in = counts$Zd,
@@ -323,5 +304,58 @@ microbenchmark::microbenchmark({
   )},
   times = 20
 )
+
+### tests below to ensure correct computations
+m <- fit_lda_c(
+  Docs = counts$docs,
+  Zd_in = counts$Zd,
+  beta_in = beta,
+  alpha_in = alpha,
+  Cd_in = counts$Cd,
+  Cv_in = counts$Cv,
+  Ck_in = counts$Ck,
+  Phi = counts$Cv, # ignored
+  iterations = 200,
+  burnin = -1,
+  freeze_topics = FALSE,
+  calc_likelihood = FALSE,
+  optimize_alpha = FALSE
+)
+
+test_that("average coherence for Cv is greater than 0.1",{
+  p <- m$Cv
+  
+  colnames(p) <- colnames(dtm)
+  
+  rownames(p) <- 1:k
+  
+  expect_true(mean(p) >= 0.1)
+})
+
+test_that("average coherence for Cv_mean is greater than 0.1",{
+  p <- m$Cv_mean
+  
+  colnames(p) <- colnames(dtm)
+  
+  rownames(p) <- 1:k
+  
+  summary(textmineR::CalcProbCoherence(p, dtm))
+})
+
+test_that("checksums match expectation",{
+  
+  sum_tokens <- sum(dtm)
+  
+  expect_equal(sum(m$Cd), sum_tokens)
+  
+  expect_equal(sum(m$Cv), sum_tokens)
+  
+  # expect_equal(sum(m$Cd_mean), sum_tokens)
+  
+  # expect_equal(sum(m$Cv_mean), sum_tokens)
+  
+  
+})
+
 
 */

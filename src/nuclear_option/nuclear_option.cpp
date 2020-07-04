@@ -113,8 +113,8 @@ Rcpp::List fit_lda_c(
   const std::size_t Nk = Cv.size();
   
   auto sum_tokens = std::accumulate(Ck.begin(), Ck.end(), 0);
-  auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0); 
-  auto sum_beta = std::accumulate(beta[0].begin(), beta[0].end(), 0);
+  auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
+  auto sum_beta = std::accumulate(beta[0].begin(), beta[0].end(), 0.0);
   
   std::vector<double> qz(Nk); // placehodler for probability of topic
   
@@ -341,8 +341,9 @@ Rcpp::List fit_lda_c(
     }
     // if optimizing alpha, do so
     if (optimize_alpha) {
+
       for (std::size_t k = 0; k < Nk; k++) {
-        alpha[k] = static_cast<double>(Ck[k]) / static_cast<double>(sum_tokens) * sum_alpha;
+        alpha[k] = (static_cast<double>(Ck[k]) / static_cast<double>(sum_tokens)) * sum_alpha;
       }
     } 
     
@@ -361,14 +362,14 @@ Rcpp::List fit_lda_c(
     // average over chain after burnin
     for (std::size_t d = 0; d < Nd; d++) {
       for (std::size_t k = 0; k < Nk; k++) {
-        Cd_mean[d][k] = Cd_sum[d][k] / diff;
+        Cd_mean[d][k] = static_cast<double>(Cd_sum[d][k]) / diff;
       }
     }
     
     if (! freeze_topics) {
       for (std::size_t v = 0; v < Nv; v++) {
         for (std::size_t k = 0; k < Nk; k++) {
-          Cv_mean[k][v] = Cv_sum[k][v] / diff;
+          Cv_mean[k][v] = static_cast<double>(Cv_sum[k][v]) / diff;
         }
       }
     }
@@ -444,7 +445,7 @@ m <- fit_lda_c(
   burnin = 175,
   freeze_topics = FALSE,
   calc_likelihood = TRUE,
-  optimize_alpha = FALSE
+  optimize_alpha = TRUE
 )
 
 test_that("average coherence for Cv is greater than 0.1",{

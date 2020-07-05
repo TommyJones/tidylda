@@ -186,7 +186,7 @@ predict.tidylda <- function(
     alpha <- format_alpha(object$alpha, k = nrow(object$phi))
 
     # get initial counts
-    lex <- initialize_topic_counts(
+    counts <- initialize_topic_counts(
       dtm = dtm_new_data,
       k = nrow(object$phi),
       alpha = alpha$alpha,
@@ -197,23 +197,23 @@ predict.tidylda <- function(
       threads = threads,
     )
 
-    # pass inputs to C function for prediciton
+    # pass inputs to C++ function for prediciton
     lda <- fit_lda_c(
-      docs = lex$docs,
-      Nk = nrow(object$phi),
-      beta = beta$beta,
-      alpha = alpha$alpha,
-      Cd = lex$Cd,
-      Cv = lex$Cv,
-      Ck = lex$Ck,
-      Zd = lex$Zd,
-      Phi = object$phi,
+      Docs = counts$docs,
+      Zd_in = counts$Zd,
+      Cd_in = counts$Cd,
+      Cv_in = counts$Cv,
+      Ck_in = counts$Ck,
+      alpha_in = alpha$alpha,
+      beta_in = beta$beta,
       iterations = iterations,
       burnin = burnin,
-      freeze_topics = TRUE,
+      optimize_alpha = FALSE,
       calc_likelihood = FALSE,
-      optimize_alpha = FALSE
+      Phi_in = object$phi, 
+      freeze_topics = TRUE
     )
+    
 
     # format posterior prediction
     result <- format_raw_lda_outputs(

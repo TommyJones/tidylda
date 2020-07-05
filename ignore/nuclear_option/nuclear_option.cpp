@@ -3,177 +3,75 @@
 // Export this as a header for use in other packages
 // [[Rcpp::interfaces(r, cpp)]] 
 
-#include "sample_int.h"
+// #include "sample_int.h"
 #include "matrix_conversions.h"
 
+// [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
 
-#include <RcppThread.h>
+#include <Rmath.h>
+#include <R.h>
+using namespace Rcpp;
 
-//' Make a lexicon for looping over in the gibbs sampler
-//' @keywords internal
-//' @description
-//'   One run of the Gibbs sampler and other magic to initialize some objects.
-//'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-//' @param Cd IntegerMatrix denoting counts of topics in documents
-//' @param Phi NumericMatrix denoting probability of words in topics
-//' @param dtm arma::sp_mat document term matrix
-//' @param alpha NumericVector prior for topics over documents
-//' @param freeze_topics bool if making predictions, set to \code{TRUE}
-// [[Rcpp::export]]
-Rcpp::List create_lexicon(arma::imat&      Cd,
-                          const arma::mat& Phi,
-                          arma::sp_mat&    dtm,
-                          const arma::vec  alpha,
-                          const bool       freeze_topics,
-                          const int        threads) {
-  // ***************************************************************************
-  // Initialize some variables
-  // ***************************************************************************
+#include <cmath>
+
+// declare a sampling function
+// will remove later
+arma::uword samp_one(const arma::vec &pvec) {
   
-  dtm = dtm.t(); // transpose dtm to take advantage of column major & parallel
-  Cd  = Cd.t();  // transpose to put columns up
+  // check that all elements are positive
+  if (arma::any(pvec < 0.0))
+    Rcpp::stop("probabilities have to be positive");
   
-  auto                    sum_alpha = sum(alpha);
-  std::vector<arma::imat> docs(dtm.n_cols);
-  std::vector<arma::imat> Zd(dtm.n_cols);
+  // generate a vector of indices, so that 0 represents the largest 
+  // element, 1 the secon largest, and so on
+  arma::uvec indx = arma::sort_index(pvec, "descend");
   
-  auto Nk = Cd.n_rows;
+  // generate the q-vector, the vector of cumulative sums
+  arma::vec qvec = arma::cumsum(arma::sort(pvec, "descend"));
   
-  // ***************************************************************************
-  // Go through each document and split it into a lexicon and then sample a
-  // topic for each token within that document
-  // ***************************************************************************
-  RcppThread::parallelFor(
-    0,
-    dtm.n_cols,
-    [&Cd, &Phi, &dtm, &alpha, &sum_alpha, &docs, &Zd, &Nk](unsigned int d) {
-      arma::vec qz(Nk);
-      
-      // arma::ivec       topic_index = Rcpp::seq_len(Nk) - 1;
-      std::vector<int> topic_index(Nk);
-      std::iota(std::begin(topic_index), std::end(topic_index), 0);
-      
-      // make a temporary vector to hold token indices
-      auto nd(0);
-      
-      for (std::size_t v = 0; v < dtm.n_rows; ++v) {
-        nd += dtm(v, d);
-      }
-      
-      arma::ivec doc(nd);
-      arma::ivec zd(nd);
-      arma::ivec z(1);
-      
-      // fill in with token indices
-      std::size_t j = 0; // index of doc, advances when we have non-zero entries
-      
-      for (std::size_t v = 0; v < dtm.n_rows; ++v) {
-        if (dtm(v, d) > 0) { // if non-zero, add elements to doc
-          
-          // calculate probability of topics based on initially-sampled Phi and Cd
-          for (std::size_t k = 0; k < Nk; ++k) {
-            qz[k] = log(Phi(k, v)) + log(Cd(k, d) + alpha[k]) - log(nd + sum_alpha - 1);
-          }
-          
-          std::size_t idx(j + dtm(v, d)); // where to stop the loop below
-          
-          while (j < idx) {
-            doc[j] = v;
-            z      = lsamp_one(qz); // sample a topic here
-            zd[j]  = z[0];
-            j++;
-          }
-        }
-      }
-      
-      // fill in docs[d] with the matrix we made
-      docs[d] = doc;
-      
-      Zd[d] = zd;
-      
-      RcppThread::checkUserInterrupt();
-    },
-    threads);
+  // draw randomly from (0,s)
+  double u = arma::conv_to<double>::from(qvec.tail(1L));
+  u *= arma::randu(); // note that this will not respect R seed! Must fix!
   
-  // ***************************************************************************
-  // Calculate Cd, Cv, and Ck from the sampled topics
-  // ***************************************************************************
-  arma::imat Cd_out(Nk, dtm.n_cols);
-  
-  Cd_out.fill(0);
-  
-  arma::ivec Ck(Nk);
-  
-  Ck.fill(0);
-  
-  arma::imat Cv(Nk, dtm.n_rows);
-  
-  Cv.fill(0);
-  
-  for (std::size_t d = 0; d < Zd.size(); ++d) {
-    arma::ivec zd  = Zd[d];
-    arma::ivec doc = docs[d];
+  // find interval into which u falls
+  for (arma::uword k = 0; k < pvec.n_elem; ++k) {
     
-    if (freeze_topics) {
-      for (std::size_t n = 0; n < zd.n_elem; ++n) {
-        Cd_out(zd[n], d)++;
-        Ck[zd[n]]++;
-      }
-      
-    } else {
-      for (std::size_t n = 0; n < zd.n_elem; ++n) {
-        Cd_out(zd[n], d)++;
-        Ck[zd[n]]++;
-        Cv(zd[n], doc[n])++;
-      }
-    }
+    if (u <= qvec(k))
+      return indx(k);
+    
   }
   
-  // ***************************************************************************
-  // Prepare output and expel it from this function
-  // ***************************************************************************
-  using Rcpp::_;
-  return Rcpp::List::create(          //
-    _["docs"] = Rcpp::wrap(docs),   //
-    _["Zd"]   = Rcpp::wrap(Zd),     //
-    _["Cd"]   = Rcpp::wrap(Cd_out), //
-    _["Cv"]   = Rcpp::wrap(Cv),     //
-    _["Ck"]   = Ck                  //
-  );                                  //
+  Rcpp::stop("couldn't find index (samp_one)");
+  
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// 
-////////////////////////////////////////////////////////////////////////////////
 
-//' Main C++ Gibbs sampler for Latent Dirichlet Allocation
+
+
+//' Main C++ Gibbs sampler for Latent Dirichlet Allocationocation
 //' @keywords internal
 //' @description
-//'   This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
+//'   This is the C++ Gibbs sampler for LDA. "Abandon Allocation hope, ye who enter here."
 //' @param Docs List with one element for each document and one entry for each token
 //'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-//' @param Zd_in List with one element for each document and one entry for each token
+//' @param Nk int number of topics
+//' @param beta NumericMatrix for prior of tokens over topics
+//' @param alpha NumericVector prior for topics over documents
+//' @param Cd IntegerMatrix denoting counts of topics in documents
+//' @param Cv IntegerMatrix denoting counts of tokens in topics
+//' @param Ck IntegerVector denoting counts of topics across Allocation tokens
+//' @param Zd List with one element for each document and one entry for each token
 //'   as formatted by \code{\link[tidylda]{initialize_topic_counts}}
-//' @param Cd_in IntegerMatrix denoting counts of topics in documents
-//' @param Cv_in IntegerMatrix denoting counts of tokens in topics
-//' @param Ck_in IntegerVector denoting counts of topics across all tokens
-//' @param beta_in NumericMatrix for prior of tokens over topics
-//' @param alpha_in NumericVector prior for topics over documents
+//' @param Phi NumericMatrix denoting probability of tokens in topics
 //' @param iterations int number of gibbs iterations to run in total
 //' @param burnin int number of burn in iterations
+//' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @param calc_likelihood bool do you want to calculate the log likelihood each
 //'   iteration?
-//' @param Phi_in NumericMatrix denoting probability of tokens in topics
-//' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
-//' @details
-//'   Arguments ending in \code{_in} are copied and their copies modified in
-//'   some way by this function. In the case of \code{beta} and \code{Phi},
-//'   the only modification is that they are converted from matrices to nested
-//'   \code{std::vector} for speed, reliability, and thread safety. In the case
-//'   of all others, they may be explicitly modified during training. 
+//'
 // [[Rcpp::export]]
 Rcpp::List fit_lda_c(
     const std::vector<std::vector<std::size_t>>&  Docs, 
@@ -248,11 +146,6 @@ Rcpp::List fit_lda_c(
   // ***********************************************************************
   std::vector<std::vector<double>> log_likelihood(iterations);
   
-  for (std::size_t t = 0; t < iterations; t++) { // fill in empty likelihood
-    std::vector<double> tmp(3);
-    log_likelihood[t] = tmp;
-  }
-  
   double lgbeta(0.0); // if calc_likelihood, we need this term
   
   double lgalpha(0.0); // if calc_likelihood, we need this term
@@ -320,7 +213,7 @@ Rcpp::List fit_lda_c(
           
           // discount for the n-th word with topic z
           Cd[d][zd[n]]--; 
-          
+
           // calculate probability vector
           for (std::size_t k = 0; k < Nk; k++) {
             qz[k] = Phi[k][doc[n]] *
@@ -368,7 +261,7 @@ Rcpp::List fit_lda_c(
       
       // get phi probability matrix @ this iteration
       std::vector<std::vector<double>> phi_prob(Nk);
-      
+
       double denom(0.0);
       
       double lp_beta(0.0); // log probability of beta prior
@@ -436,7 +329,7 @@ Rcpp::List fit_lda_c(
       
       lp_alpha += lgalpha;
       
-      
+
       tmp[0] = static_cast<double>(t);
       
       tmp[1] = lpd; // log probability of whole corpus under the model w/o priors
@@ -448,7 +341,7 @@ Rcpp::List fit_lda_c(
     }
     // if optimizing alpha, do so
     if (optimize_alpha) {
-      
+
       for (std::size_t k = 0; k < Nk; k++) {
         alpha[k] = (static_cast<double>(Ck[k]) / static_cast<double>(sum_tokens)) * sum_alpha;
       }
@@ -496,3 +389,105 @@ Rcpp::List fit_lda_c(
     _["beta"]           = beta_in // does not get modified, so don't waste compute converting beta
   );
 }
+
+/*** R
+library(tidyverse)
+
+library(testthat)
+
+dtm <- textmineR::nih_sample_dtm
+
+k <- 10
+
+alpha <- rep(0.1, k)
+
+beta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
+
+counts <- 
+  tidylda:::initialize_topic_counts(
+    dtm = dtm, 
+    k = 10,
+    alpha = rep(0.1, 10), 
+    beta = matrix(0.05, nrow = 10, ncol = ncol(dtm)),
+    threads = 1
+  )
+
+microbenchmark::microbenchmark({
+  fit_lda_c(
+    Docs = counts$docs,
+    Zd_in = counts$Zd,
+    beta_in = beta,
+    alpha_in = alpha,
+    Cd_in = counts$Cd,
+    Cv_in = counts$Cv,
+    Ck_in = counts$Ck,
+    Phi = counts$Cv, # ignored
+    iterations = 200,
+    burnin = 175,
+    freeze_topics = FALSE,
+    calc_likelihood = FALSE,
+    optimize_alpha = FALSE
+  )},
+  times = 20
+)
+
+### tests below to ensure correct computations
+m <- fit_lda_c(
+  Docs = counts$docs,
+  Zd_in = counts$Zd,
+  beta_in = beta,
+  alpha_in = alpha,
+  Cd_in = counts$Cd,
+  Cv_in = counts$Cv,
+  Ck_in = counts$Ck,
+  Phi = counts$Cv, # ignored
+  iterations = 200,
+  burnin = 175,
+  freeze_topics = FALSE,
+  calc_likelihood = TRUE,
+  optimize_alpha = TRUE
+)
+
+test_that("average coherence for Cv is greater than 0.1",{
+  p <- m$Cv
+  
+  colnames(p) <- colnames(dtm)
+  
+  rownames(p) <- 1:k
+  
+  expect_true(mean(p) >= 0.1)
+})
+
+test_that("average coherence for Cv_mean is greater than 0.1",{
+  p <- m$Cv_mean
+  
+  colnames(p) <- colnames(dtm)
+  
+  rownames(p) <- 1:k
+  
+  summary(textmineR::CalcProbCoherence(p, dtm))
+})
+
+test_that("checksums match expectation",{
+  
+  sum_tokens <- sum(dtm)
+  
+  expect_equal(sum(m$Cd), sum_tokens)
+  
+  expect_equal(sum(m$Cv), sum_tokens)
+  
+  expect_equal(sum(m$Cd_mean), sum_tokens)
+
+  expect_equal(sum(m$Cv_mean), sum_tokens)
+  
+  
+})
+
+
+test_that("optimize_alpha doesn't break anything",{
+  expect_equal(sum(m$alpha), sum(alpha))
+  
+  expect_true(sum(is.na(rowSums(m$log_likelihood))) == 0, "log likelihood check")
+})
+
+*/

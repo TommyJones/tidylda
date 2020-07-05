@@ -5,55 +5,59 @@
 \title{Main C++ Gibbs sampler for Latent Dirichlet Allocation}
 \usage{
 fit_lda_c(
-  docs,
-  Nk,
-  beta,
-  alpha,
-  Cd,
-  Cv,
-  Ck,
-  Zd,
-  Phi,
+  Docs,
+  Zd_in,
+  Cd_in,
+  Cv_in,
+  Ck_in,
+  alpha_in,
+  beta_in,
   iterations,
   burnin,
-  freeze_topics,
+  optimize_alpha,
   calc_likelihood,
-  optimize_alpha
+  Phi_in,
+  freeze_topics
 )
 }
 \arguments{
-\item{docs}{List with one element for each document and one entry for each token
+\item{Docs}{List with one element for each document and one entry for each token
 as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
-\item{Nk}{int number of topics}
-
-\item{beta}{NumericMatrix for prior of tokens over topics}
-
-\item{alpha}{NumericVector prior for topics over documents}
-
-\item{Cd}{IntegerMatrix denoting counts of topics in documents}
-
-\item{Cv}{IntegerMatrix denoting counts of tokens in topics}
-
-\item{Ck}{IntegerVector denoting counts of topics across all tokens}
-
-\item{Zd}{List with one element for each document and one entry for each token
+\item{Zd_in}{List with one element for each document and one entry for each token
 as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
-\item{Phi}{NumericMatrix denoting probability of tokens in topics}
+\item{Cd_in}{IntegerMatrix denoting counts of topics in documents}
+
+\item{Cv_in}{IntegerMatrix denoting counts of tokens in topics}
+
+\item{Ck_in}{IntegerVector denoting counts of topics across all tokens}
+
+\item{alpha_in}{NumericVector prior for topics over documents}
+
+\item{beta_in}{NumericMatrix for prior of tokens over topics}
 
 \item{iterations}{int number of gibbs iterations to run in total}
 
 \item{burnin}{int number of burn in iterations}
 
-\item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
+\item{optimize_alpha}{bool do you want to optimize alpha each iteration?}
 
 \item{calc_likelihood}{bool do you want to calculate the log likelihood each
 iteration?}
 
-\item{optimize_alpha}{bool do you want to optimize alpha each iteration?}
+\item{Phi_in}{NumericMatrix denoting probability of tokens in topics}
+
+\item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 }
 \description{
 This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
+}
+\details{
+Arguments ending in \code{_in} are copied and their copies modified in
+  some way by this function. In the case of \code{beta} and \code{Phi},
+  the only modification is that they are converted from matrices to nested
+  \code{std::vector} for speed, reliability, and thread safety. In the case
+  of all others, they may be explicitly modified during training.
 }
 \keyword{internal}

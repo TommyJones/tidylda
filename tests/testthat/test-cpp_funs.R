@@ -34,26 +34,6 @@ m <- fit_lda_c(
   optimize_alpha = TRUE
 )
 
-test_that("average coherence for Cv is greater than 0.1",{
-  p <- m$Cv
-  
-  colnames(p) <- colnames(dtm)
-  
-  rownames(p) <- 1:k
-  
-  expect_true(mean(textmineR::CalcProbCoherence(p, dtm)) >= 0.1)
-  
-})
-
-test_that("average coherence for Cv_mean is greater than 0.1",{
-  p <- m$Cv_mean
-  
-  colnames(p) <- colnames(dtm)
-  
-  rownames(p) <- 1:k
-  
-  expect_true(mean(textmineR::CalcProbCoherence(p, dtm)) >= 0.1)
-})
 
 test_that("checksums match expectation",{
   

@@ -211,7 +211,8 @@ predict.tidylda <- function(
       optimize_alpha = FALSE,
       calc_likelihood = FALSE,
       Phi_in = object$phi, 
-      freeze_topics = TRUE
+      freeze_topics = TRUE,
+      threads = threads
     )
     
 

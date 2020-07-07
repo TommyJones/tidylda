@@ -233,7 +233,8 @@ tidylda_bridge <- function(
     optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
     Phi_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
-    freeze_topics = FALSE # this stays FALSE for initial fitting
+    freeze_topics = FALSE, # this stays FALSE for initial fitting
+    threads = threads
   )
 
   ### format the output ----

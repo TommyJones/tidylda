@@ -35,14 +35,15 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @param Phi_in NumericMatrix denoting probability of tokens in topics
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
+#' @param threads unsigned integer, how many parallel threads?
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in
 #'   some way by this function. In the case of \code{beta} and \code{Phi},
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. In the case
 #'   of all others, they may be explicitly modified during training. 
-fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics) {
-    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics)
+fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads = 1L) {
+    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads)
 }
 
 # Register entry points for exported C++ functions

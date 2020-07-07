@@ -17,7 +17,8 @@ fit_lda_c(
   optimize_alpha,
   calc_likelihood,
   Phi_in,
-  freeze_topics
+  freeze_topics,
+  threads = 1L
 )
 }
 \arguments{
@@ -49,6 +50,8 @@ iteration?}
 \item{Phi_in}{NumericMatrix denoting probability of tokens in topics}
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
+
+\item{threads}{unsigned integer, how many parallel threads?}
 }
 \description{
 This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."

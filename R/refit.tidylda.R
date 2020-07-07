@@ -317,7 +317,8 @@ refit.tidylda <- function(
     optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
     Phi_in = object$phi, # ignored for updates as freeze_topics = FALSE
-    freeze_topics = FALSE
+    freeze_topics = FALSE,
+    threads = threads
   )
   
   ### Format output correctly ----

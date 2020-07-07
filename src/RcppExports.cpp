@@ -49,15 +49,15 @@ RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP,
     return rcpp_result_gen;
 }
 // fit_lda_c
-Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<std::size_t>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& beta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics);
-static SEXP _tidylda_fit_lda_c_try(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP) {
+Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& beta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics, const std::size_t& threads);
+static SEXP _tidylda_fit_lda_c_try(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const std::vector<std::vector<std::size_t>>& >::type Docs(DocsSEXP);
     Rcpp::traits::input_parameter< const std::vector<std::vector<std::size_t>>& >::type Zd_in(Zd_inSEXP);
     Rcpp::traits::input_parameter< const IntegerMatrix& >::type Cd_in(Cd_inSEXP);
     Rcpp::traits::input_parameter< const IntegerMatrix& >::type Cv_in(Cv_inSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::size_t>& >::type Ck_in(Ck_inSEXP);
+    Rcpp::traits::input_parameter< const std::vector<long>& >::type Ck_in(Ck_inSEXP);
     Rcpp::traits::input_parameter< const std::vector<double> >::type alpha_in(alpha_inSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type beta_in(beta_inSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type iterations(iterationsSEXP);
@@ -66,15 +66,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool& >::type calc_likelihood(calc_likelihoodSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type Phi_in(Phi_inSEXP);
     Rcpp::traits::input_parameter< const bool& >::type freeze_topics(freeze_topicsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_lda_c(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics));
+    Rcpp::traits::input_parameter< const std::size_t& >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fit_lda_c(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP) {
+RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_tidylda_fit_lda_c_try(DocsSEXP, Zd_inSEXP, Cd_inSEXP, Cv_inSEXP, Ck_inSEXP, alpha_inSEXP, beta_inSEXP, iterationsSEXP, burninSEXP, optimize_alphaSEXP, calc_likelihoodSEXP, Phi_inSEXP, freeze_topicsSEXP));
+        rcpp_result_gen = PROTECT(_tidylda_fit_lda_c_try(DocsSEXP, Zd_inSEXP, Cd_inSEXP, Cv_inSEXP, Ck_inSEXP, alpha_inSEXP, beta_inSEXP, iterationsSEXP, burninSEXP, optimize_alphaSEXP, calc_likelihoodSEXP, Phi_inSEXP, freeze_topicsSEXP, threadsSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -100,7 +101,7 @@ static int _tidylda_RcppExport_validate(const char* sig) {
     static std::set<std::string> signatures;
     if (signatures.empty()) {
         signatures.insert("Rcpp::List(*create_lexicon)(arma::imat&,const arma::mat&,arma::sp_mat&,const arma::vec,const bool,const int)");
-        signatures.insert("Rcpp::List(*fit_lda_c)(const std::vector<std::vector<std::size_t>>&,const std::vector<std::vector<std::size_t>>&,const IntegerMatrix&,const IntegerMatrix&,const std::vector<std::size_t>&,const std::vector<double>,const NumericMatrix&,const std::size_t&,const int&,const bool&,const bool&,const NumericMatrix&,const bool&)");
+        signatures.insert("Rcpp::List(*fit_lda_c)(const std::vector<std::vector<std::size_t>>&,const std::vector<std::vector<std::size_t>>&,const IntegerMatrix&,const IntegerMatrix&,const std::vector<long>&,const std::vector<double>,const NumericMatrix&,const std::size_t&,const int&,const bool&,const bool&,const NumericMatrix&,const bool&,const std::size_t&)");
     }
     return signatures.find(sig) != signatures.end();
 }
@@ -115,7 +116,7 @@ RcppExport SEXP _tidylda_RcppExport_registerCCallable() {
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tidylda_create_lexicon", (DL_FUNC) &_tidylda_create_lexicon, 6},
-    {"_tidylda_fit_lda_c", (DL_FUNC) &_tidylda_fit_lda_c, 13},
+    {"_tidylda_fit_lda_c", (DL_FUNC) &_tidylda_fit_lda_c, 14},
     {"_tidylda_RcppExport_registerCCallable", (DL_FUNC) &_tidylda_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

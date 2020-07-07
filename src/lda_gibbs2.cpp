@@ -170,6 +170,7 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 //' @param threads unsigned integer, how many parallel threads?
+//' @param verbose bool do you want to print out a progress bar?
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
 //'   some way by this function. In the case of \code{beta} and \code{Phi},
@@ -191,7 +192,8 @@ Rcpp::List fit_lda_c(
     const bool&                                   calc_likelihood,
     const NumericMatrix&                          Phi_in,
     const bool&                                   freeze_topics,
-    const std::size_t&                            threads = 1
+    const std::size_t&                            threads = 1,
+    const bool&                                   verbose = false
 ) {
   
   // ***********************************************************************
@@ -504,6 +506,15 @@ Rcpp::List fit_lda_c(
         alpha[k] = (static_cast<double>(Ck[k]) / static_cast<double>(sum_tokens)) * sum_alpha;
       }
     } 
+    
+    // progress bar
+    if (verbose) {
+      Rcout << "=";
+      // every 100th iteration, add a new line
+      if ((t + 1) % 100 == 0) {
+        Rcout << std::endl;
+      }
+    }
     
   } // end iterations
   

@@ -16,6 +16,7 @@ tidylda_bridge(
   calc_r2,
   threads,
   return_data,
+  verbose,
   mc,
   ...
 )

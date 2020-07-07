@@ -46,17 +46,17 @@ namespace tidylda {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& beta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics, const std::size_t& threads = 1) {
-        typedef SEXP(*Ptr_fit_lda_c)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& beta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics, const std::size_t& threads = 1, const bool& verbose = false) {
+        typedef SEXP(*Ptr_fit_lda_c)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_fit_lda_c p_fit_lda_c = NULL;
         if (p_fit_lda_c == NULL) {
-            validateSignature("Rcpp::List(*fit_lda_c)(const std::vector<std::vector<std::size_t>>&,const std::vector<std::vector<std::size_t>>&,const IntegerMatrix&,const IntegerMatrix&,const std::vector<long>&,const std::vector<double>,const NumericMatrix&,const std::size_t&,const int&,const bool&,const bool&,const NumericMatrix&,const bool&,const std::size_t&)");
+            validateSignature("Rcpp::List(*fit_lda_c)(const std::vector<std::vector<std::size_t>>&,const std::vector<std::vector<std::size_t>>&,const IntegerMatrix&,const IntegerMatrix&,const std::vector<long>&,const std::vector<double>,const NumericMatrix&,const std::size_t&,const int&,const bool&,const bool&,const NumericMatrix&,const bool&,const std::size_t&,const bool&)");
             p_fit_lda_c = (Ptr_fit_lda_c)R_GetCCallable("tidylda", "_tidylda_fit_lda_c");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_fit_lda_c(Shield<SEXP>(Rcpp::wrap(Docs)), Shield<SEXP>(Rcpp::wrap(Zd_in)), Shield<SEXP>(Rcpp::wrap(Cd_in)), Shield<SEXP>(Rcpp::wrap(Cv_in)), Shield<SEXP>(Rcpp::wrap(Ck_in)), Shield<SEXP>(Rcpp::wrap(alpha_in)), Shield<SEXP>(Rcpp::wrap(beta_in)), Shield<SEXP>(Rcpp::wrap(iterations)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(optimize_alpha)), Shield<SEXP>(Rcpp::wrap(calc_likelihood)), Shield<SEXP>(Rcpp::wrap(Phi_in)), Shield<SEXP>(Rcpp::wrap(freeze_topics)), Shield<SEXP>(Rcpp::wrap(threads)));
+            rcpp_result_gen = p_fit_lda_c(Shield<SEXP>(Rcpp::wrap(Docs)), Shield<SEXP>(Rcpp::wrap(Zd_in)), Shield<SEXP>(Rcpp::wrap(Cd_in)), Shield<SEXP>(Rcpp::wrap(Cv_in)), Shield<SEXP>(Rcpp::wrap(Ck_in)), Shield<SEXP>(Rcpp::wrap(alpha_in)), Shield<SEXP>(Rcpp::wrap(beta_in)), Shield<SEXP>(Rcpp::wrap(iterations)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(optimize_alpha)), Shield<SEXP>(Rcpp::wrap(calc_likelihood)), Shield<SEXP>(Rcpp::wrap(Phi_in)), Shield<SEXP>(Rcpp::wrap(freeze_topics)), Shield<SEXP>(Rcpp::wrap(threads)), Shield<SEXP>(Rcpp::wrap(verbose)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

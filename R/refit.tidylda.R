@@ -18,6 +18,8 @@
 #' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
 #'        from the previous model as the prior for words over topics?
 #' @param threads Number of parallel threads, defaults to 1.
+#' @param verbose Logical. Do you want to print a progress bar out to the console?
+#'        Defaults to \code{FALSE}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
@@ -113,6 +115,7 @@ refit.tidylda <- function(
   additional_k = 0, 
   phi_as_prior = FALSE, 
   threads = 1,
+  verbose = FALSE,
   ...
 ) {
 
@@ -318,7 +321,8 @@ refit.tidylda <- function(
     calc_likelihood = calc_likelihood,
     Phi_in = object$phi, # ignored for updates as freeze_topics = FALSE
     freeze_topics = FALSE,
-    threads = threads
+    threads = threads,
+    verbose = verbose
   )
   
   ### Format output correctly ----

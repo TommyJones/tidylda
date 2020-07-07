@@ -24,6 +24,8 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
 #' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
+#' @param verbose Logical. Do you want to print a progress bar out to the console?
+#'        Defaults to \code{FALSE}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class \code{tidylda}.
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
@@ -105,6 +107,7 @@ tidylda <- function(
   calc_r2 = FALSE, 
   threads = 1,
   return_data = FALSE,
+  verbose = FALSE,
   ...
 ) {
 
@@ -127,6 +130,7 @@ tidylda <- function(
     calc_r2 = calc_r2,
     threads = threads,
     return_data = return_data,
+    verbose = verbose,
     mc,
     ...
   )
@@ -151,6 +155,7 @@ tidylda_bridge <- function(
   calc_r2,
   threads,
   return_data, 
+  verbose,
   mc,
   ...
 ) {
@@ -234,7 +239,8 @@ tidylda_bridge <- function(
     calc_likelihood = calc_likelihood,
     Phi_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
     freeze_topics = FALSE, # this stays FALSE for initial fitting
-    threads = threads
+    threads = threads,
+    verbose = verbose
   )
 
   ### format the output ----

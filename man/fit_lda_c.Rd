@@ -18,7 +18,8 @@ fit_lda_c(
   calc_likelihood,
   Phi_in,
   freeze_topics,
-  threads = 1L
+  threads = 1L,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ iteration?}
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 
 \item{threads}{unsigned integer, how many parallel threads?}
+
+\item{verbose}{bool do you want to print out a progress bar?}
 }
 \description{
 This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."

@@ -1,6 +1,7 @@
 ################################################################################
-# This script is a simple LDA gibbs sampler in R
-# I'm using it to help troubleshoot and optimize my C++ code
+# This script experiments with parallel Gibbs algorithms in R.
+# Syntax is C++-ish rather than optimized for R. Don't @ me.
+# If successful here, I can port to C++
 ################################################################################
 
 library(tidylda)
@@ -84,43 +85,71 @@ sum_beta <- sum(beta[1,]) # strict LDA has beta as a vector not a matrix, so sum
 
 sum_alpha <- sum(alpha)
 
+# initialize objects used for parallel sampling
+threads <- 4
+
+Cv_list <- vector(mode = "list", length = threads)
+
+Ck_list <- vector(mode = "list", length = threads)
+
+batch_size <- ncol(Cd) / threads # may fail if not evenly divided. Can fancy later
+
+batch_indices <- seq(1, ncol(Cd), by = round(batch_size))
+
+batch_indices <- lapply(batch_indices, function(x) x:min(x + batch_size - 1, ncol(Cd)))
+
+
 for (t in 1:iterations) { # for each iteration
   
-  for (d in 1:Nd) { # for each document
-    
-    for (n in 1:length(docs[[d]])) { # for each token in that document
-      
-      # decrement counts from previous iteration where we hit this token
-      # purpose to correctly calculate the probabilities
-      Cd[Zd[[d]][n], d] <- Cd[Zd[[d]][n], d] - 1
-      
-      Cv[Zd[[d]][n], docs[[d]][n]] <- Cv[Zd[[d]][n], docs[[d]][n]] - 1
-      
-      Ck[Zd[[d]][n]] <- Ck[Zd[[d]][n]] - 1
-      
-      # calculate the probability of sampling a topic at this location
-      qz <- numeric(Nk) # initialize topic probability vector
-      
-      for (k in 1:Nk) {
-        qz[k] <- 
-          (Cv[k, docs[[d]][n]] + beta[k, docs[[d]][n]]) / (Ck[k] + sum_beta) *
-          (Cd[k, d] + alpha[k]) / (length(docs[[d]]) + sum_alpha - 1)
-      }
-      
-      # sample a topic at random
-      Zd[[d]][n] <- sample(1:Nk, 1, prob = qz)
-      
-      # increase the counts of Ck, Cd, Cv where we just sampled
-      Cd[Zd[[d]][n], d] <- Cd[Zd[[d]][n], d] + 1
-      
-      Cv[Zd[[d]][n], docs[[d]][n]] <- Cv[Zd[[d]][n], docs[[d]][n]] + 1
-      
-      Ck[Zd[[d]][n]] <- Ck[Zd[[d]][n]] + 1
-      
-    } # end loop over token indices
-    
-  } # end loop over docs
+  # copy global Ck and Cv to their lists
+  Cv_list <- lapply(Cv_list, function(x) Cv)
   
+  Ck_list <- lapply(Ck_list, function(x) Ck)
+  
+  # loop over batches, documents, tokens
+  for (j in 1:threads) { # this will be parallel 
+    for (d in batch_indices[[j]]) {
+      
+      for (n in 1:length(docs[[d]])) { # for each token in that document
+        
+        # decrement counts from previous iteration where we hit this token
+        # purpose to correctly calculate the probabilities
+        Cd[Zd[[d]][n], d] <- Cd[Zd[[d]][n], d] - 1
+        
+        Cv_list[[j]][Zd[[d]][n], docs[[d]][n]] <- Cv_list[[j]][Zd[[d]][n], docs[[d]][n]] - 1
+        
+        Ck_list[[j]][Zd[[d]][n]] <- Ck_list[[j]][Zd[[d]][n]] - 1
+        
+        # calculate the probability of sampling a topic at this location
+        qz <- numeric(Nk) # initialize topic probability vector
+        
+        for (k in 1:Nk) {
+          qz[k] <- 
+            (Cv_list[[j]][k, docs[[d]][n]] + beta[k, docs[[d]][n]]) / (Ck_list[[j]][k] + sum_beta) *
+            (Cd[k, d] + alpha[k]) / (length(docs[[d]]) + sum_alpha - 1)
+        }
+        
+        # sample a topic at random
+        Zd[[d]][n] <- sample(1:Nk, 1, prob = qz)
+        
+        # increase the counts of Ck, Cd, Cv where we just sampled
+        Cd[Zd[[d]][n], d] <- Cd[Zd[[d]][n], d] + 1
+        
+        Cv_list[[j]][Zd[[d]][n], docs[[d]][n]] <- Cv_list[[j]][Zd[[d]][n], docs[[d]][n]] + 1
+        
+        Ck_list[[j]][Zd[[d]][n]] <- Ck_list[[j]][Zd[[d]][n]] + 1
+        
+      } # end loop over token indices
+      
+    } # end loop over docs
+    
+  } # end loop over batches
+  
+  # reconcile Cd and Ck across cores
+  Cv <- (Reduce("+", Cv_list) - threads * Cv) + Cv
+  
+  Ck <- (Reduce("+", Ck_list) - threads * Ck) + Ck
+   
 } # end iterations
 
 

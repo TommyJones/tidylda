@@ -20,10 +20,10 @@ std::vector<std::vector<double>> mat_to_vec(
   
   std::vector<std::vector<double>> out(tmp.cols());
   
-  for (std::size_t j = 0; j < tmp.cols(); j++) {
+  for (auto j = 0; j < tmp.cols(); j++) {
     std::vector<double> tmp_col(tmp.rows());
     
-    for (std::size_t k = 0; k < tmp.rows(); k++){
+    for (auto k = 0; k < tmp.rows(); k++){
       tmp_col[k] = tmp(k, j);
     }
     
@@ -33,8 +33,8 @@ std::vector<std::vector<double>> mat_to_vec(
   return out;
 }
 
-// convert an IntegerMatrix of only positive values to two-dimensional vector
-std::vector<std::vector<std::size_t>> mat_to_vec(
+// convert an IntegerMatrix to two-dimensional vector
+std::vector<std::vector<long>> mat_to_vec(
     const Rcpp::IntegerMatrix& x,
     const bool&          by_rows = false
 ) {
@@ -47,13 +47,13 @@ std::vector<std::vector<std::size_t>> mat_to_vec(
     tmp = x;
   }
   
-  std::vector<std::vector<std::size_t>> out(tmp.cols());
+  std::vector<std::vector<long>> out(tmp.cols());
   
-  for (std::size_t j = 0; j < tmp.cols(); j++) {
+  for (auto j = 0; j < tmp.cols(); j++) {
     
-    std::vector<std::size_t> tmp_col(tmp.rows());
+    std::vector<long> tmp_col(tmp.rows());
     
-    for (std::size_t k = 0; k < tmp.rows(); k++){
+    for (auto k = 0; k < tmp.rows(); k++){
       tmp_col[k] = tmp(k, j);
     }
     
@@ -74,8 +74,8 @@ NumericMatrix vec_to_mat(
   
   Rcpp::NumericMatrix out(n_rows, n_cols);
   
-  for (std::size_t j = 0; j < n_cols; j++) {
-    for (std::size_t k = 0; k < n_rows; k++) {
+  for (auto j = 0; j < n_cols; j++) {
+    for (auto k = 0; k < n_rows; k++) {
       out(k, j) = x[j][k];
     }
   }
@@ -87,10 +87,10 @@ NumericMatrix vec_to_mat(
   return out;
 }
 
-// convert a std::vector of only positive ints to IntegerMatrix
+// convert a std::vector of ints to IntegerMatrix
 IntegerMatrix vec_to_mat(
-    const std::vector<std::vector<std::size_t>>& x,
-    const bool&                             row_major = false
+    const std::vector<std::vector<long>>& x,
+    const bool&                           row_major = false
 ) {
   
   std::size_t n_cols = x.size();
@@ -98,8 +98,8 @@ IntegerMatrix vec_to_mat(
   
   Rcpp::IntegerMatrix out(n_rows, n_cols);
   
-  for (std::size_t j = 0; j < n_cols; j++) {
-    for (std::size_t k = 0; k < n_rows; k++) {
+  for (auto j = 0; j < n_cols; j++) {
+    for (auto k = 0; k < n_rows; k++) {
       out(k, j) = x[j][k];
     }
   }

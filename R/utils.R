@@ -729,4 +729,15 @@ calc_lda_r2 <- function(dtm, theta, phi, threads) {
   r2
 }
 
-
+#' Create a tidy tibble for a dgCMatrix
+#' @keywords internal
+#' @description Create a tidy tibble for a dgCMatrix. Will probably be a PR to
+#'   \link[tidytext]{tidytext} in the future
+#' @param x must be of class dgCMatrix
+#' @param ... Extra arguments, not used
+tidy.dgCMatrix <- function(x, ...) {
+  triplets <- Matrix::summary(methods::as(x, "dgTMatrix"))
+  ret <- tidytext:::tidy_triplet(x, triplets)
+  colnames(ret) <- c("document", "term", "count")
+  ret
+}

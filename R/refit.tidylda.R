@@ -145,6 +145,22 @@ refit.tidylda <- function(
   if (is.null(iterations)) {
     stop("You must specify number of iterations")
   }
+  
+  # check on threads
+  if (threads > 1)
+    threads <- as.integer(max(floor(threads), 1)) # prevent any decimal inputs
+  
+  if (threads > nrow(dtm)) {
+    stop("User-supplied threads argument greater than number of documents.\n",
+         "  Recommend setting threads such that nrow(dtm) / threads > 100,\n",
+         "  More documents on each processor is better.")
+  }
+  
+  if ((nrow(dtm) / threads < 100) & (threads > 1)) {
+    warning("  nrow(dtm) / threads < 100.\n",
+            "  If each processor has fewer than 100 documents, resulting model is likely\n",
+            "  to be a poor fit. More documents on each processor is better.")
+  }
 
   # are you being logical
   if (!is.logical(calc_r2)) {

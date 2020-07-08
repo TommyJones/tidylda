@@ -208,6 +208,25 @@ tidylda_bridge <- function(
     stop("optimize_alpha must be logical")
   }
 
+  if (!is.logical(verbose)) {
+    stop("verbose must be logical")
+  }
+  
+  # check on threads
+  if (threads > 1)
+    threads <- as.integer(max(floor(threads), 1)) # prevent any decimal inputs
+  
+  if (threads > nrow(dtm)) {
+    stop("User-supplied threads argument greater than number of documents.\n",
+         "  Recommend setting threads such that nrow(dtm) / threads > 100,\n",
+         "  More documents on each processor is better.")
+  }
+  
+  if ((nrow(dtm) / threads < 100) & (threads > 1)) {
+    warning("  nrow(dtm) / threads < 100.\n",
+            "  If each processor has fewer than 100 documents, resulting model is likely\n",
+            "  to be a poor fit. More documents on each processor is better.")
+  }
 
   ### format inputs ----
 

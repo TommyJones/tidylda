@@ -209,20 +209,47 @@ test_that("errors hit for malformed parameters", {
     calc_r2 = FALSE,
     return_data = "FALSE"
   ))
-})
-
-test_that("parallelism works as expected", {
-  lda <- tidylda(
+  
+  expect_error(tidylda(
     dtm = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
     optimize_alpha = FALSE,
-    calc_likelihood = TRUE,
-    calc_r2 = TRUE,
+    calc_likelihood = FALSE,
+    calc_r2 = FALSE,
+    return_data = FALSE,
+    threads = nrow(d1) + 1
+  ), label = "threads > nrow(dtm)")
+  
+  expect_warning(tidylda(
+    dtm = d1,
+    k = 4,
+    iterations = 20, burnin = 10,
+    alpha = 0.1, beta = 0.05,
+    optimize_alpha = FALSE,
+    calc_likelihood = FALSE,
+    calc_r2 = FALSE,
     return_data = FALSE,
     threads = 2
+  ), label = "nrow(dtm) / threads < 100")
+})
+
+test_that("parallelism works as expected", {
+  suppressWarnings(
+    lda <- tidylda(
+      dtm = d1,
+      k = 4,
+      iterations = 20, burnin = 10,
+      alpha = 0.1, beta = 0.05,
+      optimize_alpha = FALSE,
+      calc_likelihood = TRUE,
+      calc_r2 = TRUE,
+      return_data = FALSE,
+      threads = 2
+    )
   )
+
   
   expect_s3_class(lda, "tidylda")
   

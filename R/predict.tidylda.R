@@ -100,6 +100,17 @@ predict.tidylda <- function(
     )
   }
   
+  # check threads against nrow(dtm_new_data)
+  # only matters if method = "gibbs"
+  if (threads > 1)
+    threads <- as.integer(max(floor(threads), 1)) # prevent any decimal inputs
+  
+  if (method[1] == "gibbs" & threads > nrow(dtm_new_data)) {
+    message("User-supplied 'threads' argument greater than number of documents.\n",
+            "Setting threads equal to number of documents.")
+    threads <- as.integer(nrow(dtm_new_data))
+  }
+  
   ### Align vocabulary ----
   # this is fancy because of how we do indexing in gibbs sampling
   vocab_original <- colnames(object$phi) # tokens in training set

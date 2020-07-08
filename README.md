@@ -6,11 +6,11 @@
 <!-- badges: start -->
 
 [![AppVeyor build
-status](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidylda?branch=master&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
+status](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidylda?branch=main&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
 [![Travis-CI Build
-Status](https://travis-ci.com/TommyJones/tidylda.svg?branch=master)](https://travis-ci.com/TommyJones/tidylda)
+Status](https://travis-ci.com/TommyJones/tidylda.svg?branch=main)](https://travis-ci.com/TommyJones/tidylda)
 [![Coverage
-Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/master.svg)](https://codecov.io/github/tommyjones/tidylda?branch=master)
+Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](https://codecov.io/github/tommyjones/tidylda?branch=main)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
@@ -71,12 +71,12 @@ unseen documents, and update the model with those new documents.
 ``` r
 library(tidytext)
 library(tidyverse)
-#> ── Attaching packages ─────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
-#> ✓ ggplot2 3.3.1     ✓ purrr   0.3.4
-#> ✓ tibble  3.0.1     ✓ dplyr   1.0.0
+#> ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
+#> ✓ ggplot2 3.3.0     ✓ purrr   0.3.4
+#> ✓ tibble  3.0.2     ✓ dplyr   1.0.0
 #> ✓ tidyr   1.1.0     ✓ stringr 1.4.0
 #> ✓ readr   1.3.1     ✓ forcats 0.5.0
-#> ── Conflicts ────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+#> ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)

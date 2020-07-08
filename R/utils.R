@@ -379,7 +379,8 @@ initialize_topic_counts <- function(
     # phi_initial <- gtools::rdirichlet(n = k, alpha = beta)
     
     phi_initial <- apply(beta, 1, function(x) {
-      gtools::rdirichlet(n = 1, alpha = x)
+      gtools::rdirichlet(n = 1, alpha = x) + 
+        .Machine$double.eps # avoid underflow
     })
     
     phi_initial <- t(phi_initial)
@@ -389,7 +390,8 @@ initialize_topic_counts <- function(
   # if not specified (e.g. if this is a new model) make a matrix by sampling
   # from alpha.
   if (is.null(theta_initial)) {
-    theta_initial <- gtools::rdirichlet(n = nrow(dtm), alpha = alpha)
+    theta_initial <- gtools::rdirichlet(n = nrow(dtm), alpha = alpha) + 
+      .Machine$double.eps # avoid underflow
   }
   
   # initialize Cd by calling recover_counts_from_probs

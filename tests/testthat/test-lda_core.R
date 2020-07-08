@@ -99,6 +99,23 @@ test_that("can fit lda models without error", {
   expect_true(inherits(lda$beta, "matrix"))
 })
 
+test_that("sparse priors for beta don't cause underflow failures", {
+  m <- tidylda(
+    dtm = textmineR::nih_sample_dtm,
+    k = 10,
+    iterations = 20,
+    burnin = 15,
+    alpha = 0.05,
+    beta = 0.01,
+    optimize_alpha = FALSE,
+    calc_likelihood = TRUE,
+    calc_r2 = FALSE,
+    return_data = FALSE
+  )
+  
+  expect_s3_class(m, "tidylda")
+})
+
 test_that("errors hit for malformed parameters", {
 
   # k = 1 is bad

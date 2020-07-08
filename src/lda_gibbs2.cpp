@@ -49,7 +49,7 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
   RcppThread::parallelFor(
     0,
     dtm.n_cols,
-    [&Cd, &Phi, &dtm, &alpha, &sum_alpha, &docs, &Zd, &Nk](unsigned int d) {
+    [&](unsigned int d) {
       arma::vec qz(Nk);
       
       // arma::ivec       topic_index = Rcpp::seq_len(Nk) - 1;

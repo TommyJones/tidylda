@@ -23,11 +23,11 @@
 #' }
 #' @export
 glance.tidylda <- function(x, ...) {
-
+  
   # get some objects to return
   if (inherits(x$call, "call")) {
     call_params <- as.list(x$call)
-
+    
     if (!"burnin" %in% names(call_params)) {
       call_params$burnin <- NA
     }
@@ -37,7 +37,7 @@ glance.tidylda <- function(x, ...) {
       burnin = NA
     )
   }
-
+  
   out <- data.frame(
     num_topics = nrow(x$phi),
     num_documents = nrow(x$theta),
@@ -46,7 +46,7 @@ glance.tidylda <- function(x, ...) {
     burnin = call_params$burnin,
     stringsAsFactors = FALSE
   )
-
+  
   tibble::as_tibble(out)
 }
 
@@ -141,7 +141,7 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     colnames(out) <- c("topic", "token", "gamma")
     
     out$topic <- as.numeric(out$topic)
-
+    
   } else { # meanse matrix  == theta
     
     colnames(out) <- c("document", "topic", "theta")
@@ -158,4 +158,143 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
   
   out
   
+}
+
+
+#' Augment method for \code{tidylda} bjects
+#' @description
+#'   \code{augment} appends observation level model outputs.
+#' @param x an object of class \code{tidylda}
+#' @param data a tidy tibble containing one row per original document-token pair, 
+#'   such as is returned by \link[tidytext]{tdm_tidiers} with column names
+#'   c("document", "term") at a minimum.
+#' @param type one of either "class" or "prob"
+#' @param ... other arguments passed to methods,currently not used
+#' @return
+#'   \code{augment} returns a tidy tibble containing one row per document-token
+#'   pair, with one or more columns appended, depending on the value of \code{type}.
+#'   
+#'   If \code{type = 'prob'}, then one column per topic is appended. Its value
+#'   is P(topic | document, token).
+#'   
+#'   If \code{type = 'class'}, then the most-probable topic for each document-token
+#'   pair is returned. If multiple topics are equally probable, then the topic
+#'   with the smallest index is returned by default.
+#' @details 
+#'   The key statistic for \code{augment} is P(topic | document, token) =
+#'   P(topic | token) * P(token | document). P(topic | token) are the entries
+#'   of the 'gamma' matrix in the \code{\link[tidylda]{tidylda}} object passed
+#'   with \code{x}. P(token | document) is taken to be the frequency of each
+#'   token normalized within each document.
+#' @examples
+#' \donttest{
+#' docs <- textmineR::nih_sample 
+#' 
+#' # tokenize using tidytext's unnest_tokens
+#' tidy_docs <- docs %>% 
+#'   select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
+#'   unnest_tokens(output = word, 
+#'                 input = ABSTRACT_TEXT,
+#'                 stopwords = stop_words$word,
+#'                 token = "ngrams",
+#'                 n_min = 1, n = 2) %>% 
+#'   count(APPLICATION_ID, word) %>% 
+#'   filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
+#' 
+#' tidy_docs <- tidy_docs %>% # filter words that are just numbers
+#'   filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
+#'   
+#' dtm <- tidy_docs %>% 
+#'   cast_sparse(APPLICATION_ID, word, n)
+#'
+#' lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
+#'
+#' # using sparse dtm
+#' augment(lda, dtm, "prob")
+#' 
+#' # using tidy tibble
+#' augment(lda, tidy_docs, "class")
+#' }
+#' @export
+augment.tidylda <- function(
+  x,
+  data,
+  type = c("class", "prob"),
+  ...
+) {
+  
+  # check inputs
+  if (sum(c("class", "prob") %in% type[1]) < 1) {
+    stop("type must be one of 'class' or 'prob'")
+  }
+  
+  # If they didn't pass a data.frame or if that data.frame doesn't have the right
+  # columns, then try to make a dtm , get its relative frequencies, and re-create
+  # a tibble with document-token pairs
+  if (! inherits(data, "data.frame")) {
+    
+    dtm <- try(
+      convert_dtm(data),
+      silent = TRUE
+    )
+    
+    if (inherits(dtm, "try-error")) { # if that fails exit
+      stop(
+        "data argument must either be a data.frame or tibble with 'document' and 'term' columns ",
+        "or coercible to a dgCMatrix. Supported classes are ",
+        "c('Matrix', 'matrix', 'simple_triplet_matrix', 'dfm', 'DocumentTermMatrix'), ",
+        "However, I see class(data) = ", class(data)
+      )
+    } 
+    
+    # get each row to sum to one
+    dtm <- dtm / Matrix::rowSums(dtm)
+    
+    # cast as a triplet matrix
+    data <- tidylda:::tidy.dgCMatrix(dtm)
+    
+    
+  }else {
+    if (! all(c("document", "term") %in% colnames(data))) {
+      stop("data is a data.frame but it does not have c('document' and 'term') colnames)")
+    }
+    
+  }
+  
+  tidy_gamma <- tidy(x, "gamma")
+  
+  tidy_gamma <- tidyr::pivot_wider(
+    tidy_gamma, 
+    names_from = topic, 
+    values_from = gamma
+  )
+  
+  result <- dplyr::left_join(
+    data,
+    tidy_gamma,
+    by = c("term" = "token")
+  )
+  
+  topic_names <- colnames(x$theta)
+  
+  result[, topic_names] <- 
+    tibble::as_tibble(
+      lapply(
+        result[, topic_names], 
+        function(tn) tn * result[["count"]]
+      )
+    )
+  
+  # return class or probs based on user input
+  if (type[1] == "class") {
+    tmp <- apply(result[, topic_names], 1,function(y) which.max(y)[1])
+    
+    result$topic <- tmp
+    
+    result <- result[, c("document", "term", "topic")]
+  } else {
+    result <- result[, c("document", "term", topic_names)]
+  }
+  
+  result  
 }

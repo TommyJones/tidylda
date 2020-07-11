@@ -72,17 +72,14 @@ unseen documents, and update the model with those new documents.
 library(tidytext)
 library(tidyverse)
 #> ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
-#> ✓ ggplot2 3.3.0     ✓ purrr   0.3.4
-#> ✓ tibble  3.0.2     ✓ dplyr   1.0.0
+#> ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
+#> ✓ tibble  3.0.3     ✓ dplyr   1.0.0
 #> ✓ tidyr   1.1.0     ✓ stringr 1.4.0
 #> ✓ readr   1.3.1     ✓ forcats 0.5.0
 #> ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)
-#> Registered S3 method overwritten by 'tidylda':
-#>   method      from 
-#>   tidy.matrix broom
 library(Matrix)
 #> 
 #> Attaching package: 'Matrix'
@@ -108,10 +105,14 @@ tidy_docs <- docs %>%
 tidy_docs <- tidy_docs %>% # filter words that are just numbers
   filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
 
+# append observation level data 
+colnames(tidy_docs)[1:2] <- c("document", "term")
+
+
 # turn a tidy tbl into a sparse dgCMatrix 
 # note tidylda has support for several document term matrix formats
 d <- tidy_docs %>% 
-  cast_sparse(APPLICATION_ID, word, n)
+  cast_sparse(document, term, n)
 
 # let's split the documents into two groups to demonstrate predictions and updates
 d1 <- d[1:50, ]
@@ -238,7 +239,7 @@ tidy_phi
 #>  7     1 information  0.00232  
 #>  8     1 mdd          0.0000566
 #>  9     1 onset        0.0000566
-#> 10     1 onset.mdd    0.0000566
+#> 10     1 onset mdd    0.0000566
 #> # … with 15,960 more rows
 
 tidy_gamma <- tidy(lda, matrix = "gamma")
@@ -256,8 +257,27 @@ tidy_gamma
 #>  7     1 information  0.276  
 #>  8     1 mdd          0.0115 
 #>  9     1 onset        0.00786
-#> 10     1 onset.mdd    0.0206 
+#> 10     1 onset mdd    0.0206 
 #> # … with 15,960 more rows
+
+# append observation-level data
+augmented_docs <- augment(lda, data = tidy_docs)
+
+augmented_docs
+#> # A tibble: 4,893 x 3
+#>    document term         topic
+#>    <chr>    <chr>        <int>
+#>  1 8574224  adolescence     10
+#>  2 8574224  age             10
+#>  3 8574224  application      2
+#>  4 8574224  depressive      10
+#>  5 8574224  disorder        10
+#>  6 8574224  emotionality    10
+#>  7 8574224  information      8
+#>  8 8574224  mdd             10
+#>  9 8574224  onset            3
+#> 10 8574224  onset mdd       10
+#> # … with 4,883 more rows
 
 ### predictions on held out data ---
 # two methods: gibbs is cleaner and more techically correct in the bayesian sense
@@ -336,6 +356,7 @@ print(lda2)
 #> 5     8      10       0.0953 health, risk, the, ...          
 #> # … with 5 more rows
 
+
 # how does that compare to the old model?
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1597  tokens:
@@ -372,8 +393,6 @@ the various functions when I write the vignettes.
 
 Planned updates include:
 
-  - an `augment` method to append distributions of `theta`, `phi`, or
-    `gamma` to a tidy tibble of tokens
   - various functions to compare topic models to evaluate the effects of
     `refit`. (Although the functions will likely be general enough that
     you could compare any topic models.)

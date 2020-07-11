@@ -91,10 +91,14 @@ tidy_docs <- docs %>%
 tidy_docs <- tidy_docs %>% # filter words that are just numbers
   filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
 
+# append observation level data 
+colnames(tidy_docs)[1:2] <- c("document", "term")
+
+
 # turn a tidy tbl into a sparse dgCMatrix 
 # note tidylda has support for several document term matrix formats
 d <- tidy_docs %>% 
-  cast_sparse(APPLICATION_ID, word, n)
+  cast_sparse(document, term, n)
 
 # let's split the documents into two groups to demonstrate predictions and updates
 d1 <- d[1:50, ]
@@ -151,6 +155,11 @@ tidy_gamma <- tidy(lda, matrix = "gamma")
 
 tidy_gamma
 
+# append observation-level data
+augmented_docs <- augment(lda, data = tidy_docs)
+
+augmented_docs
+
 ### predictions on held out data ---
 # two methods: gibbs is cleaner and more techically correct in the bayesian sense
 p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
@@ -188,6 +197,7 @@ glance(lda2)
 
 print(lda2)
 
+
 # how does that compare to the old model?
 print(lda)
 ```
@@ -196,7 +206,6 @@ I plan to have more analyses and a fuller accounting of the options of the vario
 
 Planned updates include:
 
-* an `augment` method to append distributions of `theta`, `phi`, or `gamma` to a tidy tibble of tokens
 * various functions to compare topic models to evaluate the effects of `refit`. (Although the functions will likely be general enough that you could compare any topic models.)
 
 If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email: jones.thos.w at gmail.com.

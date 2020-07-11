@@ -119,11 +119,9 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     stop("log must be logical.")
   }
   
-  out <- data.frame(
-    names_col = rownames(x),
-    x,
-    stringsAsFactors = FALSE
-  )
+  out <- as.data.frame(x, stringsAsFactors = FALSE)
+  
+  out$names_col <- rownames(x)
   
   out <- tidyr::pivot_longer(
     data = out, cols = setdiff(colnames(out), "names_col"),
@@ -161,7 +159,7 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
 }
 
 
-#' Augment method for \code{tidylda} bjects
+#' Augment method for \code{tidylda} objects
 #' @description
 #'   \code{augment} appends observation level model outputs.
 #' @param x an object of class \code{tidylda}
@@ -186,35 +184,6 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
 #'   of the 'gamma' matrix in the \code{\link[tidylda]{tidylda}} object passed
 #'   with \code{x}. P(token | document) is taken to be the frequency of each
 #'   token normalized within each document.
-#' @examples
-#' \donttest{
-#' docs <- textmineR::nih_sample 
-#' 
-#' # tokenize using tidytext's unnest_tokens
-#' tidy_docs <- docs %>% 
-#'   select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
-#'   unnest_tokens(output = word, 
-#'                 input = ABSTRACT_TEXT,
-#'                 stopwords = stop_words$word,
-#'                 token = "ngrams",
-#'                 n_min = 1, n = 2) %>% 
-#'   count(APPLICATION_ID, word) %>% 
-#'   filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
-#' 
-#' tidy_docs <- tidy_docs %>% # filter words that are just numbers
-#'   filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
-#'   
-#' dtm <- tidy_docs %>% 
-#'   cast_sparse(APPLICATION_ID, word, n)
-#'
-#' lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
-#'
-#' # using sparse dtm
-#' augment(lda, dtm, "prob")
-#' 
-#' # using tidy tibble
-#' augment(lda, tidy_docs, "class")
-#' }
 #' @export
 augment.tidylda <- function(
   x,
@@ -251,13 +220,26 @@ augment.tidylda <- function(
     dtm <- dtm / Matrix::rowSums(dtm)
     
     # cast as a triplet matrix
-    data <- tidylda:::tidy.dgCMatrix(dtm)
+    data <- tidy_dgcmatrix(dtm)
     
     
   }else {
     if (! all(c("document", "term") %in% colnames(data))) {
       stop("data is a data.frame but it does not have c('document' and 'term') colnames)")
     }
+    
+    # if a tidy tibble, need to get fraction of words in each document
+    tmp <- 
+      data %>% 
+      dplyr::group_by(document, term) %>%
+      dplyr::summarise(n = dplyr::n()) %>%
+      dplyr::mutate(count = n / sum(n))
+    
+    data <- dplyr::left_join(
+      data, 
+      tmp,
+      by = c("document" = "document", "term" = "term")
+    )
     
   }
   
@@ -278,12 +260,7 @@ augment.tidylda <- function(
   topic_names <- colnames(x$theta)
   
   result[, topic_names] <- 
-    tibble::as_tibble(
-      lapply(
-        result[, topic_names], 
-        function(tn) tn * result[["count"]]
-      )
-    )
+    result[, topic_names] * result$count
   
   # return class or probs based on user input
   if (type[1] == "class") {
@@ -298,3 +275,5 @@ augment.tidylda <- function(
   
   result  
 }
+
+

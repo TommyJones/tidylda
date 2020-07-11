@@ -729,15 +729,43 @@ calc_lda_r2 <- function(dtm, theta, phi, threads) {
   r2
 }
 
+#' Utility function to tidy a simple triplet matrix
+#' @keywords internal
+#' @param x Object with rownames and colnames
+#' @param triplets A data frame or list of i, j, x
+#' @param row_names rownames, if not gotten from rownames(x)
+#' @param col_names colnames, if not gotten from colnames(x)
+#' @note This function ported from \code{\link[tidytext]{tidytext}}, copyright
+#'   2017 David Robinson and Julia Silge. Moved the function here for stability
+#'   reasons, as it is internal to tidytext
+tidy_triplet <- function(x, triplets, row_names = NULL, col_names = NULL) {
+  row <- triplets$i
+  if (!is.null(row_names)) {
+    row <- row_names[row]
+  } else if (!is.null(rownames(x))) {
+    row <- rownames(x)[row]
+  }
+  col <- triplets$j
+  if (!is.null(col_names)) {
+    col <- col_names[col]
+  } else if (!is.null(colnames(x))) {
+    col <- colnames(x)[col]
+  }
+  
+  ret <- tibble::tibble(row = row, column = col, value = triplets$x)
+  ret
+}
+
 #' Create a tidy tibble for a dgCMatrix
 #' @keywords internal
 #' @description Create a tidy tibble for a dgCMatrix. Will probably be a PR to
 #'   \link[tidytext]{tidytext} in the future
 #' @param x must be of class dgCMatrix
 #' @param ... Extra arguments, not used
-tidy.dgCMatrix <- function(x, ...) {
+#' @return Returns a triplet matrix with columns "document", "term", and "count"
+tidy_dgcmatrix <- function(x, ...) {
   triplets <- Matrix::summary(methods::as(x, "dgTMatrix"))
-  ret <- tidytext:::tidy_triplet(x, triplets)
+  ret <- tidy_triplet(x, triplets)
   colnames(ret) <- c("document", "term", "count")
   ret
 }

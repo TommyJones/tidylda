@@ -55,6 +55,8 @@ test_that("tidy.tidylda works as expected", {
   
   expect_type(tidy_phi_log[[3]], "double")
   
+  expect_equal(sum(colnames(lda$phi) %in% tidy_phi$token), length(colnames(lda$phi)))
+  
   # tidy theta
   tidy_theta <- tidy(
     x = lda,
@@ -69,6 +71,8 @@ test_that("tidy.tidylda works as expected", {
   
   expect_type(tidy_theta[[3]], "double")
   
+  expect_equal(sum(colnames(lda$theta) %in% tidy_theta$topic), length(colnames(lda$theta)))
+  
   # tidy gamma
   tidy_gamma <- tidy(
     x = lda,
@@ -82,6 +86,8 @@ test_that("tidy.tidylda works as expected", {
   expect_type(tidy_gamma[[2]], "character")
   
   expect_type(tidy_gamma[[3]], "double")
+  
+  expect_equal(sum(colnames(lda$gamma) %in% tidy_gamma$token), length(colnames(lda$gamma)))
   
 })
 
@@ -201,19 +207,16 @@ test_that("glance works with updated models", {
 ### tests for the glance method ----
 
 # make a tidy tibble
+# note this uses unigrams and bigrams to ensure that there isn't 
+# 100% overlap in vocabulary between data and model
 tidy_docs <- 
-  textmineR::nih_sample[1:50, ] %>% 
+  textmineR::nih_sample[1:10, ] %>% 
   dplyr::select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
   tidytext::unnest_tokens(output = word, 
                           input = ABSTRACT_TEXT,
                           stopwords = tidytext::stop_words$word,
                           token = "ngrams",
-                          n_min = 1, n = 2) %>% 
-  dplyr::count(APPLICATION_ID, word) %>% 
-  dplyr::filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
-
-tidy_docs <- tidy_docs %>% # filter words that are just numbers
-  dplyr::filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
+                          n_min = 1, n = 2) 
 
 test_that("augment.tidylda behaves nicely", {
   
@@ -234,39 +237,31 @@ test_that("augment.tidylda behaves nicely", {
   # correctly identified topics?
   expect_equal(
     a %>% 
-      filter(term %in% colnames(lda$phi)) %>%
-      select(topic) %>%
-      colSums(),
+      dplyr::filter(term %in% colnames(lda$phi)) %>%
+      dplyr::select(topic) %>%
+      dplyr::summarise(na_topic = sum(is.na(topic))) %>%
+      as.numeric,
     0,
-    label = "augment + data.frame + class"
+    label = "augment is.na(topic class)"
   )
   
   # sparse dtm input
   
-  sd <- tidytext::cast_sparse(
-    td, 
-    document,
-    term,
-    n
-  )
-  
   a <- augment(
     x = lda,
-    data = sd,
+    data = d1,
     type = "prob"
   )
   
-  expect_equal(
+  expect_false(
     a %>% 
-      filter(term %in% colnames(lda$phi)) %>%
-      select(-c(document, term)) %>%
+      dplyr::filter(term %in% colnames(lda$phi)) %>%
+      dplyr::select(-c(document, term)) %>%
       colSums() %>%
-      sum,
-    0,
-    label = "augment + dtm + prob"
+      sum %>% 
+      is.na,
+    label = "augment is.na(topic probs)"
   )
-  
-  
   
   # probably should test other dtm types...
   
@@ -275,6 +270,28 @@ test_that("augment.tidylda behaves nicely", {
 
 test_that("augment.tidylda reacts to malformed inputs correctly", {
   
+  expect_error(
+    augment(
+      x = "wat",
+      data = d1,
+      type = "prob"
+    )
+  )
   
+  expect_error(
+    augment(
+      x = lda,
+      data = "wat",
+      type = "prob"
+    )
+  )
+  
+  expect_error(
+    augment(
+      x = lda,
+      data = d1,
+      type = "wat"
+    )
+  )
   
 })

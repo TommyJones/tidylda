@@ -134,3 +134,15 @@ test_that("format_alpha also chokes on bad inputs", {
   # alpha doesn't conform to vocabulary or topics
   expect_error(format_alpha(alpha = numeric(5) + 3, k = 3))
 })
+
+test_that("tidy_dgcmatrix works as expected",{
+  
+  d <- convert_dtm(triplet_dtm)
+  
+  tmat <- tidy_dgcmatrix(d)
+  
+  expect_equal(sum(colnames(d) %in% tmat$term), ncol(d))
+  
+  expect_equal(nrow(tmat), sum(d > 0))
+  
+})

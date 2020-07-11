@@ -2,7 +2,7 @@
 % Please edit documentation in R/tidy-methods.R
 \name{augment.tidylda}
 \alias{augment.tidylda}
-\title{Augment method for \code{tidylda} bjects}
+\title{Augment method for \code{tidylda} objects}
 \usage{
 \method{augment}{tidylda}(x, data, type = c("class", "prob"), ...)
 }
@@ -37,34 +37,4 @@ The key statistic for \code{augment} is P(topic | document, token) =
   of the 'gamma' matrix in the \code{\link[tidylda]{tidylda}} object passed
   with \code{x}. P(token | document) is taken to be the frequency of each
   token normalized within each document.
-}
-\examples{
-\donttest{
-docs <- textmineR::nih_sample 
-
-# tokenize using tidytext's unnest_tokens
-tidy_docs <- docs \%>\% 
-  select(APPLICATION_ID, ABSTRACT_TEXT) \%>\% 
-  unnest_tokens(output = word, 
-                input = ABSTRACT_TEXT,
-                stopwords = stop_words$word,
-                token = "ngrams",
-                n_min = 1, n = 2) \%>\% 
-  count(APPLICATION_ID, word) \%>\% 
-  filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
-
-tidy_docs <- tidy_docs \%>\% # filter words that are just numbers
-  filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
-  
-dtm <- tidy_docs \%>\% 
-  cast_sparse(APPLICATION_ID, word, n)
-
-lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
-
-# using sparse dtm
-augment(lda, dtm, "prob")
-
-# using tidy tibble
-augment(lda, tidy_docs, "class")
-}
 }

@@ -273,7 +273,7 @@ augment.tidylda <- function(
     result <- result[, c("document", "term", topic_names)]
   }
   
-  result  
+  tibble::as_tibble(result)  
 }
 
 

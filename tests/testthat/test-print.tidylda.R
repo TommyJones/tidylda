@@ -28,10 +28,10 @@ lda <- tidylda(
 test_that("print.tidylda behaves as expected", {
   
   # no error
-  print(lda)
+  capture.output(print(lda))
   
   # assignment creates a new object of class tidylda
-  m <- print(lda)
+  capture.output(m <- print(lda))
   
   expect_true("tidylda" %in% class(m))
   
@@ -40,5 +40,5 @@ test_that("print.tidylda behaves as expected", {
   # can modify digits
   m2 <- tidylda(dtm = d1, k = 5, iterations = 20, calc_r2 = TRUE)
   
-  print(m2, digits = 2)
+  capture.output(print(m2, digits = 2))
 })

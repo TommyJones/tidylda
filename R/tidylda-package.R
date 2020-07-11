@@ -25,6 +25,7 @@ NULL
 #' @importFrom textmineR CalcTopicModelR2
 #' @importFrom tibble as_tibble
 #' @importFrom tidyr pivot_longer
+#' @importFrom tidyr %>%
 #' @importFrom tidytext cast_dfm
 #' @importFrom tidytext cast_dtm
 #' @useDynLib "tidylda", .registration=TRUE

@@ -300,6 +300,52 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 
 ``` r
 
+### Augment as an implicit prediction using the 'dot' method ----
+# Aggregating over terms results in a distribution of topics over documents
+# roughly equivalent to using the "dot" method of predictions.
+augment_predict <- 
+  augment(lda, tidy_docs, "prob") %>%
+  group_by(document) %>% 
+  select(-c(document, term)) %>% 
+  summarise_all(function(x) sum(x, na.rm = T))
+#> Adding missing grouping variables: `document`
+
+# reformat for easy plotting
+augment_predict <- 
+  as_tibble(t(augment_predict[, -1]))
+#> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
+#> Using compatibility `.name_repair`.
+#> This warning is displayed once every 8 hours.
+#> Call `lifecycle::last_warnings()` to see where this warning was generated.
+
+colnames(augment_predict) <- unique(tidy_docs$document)
+
+augment_predict$topic <- 1:nrow(augment_predict) %>% as.factor()
+
+compare_mat <- 
+  augment_predict %>%
+  select(
+    topic,
+    augment = matches(rownames(d2)[1])
+  ) %>%
+  mutate(
+    augment = augment / sum(augment), # normalize to sum to 1
+    dot = p_dot[1, ]
+  ) %>%
+  pivot_longer(cols = c(augment, dot))
+
+ggplot(compare_mat) + 
+  geom_bar(aes(y = value, x = topic, group = name, fill = name), 
+           stat = "identity", position = "dodge") +
+  labs(title = "Prediction using 'augment' vs 'predict(..., method = \"dot\")'")
+```
+
+<img src="man/figures/README-example-3.png" width="100%" />
+
+``` r
+
+# Not shown: aggregating over documents results in recovering the "tidy" gamma.
+
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
 lda2 <- refit(
@@ -317,7 +363,7 @@ qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "lin
   ggtitle("Checking model convergence")
 ```
 
-<img src="man/figures/README-example-3.png" width="100%" />
+<img src="man/figures/README-example-4.png" width="100%" />
 
 ``` r
 
@@ -391,13 +437,10 @@ print(lda)
 I plan to have more analyses and a fuller accounting of the options of
 the various functions when I write the vignettes.
 
-Planned updates include:
-
-  - various functions to compare topic models to evaluate the effects of
-    `refit`. (Although the functions will likely be general enough that
-    you could compare any topic models.)
+See the “Issues” tab on GitHub to see planned features as well as bug
+fixes.
 
 If you have any suggestions for additional functionality, changes to
 functionality, changes to arguments or other aspects of the API please
-let me know by opening an issue or sending me an email: jones.thos.w at
-gmail.com.
+let me know by opening an issue on GitHub or sending me an email:
+jones.thos.w at gmail.com.

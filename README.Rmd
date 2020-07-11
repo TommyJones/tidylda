@@ -176,6 +176,42 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
   scale_x_continuous(breaks = 1:10, labels = 1:10) + 
   ggtitle("Gibbs predictions vs. dot product predictions")
 
+### Augment as an implicit prediction using the 'dot' method ----
+# Aggregating over terms results in a distribution of topics over documents
+# roughly equivalent to using the "dot" method of predictions.
+augment_predict <- 
+  augment(lda, tidy_docs, "prob") %>%
+  group_by(document) %>% 
+  select(-c(document, term)) %>% 
+  summarise_all(function(x) sum(x, na.rm = T))
+
+# reformat for easy plotting
+augment_predict <- 
+  as_tibble(t(augment_predict[, -1]))
+
+colnames(augment_predict) <- unique(tidy_docs$document)
+
+augment_predict$topic <- 1:nrow(augment_predict) %>% as.factor()
+
+compare_mat <- 
+  augment_predict %>%
+  select(
+    topic,
+    augment = matches(rownames(d2)[1])
+  ) %>%
+  mutate(
+    augment = augment / sum(augment), # normalize to sum to 1
+    dot = p_dot[1, ]
+  ) %>%
+  pivot_longer(cols = c(augment, dot))
+
+ggplot(compare_mat) + 
+  geom_bar(aes(y = value, x = topic, group = name, fill = name), 
+           stat = "identity", position = "dodge") +
+  labs(title = "Prediction using 'augment' vs 'predict(..., method = \"dot\")'")
+
+# Not shown: aggregating over documents results in recovering the "tidy" gamma.
+
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?
 lda2 <- refit(
@@ -204,9 +240,7 @@ print(lda)
 
 I plan to have more analyses and a fuller accounting of the options of the various functions when I write the vignettes.
 
-Planned updates include:
+See the "Issues" tab on GitHub to see planned features as well as bug fixes.
 
-* various functions to compare topic models to evaluate the effects of `refit`. (Although the functions will likely be general enough that you could compare any topic models.)
-
-If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue or sending me an email: jones.thos.w at gmail.com.
+If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue on GitHub or sending me an email: jones.thos.w at gmail.com.
 

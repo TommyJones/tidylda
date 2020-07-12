@@ -250,11 +250,11 @@ refit.tidylda <- function(
   dtm <- cbind(dtm, m_add_to_dtm)
 
   # uniform prior over new words
-  beta$beta <- cbind(beta$beta, m_add_to_model + median(beta$beta))
+  beta$beta <- cbind(beta$beta, m_add_to_model + stats::median(beta$beta))
 
   beta$beta <- beta$beta[, colnames(dtm)]
 
-  phi_initial <- cbind(phi_initial, m_add_to_model + median(phi_initial))
+  phi_initial <- cbind(phi_initial, m_add_to_model + stats::median(phi_initial))
 
   phi_initial <- phi_initial[, colnames(dtm)] / rowSums(phi_initial[, colnames(dtm)])
 

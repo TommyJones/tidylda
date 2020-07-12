@@ -7,10 +7,6 @@
 \alias{glance}
 \alias{tidy}
 \alias{refit}
-\alias{colSums}
-\alias{colMeans}
-\alias{rowSums}
-\alias{rowMeans}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -19,7 +15,5 @@ below to see their documentation.
 
 \describe{
   \item{generics}{\code{\link[generics]{augment}}, \code{\link[generics]{glance}}, \code{\link[generics]{refit}}, \code{\link[generics]{tidy}}}
-
-  \item{Matrix}{\code{\link[Matrix:colSums]{colMeans}}, \code{\link[Matrix]{colSums}}, \code{\link[Matrix:colSums]{rowMeans}}, \code{\link[Matrix:colSums]{rowSums}}}
 }}
 

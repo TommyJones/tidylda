@@ -44,19 +44,4 @@ generics::tidy
 #' @export
 generics::refit
 
-#' @importFrom Matrix colSums
-#' @export
-Matrix::colSums
-
-#' @importFrom Matrix colMeans
-#' @export
-Matrix::colMeans
-
-#' @importFrom Matrix rowSums
-#' @export
-Matrix::rowSums
-
-#' @importFrom Matrix rowMeans
-#' @export
-Matrix::rowMeans
 

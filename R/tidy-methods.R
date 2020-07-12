@@ -231,9 +231,9 @@ augment.tidylda <- function(
     # if a tidy tibble, need to get fraction of words in each document
     tmp <- 
       data %>% 
-      dplyr::group_by(document, term) %>%
+      dplyr::group_by(.data$document, .data$term) %>%
       dplyr::summarise(n = dplyr::n()) %>%
-      dplyr::mutate(count = n / sum(n))
+      dplyr::mutate(count = .data$n / sum(.data$n))
     
     data <- dplyr::left_join(
       data, 
@@ -247,8 +247,8 @@ augment.tidylda <- function(
   
   tidy_gamma <- tidyr::pivot_wider(
     tidy_gamma, 
-    names_from = topic, 
-    values_from = gamma
+    names_from = .data$topic, 
+    values_from = .data$gamma
   )
   
   result <- dplyr::left_join(

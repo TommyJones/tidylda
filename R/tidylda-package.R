@@ -14,6 +14,7 @@ NULL
 #' @importFrom gtools rdirichlet
 #' @importFrom methods as
 #' @importFrom Rcpp sourceCpp
+#' @importFrom rlang .data
 #' @importFrom stats median
 #' @importFrom stringr str_replace_all
 #' @importFrom textmineR CalcGamma

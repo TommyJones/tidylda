@@ -418,9 +418,9 @@ initialize_topic_counts <- function(
   # executed in parallel with RcppThread
   lexicon <- 
     create_lexicon(
-      Cd = Cd_start,
-      Phi = phi_initial,
-      dtm = dtm, 
+      Cd_in = Cd_start,
+      Phi_in = phi_initial,
+      dtm_in = dtm, 
       alpha = alpha,
       freeze_topics = freeze_topics,
       threads = threads

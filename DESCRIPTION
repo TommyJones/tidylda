@@ -37,6 +37,7 @@ Imports:
     methods,
     mvrsquared (>= 0.1.0),
     Rcpp (>= 1.0.2),
+    rlang,
     stats,
     stringr,
     textmineR,

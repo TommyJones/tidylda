@@ -13,10 +13,6 @@ NULL
 #' @import Rcpp
 #' @importFrom gtools rdirichlet
 #' @importFrom methods as
-#' @importFrom Matrix colSums
-#' @importFrom Matrix rowSums
-#' @importFrom Matrix rbind2
-#' @importFrom Matrix cbind2
 #' @importFrom Rcpp sourceCpp
 #' @importFrom stats median
 #' @importFrom stringr str_replace_all
@@ -46,3 +42,20 @@ generics::tidy
 #' @importFrom generics refit
 #' @export
 generics::refit
+
+#' @importFrom Matrix colSums
+#' @export
+Matrix::colSums
+
+#' @importFrom Matrix colMeans
+#' @export
+Matrix::colMeans
+
+#' @importFrom Matrix rowSums
+#' @export
+Matrix::rowSums
+
+#' @importFrom Matrix rowMeans
+#' @export
+Matrix::rowMeans
+

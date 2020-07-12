@@ -17,65 +17,74 @@
 //' @description
 //'   One run of the Gibbs sampler and other magic to initialize some objects.
 //'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-//' @param Cd IntegerMatrix denoting counts of topics in documents
-//' @param Phi NumericMatrix denoting probability of words in topics
-//' @param dtm arma::sp_mat document term matrix
+//' @param Cd_in IntegerMatrix denoting counts of topics in documents
+//' @param Phi_in NumericMatrix denoting probability of words in topics
+//' @param dtm_in arma::sp_mat document term matrix
 //' @param alpha NumericVector prior for topics over documents
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
+//' @details
+//'   Arguments ending in \code{_in} are copied and their copies modified in
+//'   some way by this function. In the case of \code{Cd_in} and \code{Phi_in},
+//'   the only modification is that they are converted from matrices to nested
+//'   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
+//'   is transposed for speed when looping over columns. 
 // [[Rcpp::export]]
-Rcpp::List create_lexicon(arma::imat&      Cd,
-                          const arma::mat& Phi,
-                          arma::sp_mat&    dtm,
-                          const arma::vec  alpha,
-                          const bool       freeze_topics,
-                          const int        threads) {
+Rcpp::List create_lexicon(
+    const IntegerMatrix&       Cd_in,
+    const NumericMatrix&       Phi_in,
+    const arma::sp_mat&        dtm_in,
+    const std::vector<double>& alpha,
+    const bool&                freeze_topics,
+    const int&                 threads
+) {
   // ***************************************************************************
   // Initialize some variables
   // ***************************************************************************
   
-  dtm = dtm.t(); // transpose dtm to take advantage of column major & parallel
-  Cd  = Cd.t();  // transpose to put columns up
+  arma::sp_mat dtm = dtm_in.t(); // transpose dtm to take advantage of column major & parallel
+  // Cd  = Cd.t();  // transpose to put columns up
   
-  auto                    sum_alpha = sum(alpha);
-  std::vector<arma::imat> docs(dtm.n_cols);
-  std::vector<arma::imat> Zd(dtm.n_cols);
+  auto Cd = mat_to_vec(Cd_in, true);
+  auto Phi = mat_to_vec(Phi_in, true);
   
-  auto Nk = Cd.n_rows;
+  std::vector<std::vector<std::size_t>> Docs(dtm.n_cols);
+  std::vector<std::vector<std::size_t>> Zd(dtm.n_cols);
+  
+  const std::size_t Nv = dtm.n_rows;
+  const std::size_t Nd = Cd.size();
+  const std::size_t Nk = Phi.size();
+  
+  auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
   
   // ***************************************************************************
   // Go through each document and split it into a lexicon and then sample a
   // topic for each token within that document
   // ***************************************************************************
-  RcppThread::parallelFor(
-    0,
-    dtm.n_cols,
-    [&](unsigned int d) {
-      arma::vec qz(Nk);
+  RcppThread::parallelFor(0, Nd, [&](std::size_t d) {
       
-      // arma::ivec       topic_index = Rcpp::seq_len(Nk) - 1;
-      std::vector<int> topic_index(Nk);
-      std::iota(std::begin(topic_index), std::end(topic_index), 0);
+      std::vector<double> qz(Nk); // placehodler for probability of topic
+      
+      arma::uword z; // placeholder for topic sampled
       
       // make a temporary vector to hold token indices
       auto nd(0);
       
-      for (auto v = 0; v < dtm.n_rows; ++v) {
+      for (auto v = 0; v < Nv; ++v) {
         nd += dtm(v, d);
       }
       
-      arma::ivec doc(nd);
-      arma::ivec zd(nd);
-      arma::ivec z(1);
-      
+      std::vector<std::size_t> doc(nd);
+      std::vector<std::size_t> zd(nd);
+
       // fill in with token indices
       std::size_t j = 0; // index of doc, advances when we have non-zero entries
       
-      for (auto v = 0; v < dtm.n_rows; ++v) {
+      for (auto v = 0; v < Nv; ++v) {
         if (dtm(v, d) > 0) { // if non-zero, add elements to doc
           
           // calculate probability of topics based on initially-sampled Phi and Cd
           for (auto k = 0; k < Nk; ++k) {
-            qz[k] = log(Phi(k, v)) + log(Cd(k, d) + alpha[k]) - log(nd + sum_alpha - 1);
+            qz[k] = log(Phi[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
           }
           
           std::size_t idx(j + dtm(v, d)); // where to stop the loop below
@@ -83,66 +92,94 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
           while (j < idx) {
             doc[j] = v;
             z      = lsamp_one(qz); // sample a topic here
-            zd[j]  = z[0];
+            zd[j]  = z;
             j++;
           }
         }
       }
       
       // fill in docs[d] with the matrix we made
-      docs[d] = doc;
+      Docs[d] = doc;
       
       Zd[d] = zd;
       
       RcppThread::checkUserInterrupt();
-    },
-    threads);
+    },threads);
   
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
   // ***************************************************************************
-  arma::imat Cd_out(Nk, dtm.n_cols);
   
-  Cd_out.fill(0);
+  // initialize Ck
+  std::vector<long> Ck(Nk);
   
-  arma::ivec Ck(Nk);
+  for (auto k = 0; k < Nk; k++) {
+    Ck[k] = 0;
+  }
   
-  Ck.fill(0);
+  // initialize Cv; Unlike in fit_lda_c(), this Cv is token major, not topic major
+  // this is so it's accessed efficiently below
+  std::vector<std::vector<long>> Cv(Nv);
   
-  arma::imat Cv(Nk, dtm.n_rows);
-  
-  Cv.fill(0);
-  
-  for (auto d = 0; d < Zd.size(); ++d) {
-    arma::ivec zd  = Zd[d];
-    arma::ivec doc = docs[d];
+  RcppThread::parallelFor(0, Nv, [&Cv, &Nk] (std::size_t v) {
+    std::vector<long> cv_row(Nk);
+    for (auto k = 0; k < Nk; k++) {
+      cv_row[k] = 0;
+    }
+    Cv[v] = cv_row;
     
-    if (freeze_topics) {
-      for (auto n = 0; n < zd.n_elem; ++n) {
-        Cd_out(zd[n], d)++;
+    RcppThread::checkUserInterrupt();
+  }, threads);
+  
+  // loop over Zd and Docs to count topics sampled for each token
+  // can't do this loop in parallel because of potential collisions in
+  // Ck and Cv
+  for (auto d = 0; d < Nd; d++) {
+    
+    std::vector<std::size_t> zd = Zd[d];
+    std::vector<std::size_t> doc = Docs[d];
+    
+    // initialize vector of zeros
+    std::vector<long> cd_row(Nk);
+    
+    for (auto k = 0; k < Nk; k++) {
+      cd_row[k] = 0;
+    }
+    
+    // count Cd, Cv, Ck based on whether or not we freeze topics
+    if (freeze_topics) { // only count Cd
+      
+      for (auto n = 0; n < zd.size(); n++) {
+        cd_row[zd[n]]++;
+      }
+      
+      Cd[d] = cd_row;
+      
+    } else { // count Cd, Cv, Ck
+      
+      for (auto n = 0; n < zd.size(); n++) {
+        cd_row[zd[n]]++;
+        Cv[doc[n]][zd[n]]++;
         Ck[zd[n]]++;
       }
       
-    } else {
-      for (auto n = 0; n < zd.n_elem; ++n) {
-        Cd_out(zd[n], d)++;
-        Ck[zd[n]]++;
-        Cv(zd[n], doc[n])++;
-      }
+      Cd[d] = cd_row;
     }
+    
+    RcppThread::checkUserInterrupt();
   }
-  
+
   // ***************************************************************************
   // Prepare output and expel it from this function
   // ***************************************************************************
   using Rcpp::_;
-  return Rcpp::List::create(          //
-    _["docs"] = Rcpp::wrap(docs),   //
-    _["Zd"]   = Rcpp::wrap(Zd),     //
-    _["Cd"]   = Rcpp::wrap(Cd_out), //
-    _["Cv"]   = Rcpp::wrap(Cv),     //
-    _["Ck"]   = Ck                  //
-  );                                  //
+  return Rcpp::List::create(
+    _["Docs"] = Docs,
+    _["Zd"]   = Zd,
+    _["Cd"]   = vec_to_mat(Cd, true),
+    _["Cv"]   = vec_to_mat(Cv),
+    _["Ck"]   = Ck
+  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +210,7 @@ Rcpp::List create_lexicon(arma::imat&      Cd,
 //' @param verbose bool do you want to print out a progress bar?
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
-//'   some way by this function. In the case of \code{beta} and \code{Phi},
+//'   some way by this function. In the case of \code{beta_in} and \code{Phi_in},
 //'   the only modification is that they are converted from matrices to nested
 //'   \code{std::vector} for speed, reliability, and thread safety. In the case
 //'   of all others, they may be explicitly modified during training. 
@@ -202,7 +239,7 @@ Rcpp::List fit_lda_c(
   // ***********************************************************************
   auto Zd = Zd_in;
   
-  auto Cd = mat_to_vec(Cd_in);
+  auto Cd = mat_to_vec(Cd_in, true);
   auto Cv = mat_to_vec(Cv_in, true);
   auto Ck = Ck_in;
   

@@ -19,7 +19,7 @@ counts <-
   )
 
 m <- fit_lda_c(
-  Docs = counts$docs,
+  Docs = counts$Docs,
   Zd_in = counts$Zd,
   beta_in = beta,
   alpha_in = alpha,

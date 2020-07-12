@@ -6,13 +6,19 @@
 #' @description
 #'   One run of the Gibbs sampler and other magic to initialize some objects.
 #'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
-#' @param Cd IntegerMatrix denoting counts of topics in documents
-#' @param Phi NumericMatrix denoting probability of words in topics
-#' @param dtm arma::sp_mat document term matrix
+#' @param Cd_in IntegerMatrix denoting counts of topics in documents
+#' @param Phi_in NumericMatrix denoting probability of words in topics
+#' @param dtm_in arma::sp_mat document term matrix
 #' @param alpha NumericVector prior for topics over documents
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
-create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
-    .Call(`_tidylda_create_lexicon`, Cd, Phi, dtm, alpha, freeze_topics, threads)
+#' @details
+#'   Arguments ending in \code{_in} are copied and their copies modified in
+#'   some way by this function. In the case of \code{Cd_in} and \code{Phi_in},
+#'   the only modification is that they are converted from matrices to nested
+#'   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
+#'   is transposed for speed when looping over columns. 
+create_lexicon <- function(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads) {
+    .Call(`_tidylda_create_lexicon`, Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
 }
 
 #' Main C++ Gibbs sampler for Latent Dirichlet Allocation
@@ -39,7 +45,7 @@ create_lexicon <- function(Cd, Phi, dtm, alpha, freeze_topics, threads) {
 #' @param verbose bool do you want to print out a progress bar?
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in
-#'   some way by this function. In the case of \code{beta} and \code{Phi},
+#'   some way by this function. In the case of \code{beta_in} and \code{Phi_in},
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. In the case
 #'   of all others, they may be explicitly modified during training. 

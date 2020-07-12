@@ -324,7 +324,7 @@ refit.tidylda <- function(
 
   ### run C++ gibbs sampler ----
   lda <- fit_lda_c(
-    Docs = counts$docs,
+    Docs = counts$Docs,
     Zd_in = counts$Zd,
     Cd_in = counts$Cd,
     Cv_in = counts$Cv,

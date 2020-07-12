@@ -61,7 +61,7 @@ This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
 }
 \details{
 Arguments ending in \code{_in} are copied and their copies modified in
-  some way by this function. In the case of \code{beta} and \code{Phi},
+  some way by this function. In the case of \code{beta_in} and \code{Phi_in},
   the only modification is that they are converted from matrices to nested
   \code{std::vector} for speed, reliability, and thread safety. In the case
   of all others, they may be explicitly modified during training.

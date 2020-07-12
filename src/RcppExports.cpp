@@ -10,25 +10,25 @@
 using namespace Rcpp;
 
 // create_lexicon
-Rcpp::List create_lexicon(arma::imat& Cd, const arma::mat& Phi, arma::sp_mat& dtm, const arma::vec alpha, const bool freeze_topics, const int threads);
-static SEXP _tidylda_create_lexicon_try(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
+Rcpp::List create_lexicon(const IntegerMatrix& Cd_in, const NumericMatrix& Phi_in, const arma::sp_mat& dtm_in, const std::vector<double>& alpha, const bool& freeze_topics, const int& threads);
+static SEXP _tidylda_create_lexicon_try(SEXP Cd_inSEXP, SEXP Phi_inSEXP, SEXP dtm_inSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< arma::imat& >::type Cd(CdSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Phi(PhiSEXP);
-    Rcpp::traits::input_parameter< arma::sp_mat& >::type dtm(dtmSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< const bool >::type freeze_topics(freeze_topicsSEXP);
-    Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(create_lexicon(Cd, Phi, dtm, alpha, freeze_topics, threads));
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type Cd_in(Cd_inSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type Phi_in(Phi_inSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type dtm_in(dtm_inSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type freeze_topics(freeze_topicsSEXP);
+    Rcpp::traits::input_parameter< const int& >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(create_lexicon(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _tidylda_create_lexicon(SEXP CdSEXP, SEXP PhiSEXP, SEXP dtmSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
+RcppExport SEXP _tidylda_create_lexicon(SEXP Cd_inSEXP, SEXP Phi_inSEXP, SEXP dtm_inSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_tidylda_create_lexicon_try(CdSEXP, PhiSEXP, dtmSEXP, alphaSEXP, freeze_topicsSEXP, threadsSEXP));
+        rcpp_result_gen = PROTECT(_tidylda_create_lexicon_try(Cd_inSEXP, Phi_inSEXP, dtm_inSEXP, alphaSEXP, freeze_topicsSEXP, threadsSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -101,7 +101,7 @@ RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP
 static int _tidylda_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("Rcpp::List(*create_lexicon)(arma::imat&,const arma::mat&,arma::sp_mat&,const arma::vec,const bool,const int)");
+        signatures.insert("Rcpp::List(*create_lexicon)(const IntegerMatrix&,const NumericMatrix&,const arma::sp_mat&,const std::vector<double>&,const bool&,const int&)");
         signatures.insert("Rcpp::List(*fit_lda_c)(const std::vector<std::vector<std::size_t>>&,const std::vector<std::vector<std::size_t>>&,const IntegerMatrix&,const IntegerMatrix&,const std::vector<long>&,const std::vector<double>,const NumericMatrix&,const std::size_t&,const int&,const bool&,const bool&,const NumericMatrix&,const bool&,const std::size_t&,const bool&)");
     }
     return signatures.find(sig) != signatures.end();

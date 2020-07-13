@@ -74,7 +74,7 @@ data(nih_sample_dtm, package = "textmineR")
 set.seed(12345)
 
 m <- tidylda(
-  dtm = nih_sample_dtm[1:20, ], k = 5,
+  data = nih_sample_dtm[1:20, ], k = 5,
   iterations = 200, burnin = 175
 )
 

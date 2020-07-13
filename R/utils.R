@@ -642,9 +642,7 @@ format_raw_lda_outputs <- function(
     } else { # this should be impossible, but science is hard and I am dumb.
       beta_out <- lda$beta
       
-      message("something went wrong with 'beta'. This isn't your fault. Please 
-            contact Tommy at jones.thos.w[at]gmail.com and tell him you got this
-            error when you ran 'tidylda'.")
+      warning("something went wrong formatting beta. refit.tidylda and predict.tidylda might be affected")
     }
     
     # alpha

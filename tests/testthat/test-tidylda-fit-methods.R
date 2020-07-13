@@ -133,7 +133,20 @@ test_that("errors hit for malformed parameters", {
     regexp = "k must be 2 or greater"
   )
 
-
+  # iterations not specified
+  expect_error(
+    tidylda(
+      data = d1,
+      k = 10,
+      alpha = 0.1, beta = 0.05,
+      optimize_alpha = TRUE,
+      calc_likelihood = FALSE,
+      calc_r2 = FALSE,
+      return_data = FALSE
+    ),
+    label = "iterations not specified"
+  )
+  
 
   # burnin >= iterations
   expect_error(tidylda(

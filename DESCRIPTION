@@ -23,7 +23,8 @@ Authors@R:
     )
 Description: Implements an algorithm for Latent Dirichlet
     Allocation (LDA) using style conventions from the 'tidyverse' and
-    specifically 'tidymodels'.  Also implements several novel features for
+    specifically 'tidymodels'. Gibbs sampler follows Newman et al. (2007)
+    <doi:10.5555/2981562.2981698>. Also implements several novel features for
     LDA such as guided models and transfer learning.
 License: MIT + file LICENSE
 URL: https://www.tidylda.com/

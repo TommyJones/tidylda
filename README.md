@@ -130,7 +130,7 @@ d2 <- d2[, colSums(d2) > 0]
 set.seed(123)
 
 lda <- tidylda(
-  dtm = d1,
+  data = d1,
   k = 10,
   iterations = 200, 
   burnin = 175,
@@ -161,7 +161,7 @@ glance(lda)
 
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1597  tokens:
-#> tidylda(dtm = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
+#> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
 #>     beta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 
@@ -350,7 +350,7 @@ ggplot(compare_mat) +
 # now that you have new documents, maybe you want to fold them into the model?
 lda2 <- refit(
   object = lda, 
-  dtm = d, # save me the trouble of manually-combining these by just using d
+  new_data = d, # save me the trouble of manually-combining these by just using d
   iterations = 200, 
   burnin = 175,
   calc_likelihood = TRUE,
@@ -376,7 +376,7 @@ glance(lda2)
 
 print(lda2)
 #> A Latent Dirichlet Allocation Model of  10 topics,  99  documents, and  3081  tokens:
-#> refit.tidylda(object = lda, dtm = d, iterations = 200, burnin = 175, 
+#> refit.tidylda(object = lda, new_data = d, iterations = 200, burnin = 175, 
 #>     calc_likelihood = TRUE, calc_r2 = TRUE)
 #> 
 #> The model's R-squared is  0.1605 
@@ -406,7 +406,7 @@ print(lda2)
 # how does that compare to the old model?
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1597  tokens:
-#> tidylda(dtm = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
+#> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
 #>     beta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 

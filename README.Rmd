@@ -116,7 +116,7 @@ d2 <- d2[, colSums(d2) > 0]
 set.seed(123)
 
 lda <- tidylda(
-  dtm = d1,
+  data = d1,
   k = 10,
   iterations = 200, 
   burnin = 175,
@@ -216,7 +216,7 @@ ggplot(compare_mat) +
 # now that you have new documents, maybe you want to fold them into the model?
 lda2 <- refit(
   object = lda, 
-  dtm = d, # save me the trouble of manually-combining these by just using d
+  new_data = d, # save me the trouble of manually-combining these by just using d
   iterations = 200, 
   burnin = 175,
   calc_likelihood = TRUE,

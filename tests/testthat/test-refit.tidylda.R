@@ -12,7 +12,7 @@ d1 <- d1[, Matrix::colSums(d1) > 0]
 d2 <- d2[, Matrix::colSums(d2) > 0]
 
 lda <- tidylda(
-  dtm = d1,
+  data = d1,
   k = 4,
   iterations = 20, burnin = 10,
   alpha = 0.1, beta = 0.05,
@@ -31,7 +31,7 @@ test_that("can update models", {
   # matters because dtm lines up exactly with existing vocabulary etc.
   lda2 <- refit(
     object = lda,
-    dtm = d1,
+    new_data = d1,
     additional_k = 0,
     phi_as_prior = FALSE,
     iterations = 20,
@@ -56,7 +56,7 @@ test_that("can update models", {
   # new data adding no extra topics no phi as prior
   lda2 <- refit(
     object = lda,
-    dtm = d2,
+    new_data = d2,
     additional_k = 0,
     phi_as_prior = FALSE,
     iterations = 20,
@@ -78,7 +78,7 @@ test_that("can update models", {
   # 1 additonal topic and no phi as prior
   lda2 <- refit(
     object = lda,
-    dtm = d2,
+    new_data = d2,
     additional_k = 1,
     phi_as_prior = FALSE,
     iterations = 20,
@@ -100,7 +100,7 @@ test_that("can update models", {
   # 3 additional topics and no phi as prior
   lda2 <- refit(
     object = lda,
-    dtm = d2,
+    new_data = d2,
     additional_k = 3,
     phi_as_prior = FALSE,
     iterations = 20,
@@ -122,7 +122,7 @@ test_that("can update models", {
   # no additional topics and phi as prior
   lda2 <- refit(
     object = lda,
-    dtm = d2,
+    new_data = d2,
     additional_k = 0,
     phi_as_prior = TRUE,
     iterations = 20,
@@ -145,7 +145,7 @@ test_that("can update models", {
   # 3 additonal topics and phi as prior
   lda2 <- refit(
     object = lda,
-    dtm = d2,
+    new_data = d2,
     additional_k = 3,
     phi_as_prior = TRUE,
     iterations = 20,
@@ -168,7 +168,7 @@ test_that("can update models", {
   
   # update models with matrix beta
   l1 <- tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1,
@@ -191,15 +191,17 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   
   colnames(nd) <- 1:10 # numbers means no vocab overlap
   
-  lda2 <- refit(object = lda, 
-                dtm = nd,
-                iterations = 10)
+  lda2 <- refit(
+    object = lda, 
+    new_data = nd,
+    iterations = 10
+  )
   
   # burnin >= iterations
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE,
       iterations = 20,
@@ -215,7 +217,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = "3",
       phi_as_prior = TRUE,
       iterations = 20,
@@ -231,7 +233,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = -3,
       phi_as_prior = TRUE,
       iterations = 20,
@@ -247,7 +249,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE
     )
@@ -257,7 +259,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = "TRUE",
       iterations = 20,
@@ -272,7 +274,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE,
       iterations = 20,
@@ -287,7 +289,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE,
       iterations = 20,
@@ -301,7 +303,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE,
       iterations = 20,
@@ -316,7 +318,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   expect_error(
     refit(
       object = lda,
-      dtm = d2,
+      new_data = d2,
       additional_k = 3,
       phi_as_prior = TRUE,
       iterations = 20,

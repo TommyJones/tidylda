@@ -5,7 +5,7 @@
 \title{Bridge function for fitting \code{tidylda} topic models}
 \usage{
 tidylda_bridge(
-  dtm,
+  data,
   k,
   iterations,
   burnin,

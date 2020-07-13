@@ -5,7 +5,7 @@
 \title{Fit a Latent Dirichlet Allocation topic model}
 \usage{
 tidylda(
-  dtm,
+  data,
   k,
   iterations = NULL,
   burnin = -1,
@@ -21,7 +21,7 @@ tidylda(
 )
 }
 \arguments{
-\item{dtm}{A document term matrix or term co-occurrence matrix. The preferred
+\item{data}{A document term matrix or term co-occurrence matrix. The preferred
 class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support
 for any \code{\link[Matrix]{Matrix-class}} object as well as several other
 commonly-used classes such as \code{\link[base]{matrix}},
@@ -39,8 +39,8 @@ greater than \code{burnin}.}
 \item{alpha}{Numeric scalar or vector of length \code{k}. This is the prior
 for topics over documents.}
 
-\item{beta}{Numeric scalar, numeric vector of length \code{ncol(dtm)},
-or numeric matrix with \code{k} rows and \code{ncol(dtm)} columns.
+\item{beta}{Numeric scalar, numeric vector of length \code{ncol(data)},
+or numeric matrix with \code{k} rows and \code{ncol(data)} columns.
 This is the prior for words over topics.}
 
 \item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
@@ -54,7 +54,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{threads}{Number of parallel threads, defaults to 1. See Details, below.}
 
-\item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
+\item{return_data}{Logical. Do you want \code{data} returned as part of the model object?}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Defaults to \code{FALSE}.}
@@ -106,9 +106,9 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   in the meantime caveat emptor once again.
   
   Parallelism, is executed using threading at the C++ level using the
-  \code{\link[RcppThread]{RcppThread}} package. As of this writing, parallel
-  processing only happens during pre-processing, not Gibbs sampling. This
-  behavior may change in the future.
+  \code{\link[RcppThread]{RcppThread}} package. For Gibbs sampling, parallelism
+  is implemented according to
+  \url{http://www.jmlr.org/papers/volume10/newman09a/newman09a.pdf?wptouch_preview_theme=enabled}
 }
 \examples{
 # load some data
@@ -117,7 +117,7 @@ data(nih_sample_dtm, package = "textmineR")
 # fit a model
 set.seed(12345)
 m <- tidylda(
-  dtm = nih_sample_dtm[1:20, ], k = 5,
+  data = nih_sample_dtm[1:20, ], k = 5,
   iterations = 200, burnin = 175
 )
 

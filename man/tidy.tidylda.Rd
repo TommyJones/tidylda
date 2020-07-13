@@ -37,7 +37,8 @@ Tidy the result of a \code{tidylda} topic model
 }
 \section{Functions}{
 \itemize{
-\item \code{tidy.matrix}: Tidy an individual matrix. Useful for predictions and called from tidy.tidylda
+\item \code{tidy.matrix}: Tidy an individual matrix.
+Useful for predictions and called from tidy.tidylda
 }}
 
 \note{
@@ -48,7 +49,7 @@ If \code{log = TRUE} then "log_" will be appended to the name of the third
 \donttest{
 dtm <- textmineR::nih_sample_dtm
 
-lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
+lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 
 tidy_phi <- tidy(lda, matrix = "phi")
 

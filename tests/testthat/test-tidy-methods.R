@@ -12,7 +12,7 @@ d1 <- d1[, Matrix::colSums(d1) > 0]
 d2 <- d2[, Matrix::colSums(d2) > 0]
 
 lda <- tidylda(
-  dtm = d1,
+  data =  d1,
   k = 4,
   iterations = 20, burnin = 10,
   alpha = 0.1, beta = 0.05,

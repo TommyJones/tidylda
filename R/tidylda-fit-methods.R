@@ -1,6 +1,6 @@
 #' Fit a Latent Dirichlet Allocation topic model
 #' @description Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling.
-#' @param dtm A document term matrix or term co-occurrence matrix. The preferred
+#' @param data A document term matrix or term co-occurrence matrix. The preferred
 #'   class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support
 #'   for any \code{\link[Matrix]{Matrix-class}} object as well as several other
 #'   commonly-used classes such as \code{\link[base]{matrix}},
@@ -13,8 +13,8 @@
 #'        greater than \code{burnin}.
 #' @param alpha Numeric scalar or vector of length \code{k}. This is the prior
 #'        for topics over documents.
-#' @param beta Numeric scalar, numeric vector of length \code{ncol(dtm)},
-#'        or numeric matrix with \code{k} rows and \code{ncol(dtm)} columns.
+#' @param beta Numeric scalar, numeric vector of length \code{ncol(data)},
+#'        or numeric matrix with \code{k} rows and \code{ncol(data)} columns.
 #'        This is the prior for words over topics.
 #' @param optimize_alpha Logical. Do you want to optimize alpha every iteration?
 #'        Defaults to \code{FALSE}. See 'details' below for more information.
@@ -23,7 +23,7 @@
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
-#' @param return_data Logical. Do you want \code{dtm} returned as part of the model object?
+#' @param return_data Logical. Do you want \code{data} returned as part of the model object?
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Defaults to \code{FALSE}.
 #' @param ... Additional arguments, currently unused
@@ -66,9 +66,9 @@
 #'   in the meantime caveat emptor once again.
 #'   
 #'   Parallelism, is executed using threading at the C++ level using the
-#'   \code{\link[RcppThread]{RcppThread}} package. As of this writing, parallel
-#'   processing only happens during pre-processing, not Gibbs sampling. This
-#'   behavior may change in the future.
+#'   \code{\link[RcppThread]{RcppThread}} package. For Gibbs sampling, parallelism
+#'   is implemented according to
+#'   \url{http://www.jmlr.org/papers/volume10/newman09a/newman09a.pdf?wptouch_preview_theme=enabled}
 #'
 #' @examples
 #' # load some data
@@ -77,7 +77,7 @@
 #' # fit a model
 #' set.seed(12345)
 #' m <- tidylda(
-#'   dtm = nih_sample_dtm[1:20, ], k = 5,
+#'   data = nih_sample_dtm[1:20, ], k = 5,
 #'   iterations = 200, burnin = 175
 #' )
 #'
@@ -96,7 +96,7 @@
 #' barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 #' @export
 tidylda <- function(
-  dtm, 
+  data, 
   k, 
   iterations = NULL, 
   burnin = -1, 
@@ -119,7 +119,7 @@ tidylda <- function(
 
 
   tidylda_bridge(
-    dtm = dtm,
+    data = data,
     k = k,
     iterations = iterations,
     burnin = burnin,
@@ -144,7 +144,7 @@ tidylda <- function(
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
 tidylda_bridge <- function(
-  dtm, 
+  data, 
   k, 
   iterations, 
   burnin, 
@@ -168,7 +168,7 @@ tidylda_bridge <- function(
   }
 
   # Ensure dtm is of class dgCMatrix
-  dtm <- convert_dtm(dtm = dtm)
+  dtm <- convert_dtm(dtm = data)
 
   # is k formatted correctly?
   if (k < 2) {

@@ -6,7 +6,7 @@
 \usage{
 \method{refit}{tidylda}(
   object,
-  dtm,
+  new_data,
   iterations = NULL,
   burnin = -1,
   optimize_alpha = FALSE,
@@ -23,7 +23,7 @@
 \arguments{
 \item{object}{a fitted object of class \code{tidylda}.}
 
-\item{dtm}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
+\item{new_data}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
 
 \item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
 
@@ -41,7 +41,7 @@ Useful for assessing convergence. Defaults to \code{FALSE}.}
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
-\item{return_data}{Logical. Do you want \code{dtm} returned as part of the model object?}
+\item{return_data}{Logical. Do you want \code{new_data} returned as part of the model object?}
 
 \item{additional_k}{Integer number of topics to add, defaults to 0.}
 
@@ -79,7 +79,7 @@ Update an LDA model using collapsed Gibbs sampling.
 
   First, topic-document probabilities (i.e. \code{theta}) are obtained by a
   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
-  for the documents in \code{dtm}. Next, both \code{phi} and \code{theta} are
+  for the documents in \code{new_data}. Next, both \code{phi} and \code{theta} are
   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
   which assigns topics to tokens in a manner approximately proportional to 
   the posteriors and executes a single Gibbs iteration.
@@ -88,8 +88,8 @@ Update an LDA model using collapsed Gibbs sampling.
   over new tokens. Specifically, each entry in the new prior is equal to the
   median value of \code{beta} from the old model. The resulting model will
   have the total vocabulary of the old model plus any new vocabulary tokens.
-  In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(dtm)}
-  where \code{phi} is from the new model and \code{dtm} is the additional data.
+  In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(new_data)}
+  where \code{phi} is from the new model and \code{new_data} is the additional data.
 
   You can add additional topics by setting the \code{additional_k} parameter
   to an integer greater than zero. New entries to \code{alpha} have a flat
@@ -120,7 +120,7 @@ m <- tidylda(d1,
 # update an existing model by adding documents
 m2 <- refit(
   object = m,
-  dtm = rbind(d1, d2),
+  new_data = rbind(d1, d2),
   iterations = 200,
   burnin = 175
 )
@@ -128,7 +128,7 @@ m2 <- refit(
 # use an old model as a prior for a new model
 m3 <- refit(
   object = m,
-  dtm = d2, # new documents only
+  new_data = d2, # new documents only
   phi_as_prior = TRUE,
   iterations = 200,
   burnin = 175
@@ -137,7 +137,7 @@ m3 <- refit(
 # add topics while updating a model by adding documents
 m4 <- refit(
   object = m,
-  dtm = rbind(d1, d2),
+  new_data = rbind(d1, d2),
   additional_k = 3,
   iterations = 200,
   burnin = 175

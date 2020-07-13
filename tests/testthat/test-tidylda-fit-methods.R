@@ -14,7 +14,7 @@ test_that("can fit lda models without error", {
 
   # scalar priors without optimizing alpha
   lda <- tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, 
     burnin = 10,
@@ -50,7 +50,7 @@ test_that("can fit lda models without error", {
 
   # scalar priors optimizing alpha
   lda <- tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, 
     burnin = 10,
@@ -66,7 +66,7 @@ test_that("can fit lda models without error", {
 
   # vector priors
   lda <- tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, 
     burnin = 10,
@@ -84,7 +84,7 @@ test_that("can fit lda models without error", {
 
   # beta as matrix prior
   lda <- tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, 
     burnin = 10,
@@ -101,7 +101,7 @@ test_that("can fit lda models without error", {
 
 test_that("sparse priors for beta don't cause underflow failures", {
   m <- tidylda(
-    dtm = textmineR::nih_sample_dtm,
+    data = textmineR::nih_sample_dtm,
     k = 10,
     iterations = 20,
     burnin = 15,
@@ -121,7 +121,7 @@ test_that("errors hit for malformed parameters", {
   # k = 1 is bad
   expect_error(
     tidylda(
-      dtm = d1,
+      data = d1,
       k = 1,
       iterations = 20, burnin = 10,
       alpha = 0.1, beta = 0.05,
@@ -137,7 +137,7 @@ test_that("errors hit for malformed parameters", {
 
   # burnin >= iterations
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 21,
     alpha = 0.1, beta = 0.05,
@@ -149,7 +149,7 @@ test_that("errors hit for malformed parameters", {
 
   # non-numeric k
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = "4",
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -161,13 +161,13 @@ test_that("errors hit for malformed parameters", {
 
   # iterations not specified
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4
   ))
 
   # non-logical logicals
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -178,7 +178,7 @@ test_that("errors hit for malformed parameters", {
   ))
 
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -189,7 +189,7 @@ test_that("errors hit for malformed parameters", {
   ))
 
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -200,7 +200,7 @@ test_that("errors hit for malformed parameters", {
   ))
 
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -211,7 +211,7 @@ test_that("errors hit for malformed parameters", {
   ))
   
   expect_error(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -223,7 +223,7 @@ test_that("errors hit for malformed parameters", {
   ), label = "threads > nrow(dtm)")
   
   expect_warning(tidylda(
-    dtm = d1,
+    data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, beta = 0.05,
@@ -238,7 +238,7 @@ test_that("errors hit for malformed parameters", {
 test_that("parallelism works as expected", {
   suppressWarnings(
     lda <- tidylda(
-      dtm = d1,
+      data = d1,
       k = 4,
       iterations = 20, burnin = 10,
       alpha = 0.1, beta = 0.05,

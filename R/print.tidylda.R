@@ -8,7 +8,7 @@
 #' \donttest{
 #' dtm <- textmineR::nih_sample_dtm
 #'
-#' lda <- tidylda(dtm = dtm, k = 10, iterations = 100)
+#' lda <- tidylda(data = dtm, k = 10, iterations = 100)
 #'
 #' print(lda)
 #'

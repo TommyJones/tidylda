@@ -12,7 +12,7 @@ d1 <- d1[, Matrix::colSums(d1) > 0]
 d2 <- d2[, Matrix::colSums(d2) > 0]
 
 lda <- tidylda(
-  dtm = d1,
+  data = d1,
   k = 4,
   iterations = 20, burnin = 10,
   alpha = 0.1, beta = 0.05,
@@ -38,7 +38,7 @@ test_that("print.tidylda behaves as expected", {
   expect_named(m, names(lda))
   
   # can modify digits
-  m2 <- tidylda(dtm = d1, k = 5, iterations = 20, calc_r2 = TRUE)
+  m2 <- tidylda(data = d1, k = 5, iterations = 20, calc_r2 = TRUE)
   
   capture.output(print(m2, digits = 2))
 })

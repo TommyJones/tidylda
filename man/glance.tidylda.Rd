@@ -29,7 +29,7 @@
 \donttest{
 dtm <- textmineR::nih_sample_dtm
 
-lda <- tidylda(dtm = dtm, k = 10, iterations = 100, burnin = 75)
+lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 
 glance(lda)
 }

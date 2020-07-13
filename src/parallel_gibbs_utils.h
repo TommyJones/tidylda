@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <cmath>
+#include <Rmath.h>
+#include <numeric>
 
 // makes a list of indices to loop over in parallel
 // use this to divide documents into batches
@@ -46,6 +48,36 @@ std::vector<std::vector<std::size_t>> allocate_batch_indices(
   }
   
   return batch_indices;
+}
+
+
+// randomly shuffle the document indices that appear in each batch
+void shuffle_batch_indices (
+    std::vector<std::vector<std::size_t>>& batch_indices,
+    const std::size_t&                    Nd
+) {
+  
+  // sample a vector of 0 to Nd - 1 that represents a random shuffle of 
+  // document indices.
+  // This uses std::random_shuffle. 
+  // It does NOT respect R's set.seed()
+  std::vector<int> shuffled_indices(Nd);
+  
+  std::iota(std::begin(shuffled_indices), std::end(shuffled_indices), 0);
+  
+  std::random_shuffle(shuffled_indices.begin(), shuffled_indices.end());
+  
+  // go through batch_indices and update its entries with the random shuffle
+  
+  std::size_t tracker = 0; // track how much of shuffled_indices we've used
+  
+  for (auto j = 0; j < batch_indices.size(); j++) {
+    for (auto d = 0; d < batch_indices[j].size(); d++) {
+      batch_indices[j][d] = shuffled_indices[tracker];
+      tracker++;
+    }
+  }
+  
 }
 
 // add a list of long integer vectors together

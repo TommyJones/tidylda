@@ -433,6 +433,14 @@ Rcpp::List fit_lda_c(
       threads
     );
     
+    // shuffle batch indices for next run
+    // if (threads > 1) {
+    //   shuffle_batch_indices(
+    //     batch_indices,
+    //     Nd
+    //   );
+    // }
+    
     // if using burnin, update sums
     if (burnin > -1 && t >= burnin) {
       

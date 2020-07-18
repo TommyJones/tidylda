@@ -268,22 +268,22 @@ Rcpp::List fit_lda_c(
   std::vector<std::vector<long>> Cd_sum(Nd);
   std::vector<std::vector<double>> Cd_mean(Nd);
   
-  for (auto d = 0; d < Nd; d++) {
+  RcppThread::parallelFor(0, Nd, [&Nk, &Cd_sum, &Cd_mean] (std::size_t d) {
     for (auto k = 0; k < Nk; k++) {
       Cd_sum[d].push_back(0);
       Cd_mean[d].push_back(0.0);
     }
-  }
+  }, threads);
   
   std::vector<std::vector<long>> Cv_sum(Nk);
   std::vector<std::vector<double>> Cv_mean(Nk);
   
-  for (auto k = 0; k < Nk; k++) {
+  RcppThread::parallelFor(0, Nk, [&Nv, &Cv_sum, &Cv_mean] (std::size_t k) {
     for (auto v = 0; v < Nv; v++) {
       Cv_sum[k].push_back(0);
       Cv_mean[k].push_back(0.0);
     }
-  }
+  }, threads);
   
   // ***********************************************************************
   // Set up variables for parallel sampling. 
@@ -320,8 +320,8 @@ Rcpp::List fit_lda_c(
   
   if (calc_likelihood) { // if calc_likelihood, actuAllocationy populate this stuff
     
-    for (auto n = 0; n < Nv; n++) {
-      lgbeta += lgamma(beta[0][n]);
+    for (auto v = 0; v < Nv; v++) {
+      lgbeta += lgamma(beta[0][v]);
     }
     
     lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; 
@@ -348,7 +348,7 @@ Rcpp::List fit_lda_c(
     RcppThread::parallelFor(
       0,
       threads,
-      [&] (std::size_t j = 0) { // for each thread in parallel
+      [&] (std::size_t j) { // for each thread in parallel
       
       auto batch_idx = batch_indices[j];
       
@@ -452,18 +452,20 @@ Rcpp::List fit_lda_c(
     // if using burnin, update sums
     if (burnin > -1 && t >= burnin) {
       
-      for (auto d = 0; d < Nd; d++) {
+      RcppThread::parallelFor(0, Nd, [&Cd, &Cd_sum, &Nk] (std::size_t d) {
         for (auto k = 0; k < Nk; k++) {
           Cd_sum[d][k] += Cd[d][k];
         }
-      }
+      },
+      threads);
       
       if (! freeze_topics) {
-        for (auto k = 0; k < Nk; k++) {
+        RcppThread::parallelFor(0, Nk, [&Cv, &Cv_sum, &Nv] (std::size_t k) {
           for (auto v = 0; v < Nv; v++) {
             Cv_sum[k][v] += Cv[k][v];
           }
-        }
+        },
+        threads);
       }
     }
     
@@ -582,18 +584,18 @@ Rcpp::List fit_lda_c(
     const double diff(iterations - burnin);
     
     // average over chain after burnin
-    for (auto d = 0; d < Nd; d++) {
+    RcppThread::parallelFor(0, Nd, [&Nk, &Cd_mean, &Cd_sum, &diff] (std::size_t d) {
       for (auto k = 0; k < Nk; k++) {
         Cd_mean[d][k] = static_cast<double>(Cd_sum[d][k]) / diff;
       }
-    }
+    }, threads);
     
     if (! freeze_topics) {
-      for (auto v = 0; v < Nv; v++) {
-        for (auto k = 0; k < Nk; k++) {
+      RcppThread::parallelFor(0, Nk, [&Nv, &Cv_mean, &Cv_sum, &diff] (std::size_t k) {
+        for (auto v = 0; v < Nv; v++) {
           Cv_mean[k][v] = static_cast<double>(Cv_sum[k][v]) / diff;
         }
-      }
+      }, threads);
     }
   }
   

@@ -421,17 +421,25 @@ Rcpp::List fit_lda_c(
     }, threads); // end loop over threads
     
     // update global Ck and Cv using batch versions
-    Ck = update_global_Ck(
-      Ck,
-      Ck_batch,
-      threads
-    );
+    if (threads > 1) {
+      Ck = update_global_Ck(
+        Ck,
+        Ck_batch,
+        threads
+      );
+      
+      Cv = update_global_Cv(
+        Cv,
+        Cv_batch,
+        threads
+      );
+    } else {
+      Ck = Ck_batch[0];
+      
+      Cv = Cv_batch[0];
+    }
     
-    Cv = update_global_Cv(
-      Cv,
-      Cv_batch,
-      threads
-    );
+    
     
     // shuffle batch indices for next run
     // if (threads > 1) {

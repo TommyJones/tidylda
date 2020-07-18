@@ -61,50 +61,50 @@ Rcpp::List create_lexicon(
   // topic for each token within that document
   // ***************************************************************************
   RcppThread::parallelFor(0, Nd, [&](std::size_t d) {
-      
-      std::vector<double> qz(Nk); // placehodler for probability of topic
-      
-      arma::uword z; // placeholder for topic sampled
-      
-      // make a temporary vector to hold token indices
-      auto nd(0);
-      
-      for (auto v = 0; v < Nv; ++v) {
-        nd += dtm(v, d);
-      }
-      
-      std::vector<std::size_t> doc(nd);
-      std::vector<std::size_t> zd(nd);
-
-      // fill in with token indices
-      std::size_t j = 0; // index of doc, advances when we have non-zero entries
-      
-      for (auto v = 0; v < Nv; ++v) {
-        if (dtm(v, d) > 0) { // if non-zero, add elements to doc
-          
-          // calculate probability of topics based on initially-sampled Phi and Cd
-          for (auto k = 0; k < Nk; ++k) {
-            qz[k] = log(Phi[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
-          }
-          
-          std::size_t idx(j + dtm(v, d)); // where to stop the loop below
-          
-          while (j < idx) {
-            doc[j] = v;
-            z      = lsamp_one(qz); // sample a topic here
-            zd[j]  = z;
-            j++;
-          }
+    
+    std::vector<double> qz(Nk); // placehodler for probability of topic
+    
+    arma::uword z; // placeholder for topic sampled
+    
+    // make a temporary vector to hold token indices
+    auto nd(0);
+    
+    for (auto v = 0; v < Nv; ++v) {
+      nd += dtm(v, d);
+    }
+    
+    std::vector<std::size_t> doc(nd);
+    std::vector<std::size_t> zd(nd);
+    
+    // fill in with token indices
+    std::size_t j = 0; // index of doc, advances when we have non-zero entries
+    
+    for (auto v = 0; v < Nv; ++v) {
+      if (dtm(v, d) > 0) { // if non-zero, add elements to doc
+        
+        // calculate probability of topics based on initially-sampled Phi and Cd
+        for (auto k = 0; k < Nk; ++k) {
+          qz[k] = log(Phi[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
+        }
+        
+        std::size_t idx(j + dtm(v, d)); // where to stop the loop below
+        
+        while (j < idx) {
+          doc[j] = v;
+          z      = lsamp_one(qz); // sample a topic here
+          zd[j]  = z;
+          j++;
         }
       }
-      
-      // fill in docs[d] with the matrix we made
-      Docs[d] = doc;
-      
-      Zd[d] = zd;
-      
-      RcppThread::checkUserInterrupt();
-    },threads);
+    }
+    
+    // fill in docs[d] with the matrix we made
+    Docs[d] = doc;
+    
+    Zd[d] = zd;
+    
+    RcppThread::checkUserInterrupt();
+  },threads);
   
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
@@ -168,7 +168,7 @@ Rcpp::List create_lexicon(
     
     RcppThread::checkUserInterrupt();
   }
-
+  
   // ***************************************************************************
   // Prepare output and expel it from this function
   // ***************************************************************************
@@ -260,10 +260,6 @@ Rcpp::List fit_lda_c(
   auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
   auto sum_beta = std::accumulate(beta[0].begin(), beta[0].end(), 0.0);
   
-  std::vector<double> qz(Nk); // placehodler for probability of topic
-  
-  arma::uword z; // placeholder for topic sampled
-  
   // For aggregating samples post burn in
   std::vector<std::vector<long>> Cd_sum(Nd);
   std::vector<std::vector<double>> Cd_mean(Nd);
@@ -349,76 +345,81 @@ Rcpp::List fit_lda_c(
       0,
       threads,
       [&] (std::size_t j) { // for each thread in parallel
-      
-      auto batch_idx = batch_indices[j];
-      
-      // do a loop over all documents in the thread with local Ck and Cv
-      for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
         
-        RcppThread::checkUserInterrupt();
+        auto batch_idx = batch_indices[j];
         
-        // R_CheckUserInterrupt();
+        std::vector<double> qz(Nk); // placehodler for probability of topic
         
-        auto doc = Docs[d]; // placeholder for a document
-        auto zd = Zd[d]; // placeholder for doc-word-topic assigment
+        arma::uword z; // placeholder for topic sampled
         
-        for (auto n = 0; n < doc.size(); n++) { // for each word in that document
+        
+        // do a loop over all documents in the thread with local Ck and Cv
+        for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
           
-          // handle things differently based on freeze_topics
-          // note some copied code, but minimizes number of checks in this loop
-          if (! freeze_topics) {
+          RcppThread::checkUserInterrupt();
+          
+          // R_CheckUserInterrupt();
+          
+          auto doc = Docs[d]; // placeholder for a document
+          auto zd = Zd[d]; // placeholder for doc-word-topic assigment
+          
+          for (auto n = 0; n < doc.size(); n++) { // for each word in that document
             
-            // discount for the n-th word with topic z
-            Cd[d][zd[n]]--; 
-            Cv_batch[j][zd[n]][doc[n]]--;
-            Ck_batch[j][zd[n]]--;
-            
-            // calculate probability vector
-            for (auto k = 0; k < Nk; k++) {
-              qz[k] = (Cv_batch[j][k][doc[n]] + beta[k][doc[n]]) / 
-                (Ck_batch[j][k] + sum_beta) *
-                (Cd[d][k] + alpha[k]) / 
-                (doc.size() + sum_alpha);
-            }
-            
-            // sample topic
-            z = samp_one(qz);
-            
-            // update counts based on sampled topic
-            zd[n] = z;
-            
-            Cd[d][zd[n]]++; 
-            Cv_batch[j][zd[n]][doc[n]]++; 
-            Ck_batch[j][zd[n]]++; 
-            
-          } else {
-            
-            // discount for the n-th word with topic z
-            Cd[d][zd[n]]--; 
-            
-            // calculate probability vector
-            for (auto k = 0; k < Nk; k++) {
-              qz[k] = Phi_batch[j][k][doc[n]] *
-                (Cd[d][k] + alpha[k]) / 
-                (doc.size() + sum_alpha);
-            }
-            
-            // sample topic
-            z = samp_one(qz);
-            
-            // update counts based on sampled topic
-            zd[n] = z;
-            
-            Cd[d][zd[n]]++; 
-            
-          } // end if
-        } // end loop over tokens
+            // handle things differently based on freeze_topics
+            // note some copied code, but minimizes number of checks in this loop
+            if (! freeze_topics) {
+              
+              // discount for the n-th word with topic z
+              Cd[d][zd[n]]--; 
+              Cv_batch[j][zd[n]][doc[n]]--;
+              Ck_batch[j][zd[n]]--;
+              
+              // calculate probability vector
+              for (auto k = 0; k < Nk; k++) {
+                qz[k] = (Cv_batch[j][k][doc[n]] + beta[k][doc[n]]) / 
+                  (Ck_batch[j][k] + sum_beta) *
+                  (Cd[d][k] + alpha[k]) / 
+                  (doc.size() + sum_alpha);
+              }
+              
+              // sample topic
+              z = samp_one(qz);
+              
+              // update counts based on sampled topic
+              zd[n] = z;
+              
+              Cd[d][zd[n]]++; 
+              Cv_batch[j][zd[n]][doc[n]]++; 
+              Ck_batch[j][zd[n]]++; 
+              
+            } else {
+              
+              // discount for the n-th word with topic z
+              Cd[d][zd[n]]--; 
+              
+              // calculate probability vector
+              for (auto k = 0; k < Nk; k++) {
+                qz[k] = Phi_batch[j][k][doc[n]] *
+                  (Cd[d][k] + alpha[k]) / 
+                  (doc.size() + sum_alpha);
+              }
+              
+              // sample topic
+              z = samp_one(qz);
+              
+              // update counts based on sampled topic
+              zd[n] = z;
+              
+              Cd[d][zd[n]]++; 
+              
+            } // end if
+          } // end loop over tokens
+          
+          Zd[d] = zd; // update vector of sampled topics
+          
+        } // end loop over documents
         
-        Zd[d] = zd; // update vector of sampled topics
-        
-      } // end loop over documents
-      
-    }, threads); // end loop over threads
+      }, threads); // end loop over threads
     
     // update global Ck and Cv using batch versions
     if (threads > 1) {

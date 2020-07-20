@@ -131,6 +131,12 @@ refit.tidylda <- function(
 
   # Ensure dtm is of class dgCMatrix
   dtm <- convert_dtm(dtm = new_data)
+  
+  # Ensure dtm has column names
+  if (is.null(colnames(dtm))) {
+    stop("new_data must have names for tokens. Did you pass a matrix without colnames?")
+  }
+  
 
   # is k formatted correctly?
   if (!is.numeric(additional_k)) {

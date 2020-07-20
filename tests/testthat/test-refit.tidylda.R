@@ -199,6 +199,18 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   
   expect_s3_class(lda2, "tidylda")
   
+  # data doesn't have column names
+  d3 <- d2
+  colnames(d3) <- NULL
+  expect_error(
+    refit(
+      object = lda,
+      new_data = d3,
+      iterations = 20
+    )
+  )
+  
+  
   # iterations not specified
   expect_error(
     refit(

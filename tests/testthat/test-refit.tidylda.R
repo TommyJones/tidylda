@@ -197,6 +197,8 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
     iterations = 10
   )
   
+  expect_s3_class(lda2, "tidylda")
+  
   # iterations not specified
   expect_error(
     refit(

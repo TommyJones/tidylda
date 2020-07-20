@@ -197,6 +197,14 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
     iterations = 10
   )
   
+  # iterations not specified
+  expect_error(
+    refit(
+      object = lda,
+      new_data = d2
+    )
+  )
+  
   # burnin >= iterations
   expect_error(
     refit(

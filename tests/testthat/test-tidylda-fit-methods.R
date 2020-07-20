@@ -246,6 +246,18 @@ test_that("errors hit for malformed parameters", {
     return_data = FALSE,
     threads = 2
   ), label = "nrow(dtm) / threads < 100")
+  
+  # data doesn't have column names
+  d3 <- d1
+  colnames(d3) <- NULL
+  expect_error(
+    tidylda(
+      data = d3,
+      k = 4,
+      iterations = 20
+    )
+  )
+  
 })
 
 test_that("parallelism works as expected", {

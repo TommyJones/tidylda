@@ -169,6 +169,11 @@ tidylda_bridge <- function(
 
   # Ensure dtm is of class dgCMatrix
   dtm <- convert_dtm(dtm = data)
+  
+  # Ensure dtm has column names
+  if (is.null(colnames(dtm))) {
+    stop("data must have names for tokens. Did you pass a matrix without colnames?")
+  }
 
   # is k formatted correctly?
   if (k < 2) {

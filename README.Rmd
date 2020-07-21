@@ -21,7 +21,7 @@ status](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidylda?br
 [![Travis-CI Build
 Status](https://travis-ci.com/TommyJones/tidylda.svg?branch=main)](https://travis-ci.com/TommyJones/tidylda)
 [![Coverage
-Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](https://codecov.io/github/tommyjones/tidylda?branch=main)
+Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](https://codecov.io/gh/tommyjones/tidylda/branch/main)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->

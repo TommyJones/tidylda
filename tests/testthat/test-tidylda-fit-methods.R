@@ -26,6 +26,9 @@ test_that("can fit lda models without error", {
     return_data = FALSE
   )
   
+  # make sure r2 is numeric since calc_r2 = TRUE
+  expect_type(lda$r2, "double")
+  
   # make sure r2 doesn't have a names element
   expect_null(names(lda$r2))
 

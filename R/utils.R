@@ -653,10 +653,17 @@ format_raw_lda_outputs <- function(
       alpha_out <- lda$alpha
       
       names(alpha_out) <- rownames(phi)
+    } else { # this should be impossible, but science is hard and I am dumb.
+      alpha_out <- lda$alpha
+      
+      warning("something went wrong formatting alpha. refit.tidylda and predict.tidylda might be affected")
     }
     
     # resulting object
-    summary <- summarize_topics(phi = phi, theta = theta, dtm = dtm)
+    summary <- tryCatch(
+      summarize_topics(phi = phi, theta = theta, dtm = dtm),
+      error = function() stop("summarize_topics failed. model$summary corrupted.")
+    )
     
     log_likelihood <- as_tibble(data.frame(
       iteration = lda$log_likelihood[1, ],
@@ -678,11 +685,16 @@ format_raw_lda_outputs <- function(
     
     # goodness of fit
     if (calc_r2) {
-      result$r2 <- calc_lda_r2(
-        dtm = dtm,
-        theta = theta,
-        phi = phi,
-        threads
+      result$r2 <- try(
+        tryCatch(
+          calc_lda_r2(
+            dtm = dtm,
+            theta = theta,
+            phi = phi,
+            threads
+          ),
+          error = function() stop("calc_r2 failed. R-squared corrupted.")
+        )
       )
     }
     

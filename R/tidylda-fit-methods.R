@@ -269,7 +269,7 @@ tidylda_bridge <- function(
 
   ### format the output ----
 
-  result <- format_raw_lda_outputs(
+  result <- new_tidylda(
     lda = lda, 
     dtm = dtm, 
     burnin = burnin,

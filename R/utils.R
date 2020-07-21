@@ -494,7 +494,7 @@ summarize_topics <- function(theta, phi, dtm) {
   summary
 }
 
-#' Format the outputs of \code{\link[tidylda]{fit_lda_c}} consistently
+#' Construct a new object of class \code{tidylda}
 #' @keywords internal
 #' @description
 #'   Since all three of \code{\link[tidylda]{tidylda}},
@@ -554,7 +554,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #'     if \code{calc_likelihood = TRUE}
 #'
 #'   \code{r2} is a numeric scalar resulting from a call to
-#'     \code{\link[textmineR]{CalcTopicModelR2}}. This slot only populated if
+#'     \code{\link[mvrsquared]{calc_r2}}. This slot only populated if
 #'     \code{calc_r2 = TRUE}
 #' @note
 #'   In general, the arguments of this function should be what the user passed
@@ -569,7 +569,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #'   The class of \code{call} isn't checked. It's just passed through to the
 #'   object returned by this function. Might be useful if you are using this
 #'   function for troubleshooting or something.
-format_raw_lda_outputs <- function(
+new_tidylda <- function(
   lda, 
   dtm, 
   burnin, 
@@ -670,7 +670,7 @@ format_raw_lda_outputs <- function(
       log_likelihood = lda$log_likelihood[2, ]
     ))
     
-    result <- new_tidylda(
+    result <- list(
       phi = phi,
       theta = theta,
       gamma = gamma,
@@ -680,6 +680,8 @@ format_raw_lda_outputs <- function(
       call = call,
       log_likelihood = log_likelihood
     )
+    
+    class(result) <- "tidylda"
     
     ### calculate and add other things ###
     

@@ -153,34 +153,7 @@ test_that("glance.tidylda behaves nicely", {
   expect_equal(g$iterations, lda$call$iterations)
   
   expect_equal(g$burnin, lda$call$burnin)
-  
-  # malformed call
-  n <- new_tidylda(
-    phi = matrix(0, nrow = 2, ncol = 2),
-    theta = matrix(0, nrow = 2, ncol = 2),
-    gamma = matrix(0, nrow = 2, ncol = 2),
-    alpha = 0,
-    beta = 0,
-    summary = data.frame(
-      topic = 0,
-      prevalence = 0,
-      coherence = 0,
-      top_terms = "0",
-      stringsAsFactors = FALSE
-    ),
-    call = "whee"
-  )
-  
-  g <- glance(n)
-  
-  expect_named(g, c(
-    "num_topics", "num_documents", "num_tokens",
-    "iterations", "burnin"
-  ))
-  
-  expect_equal(g$iterations, NA)
-  
-  expect_equal(g$burnin, NA)
+
 })
 
 test_that("glance works with updated models", {

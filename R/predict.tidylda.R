@@ -232,7 +232,7 @@ predict.tidylda <- function(
     
 
     # format posterior prediction
-    result <- format_raw_lda_outputs(
+    result <- new_tidylda(
       lda = lda, 
       dtm = dtm_new_data,
       burnin = burnin, 

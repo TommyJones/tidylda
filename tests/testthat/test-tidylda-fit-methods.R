@@ -32,13 +32,20 @@ test_that("can fit lda models without error", {
   # make sure r2 doesn't have a names element
   expect_null(names(lda$r2))
 
-  expect_length(lda$alpha, 1)
-
-  expect_length(lda$beta, 1)
-
+  # make sure that likelihood is correct since calc_likelihood = TRUE
+  expect_s3_class(lda$log_likelihood, "tbl_df")
+  
+  expect_equal(ncol(lda$log_likelihood), 2)
+  
+  expect_equal(nrow(lda$log_likelihood), tail(lda$log_likelihood$iteration, 1) + 1)
+  
   # while we're here... check dimensions and names of objects
   expect_s3_class(lda, "tidylda")
 
+  expect_length(lda$alpha, 1)
+  
+  expect_length(lda$beta, 1)
+  
   expect_equal(sum(dim(lda$phi) == c(4, ncol(d1))), 2)
 
   expect_equal(sum(dim(lda$phi) == dim(lda$gamma)), 2)

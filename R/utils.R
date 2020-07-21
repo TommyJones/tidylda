@@ -584,7 +584,7 @@ format_raw_lda_outputs <- function(
 ) {
   
 
-  ### format theta ----
+  ### format theta ###
   if (burnin > -1) {
     theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)
   } else {
@@ -601,10 +601,10 @@ format_raw_lda_outputs <- function(
   
   rownames(theta) <- rownames(dtm)
   
-  ### format phi and all the rest ----
+  ### format phi and all the rest ###
   
   if (!is_prediction) {
-    ### format posteriors correctly ----
+    ### format posteriors correctly ###
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
       
       phi <- lda$Cv_mean + lda$beta
@@ -622,7 +622,7 @@ format_raw_lda_outputs <- function(
     rownames(phi) <- colnames(theta)
     
     
-    ### collect the results ----
+    ### collect the results ###
     
     # gamma
     gamma <- textmineR::CalcGamma(
@@ -674,7 +674,7 @@ format_raw_lda_outputs <- function(
       log_likelihood = log_likelihood
     )
     
-    ### calculate and add other things ---
+    ### calculate and add other things ###
     
     # goodness of fit
     if (calc_r2) {
@@ -693,7 +693,7 @@ format_raw_lda_outputs <- function(
   }
   
   
-  ### return the final result ----
+  ### return the final result ###
   if (is_prediction) {
     return(theta)
   } else {

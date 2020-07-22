@@ -44,4 +44,7 @@ generics::tidy
 #' @export
 generics::refit
 
+#' @importFrom generics generate
+#' @export
+generics::generate
 

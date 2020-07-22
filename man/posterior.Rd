@@ -6,14 +6,14 @@
 \alias{generate.tidylda_posterior}
 \title{Draw from the marginal posteriors of a tidylda topic model}
 \usage{
-posterior(object, ...)
+posterior(x, ...)
 
-\method{posterior}{tidylda}(object, ...)
+\method{posterior}{tidylda}(x, ...)
 
-\method{generate}{tidylda_posterior}(object, matrix, which, times, ...)
+\method{generate}{tidylda_posterior}(x, matrix, which, times, ...)
 }
 \arguments{
-\item{object}{For \code{posterior}, an object of class
+\item{x}{For \code{posterior}, an object of class
 \code{tidylda}. For \code{generate}, an object of class
 \code{tidylda_posterior} obtained by a call to \code{posterior}.}
 
@@ -64,7 +64,7 @@ p <- posterior(m)
 
 # sample from the marginal posterior corresponding to topic 1
 t1 <- generate(
-  object = p,
+  x = p,
   matrix = "phi",
   which = 1,
   times = 100  
@@ -72,7 +72,7 @@ t1 <- generate(
 
 # sample from the marginal posterior corresponding to document 5
 d5 <- generate(
-  object = p,
+  x = p,
   matrix = "theta",
   which = 5,
   times = 100

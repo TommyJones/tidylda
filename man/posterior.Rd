@@ -31,7 +31,7 @@ indices.}
 \value{
 \code{posterior} returns an object of class \code{tidylda_posterior}.
 
-\code{generate} returns a tibble with one row per paremeter per sample.
+\code{generate} returns a tibble with one row per parameter per sample.
 
 Returns a data frame where each row is a single sample from the posterior. 
 Each column is the distribution over a single parameter. The variable \code{var}

@@ -15,7 +15,7 @@
 #' @return 
 #' \code{posterior} returns an object of class \code{tidylda_posterior}.
 #' 
-#' \code{generate} returns a tibble with one row per paremeter per sample.
+#' \code{generate} returns a tibble with one row per parameter per sample.
 #' @details
 #' To sample from the marginal posteriors of a model, you must first make a call
 #' to \code{posterior} and then a call to \code{generate}.

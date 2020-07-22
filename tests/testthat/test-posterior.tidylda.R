@@ -1,4 +1,4 @@
-context("posterior tests")
+context("tests of posterior methods")
 
 dtm <- textmineR::nih_sample_dtm
 

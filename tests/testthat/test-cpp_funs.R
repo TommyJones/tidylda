@@ -12,7 +12,7 @@ beta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
 counts <- 
   initialize_topic_counts(
     dtm = dtm, 
-    k = 10,
+    k = 4,
     alpha = rep(0.1, 10), 
     beta = matrix(0.05, nrow = 10, ncol = ncol(dtm)),
     threads = 1
@@ -27,8 +27,8 @@ m <- fit_lda_c(
   Cv_in = counts$Cv,
   Ck_in = counts$Ck,
   Phi = counts$Cv, # ignored
-  iterations = 200,
-  burnin = 175,
+  iterations = 20,
+  burnin = 10,
   freeze_topics = FALSE,
   calc_likelihood = TRUE,
   optimize_alpha = TRUE

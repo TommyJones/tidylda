@@ -587,8 +587,10 @@ new_tidylda <- function(
   ### format theta ###
   if (burnin > -1) {
     theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)
+    Cd <- lda$Cd_mean
   } else {
     theta <- t(lda$Cd + lda$alpha) # t(t(lda$Cd) + lda$alpha)
+    Cd <- lda$Cd
   }
   
   theta <- t(theta)
@@ -606,11 +608,11 @@ new_tidylda <- function(
   if (!is_prediction) {
     ### format posteriors correctly ###
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-      
       phi <- lda$Cv_mean + lda$beta
+      Cv <- lda$Cv_mean
     } else { # if you didn't use burnin use standard counts (Cd etc.)
-      
       phi <- lda$Cv + lda$beta
+      Cv <- lda$Cv
     }
     
     phi <- phi / rowSums(phi)
@@ -678,7 +680,11 @@ new_tidylda <- function(
       beta = beta_out,
       summary = summary,
       call = call,
-      log_likelihood = log_likelihood
+      log_likelihood = log_likelihood,
+      counts = list(
+        Cd = Cd,
+        Cv = Cv
+      )
     )
     
     class(result) <- "tidylda"

@@ -554,7 +554,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #'     if \code{calc_likelihood = TRUE}
 #'
 #'   \code{r2} is a numeric scalar resulting from a call to
-#'     \code{\link[mvrsquared]{calc_r2}}. This slot only populated if
+#'     \code{\link[mvrsquared]{calc_rsquared}}. This slot only populated if
 #'     \code{calc_r2 = TRUE}
 #' @note
 #'   In general, the arguments of this function should be what the user passed

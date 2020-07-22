@@ -175,7 +175,7 @@ generate.tidylda_posterior <- function(
       
       out <- tidyr::pivot_longer(
         out,
-        -idx1,
+        -.data$idx1,
         names_to = "sample"
       )
       

@@ -2,7 +2,7 @@
 #' @description These functions are used to sample from the marginal posteriors
 #'   of a \code{tidylda} topic model. This is useful for quantifying uncertainty
 #'   around the parameters of \code{phi} or \code{theta}.
-#' @param object For \code{posterior}, an object of class
+#' @param x For \code{posterior}, an object of class
 #'   \code{tidylda}. For \code{generate}, an object of class
 #'   \code{tidylda_posterior} obtained by a call to \code{posterior}.
 #' @param matrix A character of either 'theta' or 'phi', indicating from which
@@ -44,7 +44,7 @@
 #' 
 #' # sample from the marginal posterior corresponding to topic 1
 #' t1 <- generate(
-#'   object = p,
+#'   x = p,
 #'   matrix = "phi",
 #'   which = 1,
 #'   times = 100  
@@ -52,44 +52,44 @@
 #' 
 #' # sample from the marginal posterior corresponding to document 5
 #' d5 <- generate(
-#'   object = p,
+#'   x = p,
 #'   matrix = "theta",
 #'   which = 5,
 #'   times = 100
 #' )
 #' }
 #' @export
-posterior <- function(object, ...) UseMethod("posterior")
+posterior <- function(x, ...) UseMethod("posterior")
 
 #' Posterior method for tidylda
 #' @rdname posterior
 #' @export
-posterior.tidylda <- function(object, ...) {
+posterior.tidylda <- function(x, ...) {
   
   # get proper alpha
   alpha <- format_alpha(
-    object$alpha, 
-    k = nrow(object$phi)
+    x$alpha, 
+    k = nrow(x$phi)
   )
   
   # get proper beta
   beta <- format_beta(
-    object$beta, 
-    k = nrow(object$phi), 
-    Nv = ncol(object$phi)
+    x$beta, 
+    k = nrow(x$phi), 
+    Nv = ncol(x$phi)
   )
   
   # extract dirichlet parameters for theta
-  theta_par <- t(object$counts$Cd) + alpha$alpha
+  theta_par <- t(x$counts$Cd) + alpha$alpha
   
-  colnames(theta_par) <- rownames(object$theta)
-  rownames(theta_par) <- colnames(object$theta)
+  colnames(theta_par) <- rownames(x$theta)
+  rownames(theta_par) <- colnames(x$theta)
   
   # extract dirichlet parameters for phi
-  phi_par <- object$counts$Cv + beta$beta
+  phi_par <- x$counts$Cv + beta$beta
   
-  rownames(phi_par) <- rownames(object$phi)
-  colnames(phi_par) <- colnames(object$phi)
+  rownames(phi_par) <- rownames(x$phi)
+  colnames(phi_par) <- colnames(x$phi)
   
   phi_par <- t(phi_par)
   
@@ -107,7 +107,7 @@ posterior.tidylda <- function(object, ...) {
 #' @rdname posterior
 #' @export
 generate.tidylda_posterior <- function(
-  object,
+  x,
   matrix,
   which,
   times,
@@ -139,15 +139,15 @@ generate.tidylda_posterior <- function(
     stop("times must be a positive number.")
   }
   
-  # extract the right object 
+  # extract the right x 
   if (matrix[1] == "theta") {
-    obj <- object$theta_par
+    obj <- x$theta_par
     # do one more check on which
     if (any(which > ncol(obj))) {
       stop("which is contains values greater than the maximum number of documents.")
     }
   } else {
-    obj <- object$phi_par
+    obj <- x$phi_par
     # do one more check on which
     if (any(which > ncol(obj))) {
       stop("which is contains values greater than the maximum number of topics.")
@@ -160,8 +160,8 @@ generate.tidylda_posterior <- function(
   # sample
   result <- lapply(
     result,
-    function(x) {
-      samp <- gtools::rdirichlet(n = times, alpha = x)
+    function(y) {
+      samp <- gtools::rdirichlet(n = times, alpha = y)
       
       samp <- as.data.frame(samp, stringsAsFactors = FALSE)
       

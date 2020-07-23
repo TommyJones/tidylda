@@ -33,7 +33,7 @@ test_that("can update models", {
     object = lda,
     new_data = d1,
     additional_k = 0,
-    phi_as_prior = FALSE,
+    beta_as_prior = FALSE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -48,17 +48,17 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta))
   
-  expect_equal(sum(dim(lda2$phi) == dim(lda$phi)), 2)
+  expect_equal(sum(dim(lda2$beta) == dim(lda$beta)), 2)
   
   expect_equal(sum(dim(lda2$lambda) == dim(lda$lambda)), 2)
   
   
-  # new data adding no extra topics no phi as prior
+  # new data adding no extra topics no beta as prior
   lda2 <- refit(
     object = lda,
     new_data = d2,
     additional_k = 0,
-    phi_as_prior = FALSE,
+    beta_as_prior = FALSE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -73,14 +73,14 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta))
   
-  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(lda2$beta), length(union(colnames(d1), colnames(d2))))
   
-  # 1 additonal topic and no phi as prior
+  # 1 additonal topic and no beta as prior
   lda2 <- refit(
     object = lda,
     new_data = d2,
     additional_k = 1,
-    phi_as_prior = FALSE,
+    beta_as_prior = FALSE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -95,14 +95,14 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 1)
   
-  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(lda2$beta), length(union(colnames(d1), colnames(d2))))
   
-  # 3 additional topics and no phi as prior
+  # 3 additional topics and no beta as prior
   lda2 <- refit(
     object = lda,
     new_data = d2,
     additional_k = 3,
-    phi_as_prior = FALSE,
+    beta_as_prior = FALSE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -117,14 +117,14 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
   
-  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(lda2$beta), length(union(colnames(d1), colnames(d2))))
   
-  # no additional topics and phi as prior
+  # no additional topics and beta as prior
   lda2 <- refit(
     object = lda,
     new_data = d2,
     additional_k = 0,
-    phi_as_prior = TRUE,
+    beta_as_prior = TRUE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -139,15 +139,15 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta))
   
-  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(lda2$beta), length(union(colnames(d1), colnames(d2))))
   
   
-  # 3 additonal topics and phi as prior
+  # 3 additonal topics and beta as prior
   lda2 <- refit(
     object = lda,
     new_data = d2,
     additional_k = 3,
-    phi_as_prior = TRUE,
+    beta_as_prior = TRUE,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -162,7 +162,7 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$theta), ncol(lda$theta) + 3)
   
-  expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(lda2$beta), length(union(colnames(d1), colnames(d2))))
   
   # update models with scalar eta
   
@@ -225,7 +225,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 30,
       optimize_alpha = TRUE,
@@ -241,7 +241,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = "3",
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -257,7 +257,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = -3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -273,7 +273,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE
+      beta_as_prior = TRUE
     )
   )
   
@@ -283,7 +283,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = "TRUE",
+      beta_as_prior = "TRUE",
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -298,7 +298,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = "TRUE",
@@ -313,7 +313,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -327,7 +327,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -342,7 +342,7 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
       object = lda,
       new_data = d2,
       additional_k = 3,
-      phi_as_prior = TRUE,
+      beta_as_prior = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,

@@ -9,7 +9,7 @@ initialize_topic_counts(
   k,
   alpha,
   eta,
-  phi_initial = NULL,
+  beta_initial = NULL,
   theta_initial = NULL,
   freeze_topics = FALSE,
   threads = 1,
@@ -27,7 +27,7 @@ by \code{\link[tidylda]{format_alpha}}}
 \item{eta}{the numeric matrix prior for topics over documents as formatted
 by \code{\link[tidylda]{format_eta}}}
 
-\item{phi_initial}{if specified, a numeric matrix for the probability of tokens
+\item{beta_initial}{if specified, a numeric matrix for the probability of tokens
 in topics. Must be specified for predictions or updates as called by
 \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{refit.tidylda}}
 respectively.}

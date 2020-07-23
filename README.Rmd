@@ -59,11 +59,11 @@ This package is still in its early stages of development. However, some basic fu
 `tidylda` uses the following naming conventions for topic models:
 
 * `theta` is a matrix whose rows are distributions of topics over documents, or P(topic|document)
-* `phi` is a matrix whose rows are distributions of tokens over topics, or P(token|topic)
+* `beta` is a matrix whose rows are distributions of tokens over topics, or P(token|topic)
 * `lambda` is a matrix whose rows are distributions of topics over tokens, or P(topic|token)
   `lambda` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
 * `alpha` is the prior that tunes `theta`
-* `beta` is the prior that tunes `phi`
+* `beta` is the prior that tunes `beta`
 
 ## Example
 
@@ -147,9 +147,9 @@ tidy_theta <- tidy(lda, matrix = "theta")
 
 tidy_theta
 
-tidy_phi <- tidy(lda, matrix = "phi")
+tidy_beta <- tidy(lda, matrix = "beta")
 
-tidy_phi
+tidy_beta
 
 tidy_lambda <- tidy(lda, matrix = "lambda")
 

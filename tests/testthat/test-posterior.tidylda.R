@@ -29,8 +29,8 @@ test_that("posterior methods function with good inputs",{
   # dimensions of matrices
   expect_equal(ncol(p$theta_par), nrow(lda$theta))
   expect_equal(nrow(p$theta_par), ncol(lda$theta))
-  expect_equal(ncol(p$phi_par), nrow(lda$phi))
-  expect_equal(nrow(p$phi_par), ncol(lda$phi))
+  expect_equal(ncol(p$beta_par), nrow(lda$beta))
+  expect_equal(nrow(p$beta_par), ncol(lda$beta))
   
   # sample from theta 1 doc
   g <- generate(
@@ -48,18 +48,18 @@ test_that("posterior methods function with good inputs",{
     times = 10
   )
   
-  # sample from phi 1 doc
+  # sample from beta 1 doc
   g <- generate(
     x = p,
-    matrix = "phi",
+    matrix = "beta",
     which = 1,
     times = 10
   )
   
-  # sample from phi many docs
+  # sample from beta many docs
   g <- generate(
     x = p,
-    matrix = "phi",
+    matrix = "beta",
     which = 1:3,
     times = 10
   )

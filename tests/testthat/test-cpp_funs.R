@@ -26,7 +26,7 @@ m <- fit_lda_c(
   Cd_in = counts$Cd,
   Cv_in = counts$Cv,
   Ck_in = counts$Ck,
-  Phi = counts$Cv, # ignored
+  Beta_in = counts$Cv, # ignored
   iterations = 20,
   burnin = 10,
   freeze_topics = FALSE,

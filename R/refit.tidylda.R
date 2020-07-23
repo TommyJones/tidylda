@@ -4,7 +4,7 @@
 #' @param new_data A document term matrix or term co-occurrence matrix of class dgCMatrix.
 #' @param iterations Integer number of iterations for the Gibbs sampler to run.
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
-#'        the resulting "phi" and "theta" matrices are an average over all iterations
+#'        the resulting "beta" and "theta" matrices are an average over all iterations
 #'        greater than \code{burnin}.
 #' @param optimize_alpha Logical. Do you want to optimize alpha every iteration?
 #'        Defaults to \code{FALSE}. See 'details' of documentation for
@@ -15,7 +15,7 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{new_data} returned as part of the model object?
 #' @param additional_k Integer number of topics to add, defaults to 0.
-#' @param phi_as_prior Logical. Do you want to replace \code{eta} with \code{phi}
+#' @param beta_as_prior Logical. Do you want to replace \code{eta} with \code{beta}
 #'        from the previous model as the prior for words over topics?
 #' @param threads Number of parallel threads, defaults to 1.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
@@ -25,11 +25,11 @@
 #' @details
 #'   \code{refit} allows you to (a) update the probabilities (i.e. weights) of
 #'   a previously-fit model with new data or additional iterations and (b) optionally
-#'   use \code{phi} of a previously-fit LDA topic model as the \code{eta} prior
-#'   for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
-#'   \code{phi_as_prior = TRUE} respectively.
+#'   use \code{beta} of a previously-fit LDA topic model as the \code{eta} prior
+#'   for the new model. This is tuned by setting \code{beta_as_prior = FALSE} or
+#'   \code{beta_as_prior = TRUE} respectively.
 #'
-#'   If \code{phi_as_prior = TRUE}, then the new \code{eta} is equal to \code{phi}
+#'   If \code{beta_as_prior = TRUE}, then the new \code{eta} is equal to \code{beta}
 #'   from the old model. (For handling of new tokens, see below.) Then each row
 #'   of the new \code{eta} is rescaled so that each row has the same magnitude
 #'   as the previous model's \code{eta}.
@@ -40,7 +40,7 @@
 #'
 #'   First, topic-document probabilities (i.e. \code{theta}) are obtained by a
 #'   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
-#'   for the documents in \code{new_data}. Next, both \code{phi} and \code{theta} are
+#'   for the documents in \code{new_data}. Next, both \code{beta} and \code{theta} are
 #'   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
 #'   which assigns topics to tokens in a manner approximately proportional to 
 #'   the posteriors and executes a single Gibbs iteration.
@@ -49,8 +49,8 @@
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
 #'   median value of \code{eta} from the old model. The resulting model will
 #'   have the total vocabulary of the old model plus any new vocabulary tokens.
-#'   In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(new_data)}
-#'   where \code{phi} is from the new model and \code{new_data} is the additional data.
+#'   In other words, after running \code{refit.tidylda} \code{ncol(beta) >= ncol(new_data)}
+#'   where \code{beta} is from the new model and \code{new_data} is the additional data.
 #'
 #'   You can add additional topics by setting the \code{additional_k} parameter
 #'   to an integer greater than zero. New entries to \code{alpha} have a flat
@@ -89,7 +89,7 @@
 #' m3 <- refit(
 #'   object = m,
 #'   new_data = d2, # new documents only
-#'   phi_as_prior = TRUE,
+#'   beta_as_prior = TRUE,
 #'   iterations = 200,
 #'   burnin = 175
 #' )
@@ -113,7 +113,7 @@ refit.tidylda <- function(
   calc_r2 = FALSE, 
   return_data = FALSE,
   additional_k = 0, 
-  phi_as_prior = FALSE, 
+  beta_as_prior = FALSE, 
   threads = 1,
   verbose = FALSE,
   ...
@@ -181,8 +181,8 @@ refit.tidylda <- function(
     stop("return_data must be logical")
   }
 
-  if (!is.logical(phi_as_prior)) {
-    stop("phi_as_prior must be logical")
+  if (!is.logical(beta_as_prior)) {
+    stop("beta_as_prior must be logical")
   }
 
   if (! is.logical(optimize_alpha)) {
@@ -192,9 +192,9 @@ refit.tidylda <- function(
   ### Pull out objects used for update ----
 
   # format of eta
-  if (phi_as_prior) {
+  if (beta_as_prior) {
     eta <- list(
-      eta = object$phi,
+      eta = object$beta,
       eta_class = "matrix"
     )
 
@@ -205,22 +205,22 @@ refit.tidylda <- function(
     } else if (is.vector(object$eta)) {
       eta$eta <- eta$eta * sum(object$eta)
     } else if (length(object$eta) == 1) {
-      eta$eta <- eta$eta * (object$eta * ncol(object$phi))
+      eta$eta <- eta$eta * (object$eta * ncol(object$beta))
     } else { # this case shouldn't happen
 
       stop("object$eta must be a numeric scalar, a numeric vector of length 
-         'ncol(object$phi)', or a numeric matrix with 'nrow(object$phi)' rows 
-         and 'ncol(object$phi)' columns with no missing  values and at least 
+         'ncol(object$beta)', or a numeric matrix with 'nrow(object$beta)' rows 
+         and 'ncol(object$beta)' columns with no missing  values and at least 
          one non-zero value.")
     }
   } else {
-    eta <- format_eta(eta = object$eta, k = nrow(object$phi), Nv = ncol(object$phi))
+    eta <- format_eta(eta = object$eta, k = nrow(object$beta), Nv = ncol(object$beta))
   }
 
-  dimnames(eta$eta) <- dimnames(object$phi)
+  dimnames(eta$eta) <- dimnames(object$beta)
 
-  # phi_initial and theta_initial
-  phi_initial <- object$phi
+  # beta_initial and theta_initial
+  beta_initial <- object$beta
 
   theta_initial <- predict.tidylda(
     object = object,
@@ -233,23 +233,23 @@ refit.tidylda <- function(
   # pull out alpha
   alpha <- format_alpha(
     alpha = object$alpha,
-    k = nrow(object$phi)
+    k = nrow(object$beta)
   )
 
   ### Vocabulary alignment and new topic (if any) alignment ----
 
   # align vocab in intelligent way for adding new vocab
-  total_vocabulary <- union(colnames(dtm), colnames(phi_initial))
+  total_vocabulary <- union(colnames(dtm), colnames(beta_initial))
 
   add_to_dtm <- setdiff(total_vocabulary, colnames(dtm))
 
-  add_to_model <- setdiff(total_vocabulary, colnames(phi_initial))
+  add_to_model <- setdiff(total_vocabulary, colnames(beta_initial))
 
   m_add_to_dtm <- matrix(0, nrow = nrow(dtm), ncol = length(add_to_dtm))
 
   colnames(m_add_to_dtm) <- add_to_dtm
 
-  m_add_to_model <- matrix(0, nrow = nrow(phi_initial), ncol = length(add_to_model))
+  m_add_to_model <- matrix(0, nrow = nrow(beta_initial), ncol = length(add_to_model))
 
   colnames(m_add_to_model) <- add_to_model
 
@@ -260,12 +260,12 @@ refit.tidylda <- function(
 
   eta$eta <- eta$eta[, colnames(dtm)]
 
-  phi_initial <- cbind(phi_initial, m_add_to_model + stats::median(phi_initial))
+  beta_initial <- cbind(beta_initial, m_add_to_model + stats::median(beta_initial))
 
-  phi_initial <- phi_initial[, colnames(dtm)] / rowSums(phi_initial[, colnames(dtm)])
+  beta_initial <- beta_initial[, colnames(dtm)] / rowSums(beta_initial[, colnames(dtm)])
 
 
-  # add topics to eta and phi_initial
+  # add topics to eta and beta_initial
   # prior for topics inherets from eta, specifically colMeans(eta)
   # basically means that new topics are an average of old topics. If you used
   # a scalar or vector for object$eta, then prior for new topics will be
@@ -281,7 +281,7 @@ refit.tidylda <- function(
 
   eta$eta <- rbind(eta$eta, m_add) # add new topics to eta
 
-  phi_initial <- rbind(phi_initial, m_add / rowSums(m_add)) # new topics to phi
+  beta_initial <- rbind(beta_initial, m_add / rowSums(m_add)) # new topics to beta
 
   # add topics to alpha and theta_initial
   # prior for new topics is uniform, similar to eta, it's the median of alpha
@@ -319,10 +319,10 @@ refit.tidylda <- function(
   ### get initial counts to feed to gibbs sampler ----
   counts <- initialize_topic_counts(
     dtm = dtm,
-    k = nrow(phi_initial),
+    k = nrow(beta_initial),
     alpha = alpha$alpha,
     eta = eta$eta,
-    phi_initial = phi_initial,
+    beta_initial = beta_initial,
     theta_initial = theta_initial,
     freeze_topics = FALSE, # false because this is an update
     threads = threads
@@ -341,7 +341,7 @@ refit.tidylda <- function(
     burnin = burnin,
     optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    Phi_in = object$phi, # ignored for updates as freeze_topics = FALSE
+    Beta_in = object$beta, # ignored for updates as freeze_topics = FALSE
     freeze_topics = FALSE,
     threads = threads,
     verbose = verbose

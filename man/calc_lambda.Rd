@@ -4,10 +4,10 @@
 \alias{calc_lambda}
 \title{Calculate a matrix whose rows represent P(topic_i|tokens)}
 \usage{
-calc_lambda(phi, theta, p_docs = NULL, correct = TRUE)
+calc_lambda(beta, theta, p_docs = NULL, correct = TRUE)
 }
 \arguments{
-\item{phi}{a phi matrix}
+\item{beta}{a beta matrix}
 
 \item{theta}{a theta matrix}
 

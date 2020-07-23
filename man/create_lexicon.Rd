@@ -4,12 +4,12 @@
 \alias{create_lexicon}
 \title{Make a lexicon for looping over in the gibbs sampler}
 \usage{
-create_lexicon(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
+create_lexicon(Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads)
 }
 \arguments{
 \item{Cd_in}{IntegerMatrix denoting counts of topics in documents}
 
-\item{Phi_in}{NumericMatrix denoting probability of words in topics}
+\item{Beta_in}{NumericMatrix denoting probability of words in topics}
 
 \item{dtm_in}{arma::sp_mat document term matrix}
 
@@ -23,7 +23,7 @@ One run of the Gibbs sampler and other magic to initialize some objects.
 }
 \details{
 Arguments ending in \code{_in} are copied and their copies modified in
-  some way by this function. In the case of \code{Cd_in} and \code{Phi_in},
+  some way by this function. In the case of \code{Cd_in} and \code{Beta_in},
   the only modification is that they are converted from matrices to nested
   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
   is transposed for speed when looping over columns.

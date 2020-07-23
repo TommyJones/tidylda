@@ -51,7 +51,7 @@ argument is ignored.}
 \value{
 Returns an S3 object of class \code{tidylda} with the following slots:
 
-  \code{phi} is a numeric matrix whose rows are the posterior estimates
+  \code{beta} is a numeric matrix whose rows are the posterior estimates
     of P(token|topic)
 
   \code{theta} is a numeric matrix  whose rows are the posterior estimates of

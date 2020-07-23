@@ -14,7 +14,7 @@
   calc_r2 = FALSE,
   return_data = FALSE,
   additional_k = 0,
-  phi_as_prior = FALSE,
+  beta_as_prior = FALSE,
   threads = 1,
   verbose = FALSE,
   ...
@@ -28,7 +28,7 @@
 \item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
 
 \item{burnin}{Integer number of burnin iterations. If \code{burnin} is greater than -1,
-the resulting "phi" and "theta" matrices are an average over all iterations
+the resulting "beta" and "theta" matrices are an average over all iterations
 greater than \code{burnin}.}
 
 \item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
@@ -45,7 +45,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{additional_k}{Integer number of topics to add, defaults to 0.}
 
-\item{phi_as_prior}{Logical. Do you want to replace \code{eta} with \code{phi}
+\item{beta_as_prior}{Logical. Do you want to replace \code{eta} with \code{beta}
 from the previous model as the prior for words over topics?}
 
 \item{threads}{Number of parallel threads, defaults to 1.}
@@ -64,11 +64,11 @@ Update an LDA model using collapsed Gibbs sampling.
 \details{
 \code{refit} allows you to (a) update the probabilities (i.e. weights) of
   a previously-fit model with new data or additional iterations and (b) optionally
-  use \code{phi} of a previously-fit LDA topic model as the \code{eta} prior
-  for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
-  \code{phi_as_prior = TRUE} respectively.
+  use \code{beta} of a previously-fit LDA topic model as the \code{eta} prior
+  for the new model. This is tuned by setting \code{beta_as_prior = FALSE} or
+  \code{beta_as_prior = TRUE} respectively.
 
-  If \code{phi_as_prior = TRUE}, then the new \code{eta} is equal to \code{phi}
+  If \code{beta_as_prior = TRUE}, then the new \code{eta} is equal to \code{beta}
   from the old model. (For handling of new tokens, see below.) Then each row
   of the new \code{eta} is rescaled so that each row has the same magnitude
   as the previous model's \code{eta}.
@@ -79,7 +79,7 @@ Update an LDA model using collapsed Gibbs sampling.
 
   First, topic-document probabilities (i.e. \code{theta}) are obtained by a
   call to \code{\link[tidylda]{predict.tidylda}} using \code{method = "dot"}
-  for the documents in \code{new_data}. Next, both \code{phi} and \code{theta} are
+  for the documents in \code{new_data}. Next, both \code{beta} and \code{theta} are
   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
   which assigns topics to tokens in a manner approximately proportional to 
   the posteriors and executes a single Gibbs iteration.
@@ -88,8 +88,8 @@ Update an LDA model using collapsed Gibbs sampling.
   over new tokens. Specifically, each entry in the new prior is equal to the
   median value of \code{eta} from the old model. The resulting model will
   have the total vocabulary of the old model plus any new vocabulary tokens.
-  In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(new_data)}
-  where \code{phi} is from the new model and \code{new_data} is the additional data.
+  In other words, after running \code{refit.tidylda} \code{ncol(beta) >= ncol(new_data)}
+  where \code{beta} is from the new model and \code{new_data} is the additional data.
 
   You can add additional topics by setting the \code{additional_k} parameter
   to an integer greater than zero. New entries to \code{alpha} have a flat
@@ -129,7 +129,7 @@ m2 <- refit(
 m3 <- refit(
   object = m,
   new_data = d2, # new documents only
-  phi_as_prior = TRUE,
+  beta_as_prior = TRUE,
   iterations = 200,
   burnin = 175
 )

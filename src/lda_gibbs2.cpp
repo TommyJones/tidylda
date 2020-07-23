@@ -18,20 +18,20 @@
 //'   One run of the Gibbs sampler and other magic to initialize some objects.
 //'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
 //' @param Cd_in IntegerMatrix denoting counts of topics in documents
-//' @param Phi_in NumericMatrix denoting probability of words in topics
+//' @param Beta_in NumericMatrix denoting probability of words in topics
 //' @param dtm_in arma::sp_mat document term matrix
 //' @param alpha NumericVector prior for topics over documents
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
-//'   some way by this function. In the case of \code{Cd_in} and \code{Phi_in},
+//'   some way by this function. In the case of \code{Cd_in} and \code{Beta_in},
 //'   the only modification is that they are converted from matrices to nested
 //'   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
 //'   is transposed for speed when looping over columns. 
 // [[Rcpp::export]]
 Rcpp::List create_lexicon(
     const IntegerMatrix&       Cd_in,
-    const NumericMatrix&       Phi_in,
+    const NumericMatrix&       Beta_in,
     const arma::sp_mat&        dtm_in,
     const std::vector<double>& alpha,
     const bool&                freeze_topics,
@@ -45,14 +45,14 @@ Rcpp::List create_lexicon(
   // Cd  = Cd.t();  // transpose to put columns up
   
   auto Cd = mat_to_vec(Cd_in, true);
-  auto Phi = mat_to_vec(Phi_in, true);
+  auto Beta = mat_to_vec(Beta_in, true);
   
   std::vector<std::vector<std::size_t>> Docs(dtm.n_cols);
   std::vector<std::vector<std::size_t>> Zd(dtm.n_cols);
   
   const std::size_t Nv = dtm.n_rows;
   const std::size_t Nd = Cd.size();
-  const std::size_t Nk = Phi.size();
+  const std::size_t Nk = Beta.size();
   
   auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
   
@@ -82,9 +82,9 @@ Rcpp::List create_lexicon(
     for (auto v = 0; v < Nv; ++v) {
       if (dtm(v, d) > 0) { // if non-zero, add elements to doc
         
-        // calculate probability of topics based on initially-sampled Phi and Cd
+        // calculate probability of topics based on initially-sampled Beta and Cd
         for (auto k = 0; k < Nk; ++k) {
-          qz[k] = log(Phi[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
+          qz[k] = log(Beta[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
         }
         
         std::size_t idx(j + dtm(v, d)); // where to stop the loop below
@@ -203,14 +203,14 @@ Rcpp::List create_lexicon(
 //' @param burnin int number of burn in iterations
 //' @param calc_likelihood bool do you want to calculate the log likelihood each
 //'   iteration?
-//' @param Phi_in NumericMatrix denoting probability of tokens in topics
+//' @param Beta_in NumericMatrix denoting probability of tokens in topics
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 //' @param threads unsigned integer, how many parallel threads?
 //' @param verbose bool do you want to print out a progress bar?
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
-//'   some way by this function. In the case of \code{eta_in} and \code{Phi_in},
+//'   some way by this function. In the case of \code{eta_in} and \code{Beta_in},
 //'   the only modification is that they are converted from matrices to nested
 //'   \code{std::vector} for speed, reliability, and thread safety. In the case
 //'   of all others, they may be explicitly modified during training. 
@@ -227,7 +227,7 @@ Rcpp::List fit_lda_c(
     const int&                                    burnin,
     const bool&                                   optimize_alpha, 
     const bool&                                   calc_likelihood,
-    const NumericMatrix&                          Phi_in,
+    const NumericMatrix&                          Beta_in,
     const bool&                                   freeze_topics,
     const std::size_t&                            threads = 1,
     const bool&                                   verbose = false
@@ -246,7 +246,7 @@ Rcpp::List fit_lda_c(
   auto alpha = alpha_in;
   auto eta = mat_to_vec(eta_in, true);
   
-  auto Phi = mat_to_vec(Phi_in, true);
+  auto Beta = mat_to_vec(Beta_in, true);
   
   // ***********************************************************************
   // Variables and other set up for the main sampler
@@ -285,15 +285,15 @@ Rcpp::List fit_lda_c(
   // Set up variables for parallel sampling. 
   // ***********************************************************************
   
-  // containers for thread specific Cv, Ck, and Phi
-  // note: Phi does not get updated every iteration as its use means 
+  // containers for thread specific Cv, Ck, and Beta
+  // note: Beta does not get updated every iteration as its use means 
   // freeze_topics = true
   std::vector<std::vector<std::vector<long>>> Cv_batch(threads);
   std::vector<std::vector<long>> Ck_batch(threads);
   
-  std::vector<std::vector<std::vector<double>>> Phi_batch(threads);
+  std::vector<std::vector<std::vector<double>>> Beta_batch(threads);
   for (auto j = 0; j < threads; j++) {
-    Phi_batch[j] = Phi;
+    Beta_batch[j] = Beta;
   }
   
   // container of document indices
@@ -399,7 +399,7 @@ Rcpp::List fit_lda_c(
               
               // calculate probability vector
               for (auto k = 0; k < Nk; k++) {
-                qz[k] = Phi_batch[j][k][doc[n]] *
+                qz[k] = Beta_batch[j][k][doc[n]] *
                   (Cd[d][k] + alpha[k]) / 
                   (doc.size() + sum_alpha);
               }
@@ -475,8 +475,8 @@ Rcpp::List fit_lda_c(
       
       std::vector<double> tmp(3);
       
-      // get phi probability matrix @ this iteration
-      std::vector<std::vector<double>> phi_prob(Nk);
+      // get beta probability matrix @ this iteration
+      std::vector<std::vector<double>> beta_prob(Nk);
       
       double denom(0.0);
       
@@ -486,7 +486,7 @@ Rcpp::List fit_lda_c(
         
         std::vector<double> tmp(Nv);
         
-        phi_prob[k] = tmp;
+        beta_prob[k] = tmp;
         
         // get the denominator
         for (auto v = 0; v < Nv; v++) {
@@ -495,9 +495,9 @@ Rcpp::List fit_lda_c(
         
         // get the probability
         for (auto v = 0; v < Nv; v++) {
-          phi_prob[k][v] = ((double)Cv[k][v] + eta[k][v]) / denom;
+          beta_prob[k][v] = ((double)Cv[k][v] + eta[k][v]) / denom;
           
-          lp_eta += (eta[k][v] - 1) * log(phi_prob[k][v]);
+          lp_eta += (eta[k][v] - 1) * log(beta_prob[k][v]);
         }
       }
       
@@ -535,7 +535,7 @@ Rcpp::List fit_lda_c(
           
           for (auto k = 0; k < Nk; k++) {
             
-            lp[n] += theta_prob[k] * phi_prob[k][doc[n]];
+            lp[n] += theta_prob[k] * beta_prob[k][doc[n]];
             
           }
           

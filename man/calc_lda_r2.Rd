@@ -4,14 +4,14 @@
 \alias{calc_lda_r2}
 \title{Calculate R-squared for a tidylda Model}
 \usage{
-calc_lda_r2(dtm, theta, phi, threads)
+calc_lda_r2(dtm, theta, beta, threads)
 }
 \arguments{
 \item{dtm}{must be of class dgCMatrix}
 
 \item{theta}{a theta matrix}
 
-\item{phi}{a phi matrix}
+\item{beta}{a beta matrix}
 
 \item{threads}{number of parallel threads}
 }

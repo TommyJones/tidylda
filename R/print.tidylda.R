@@ -29,8 +29,8 @@ print.tidylda <- function(x, digits = max(3L, getOption("digits") - 3L), n = 5, 
   s <- x$summary
 
   cat(
-    "A Latent Dirichlet Allocation Model of ", nrow(x$phi), "topics, ",
-    nrow(x$theta), " documents, and ", ncol(x$phi), " tokens:\n"
+    "A Latent Dirichlet Allocation Model of ", nrow(x$beta), "topics, ",
+    nrow(x$theta), " documents, and ", ncol(x$beta), " tokens:\n"
   )
 
   print(x$call)

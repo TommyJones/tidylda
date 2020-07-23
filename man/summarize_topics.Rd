@@ -4,18 +4,18 @@
 \alias{summarize_topics}
 \title{Summarize a topic model consistently across methods/functions}
 \usage{
-summarize_topics(theta, phi, dtm)
+summarize_topics(theta, beta, dtm)
 }
 \arguments{
 \item{theta}{numeric matrix whose rows represent P(topic|document)}
 
-\item{phi}{numeric matrix whose rows represent P(token|topic)}
+\item{beta}{numeric matrix whose rows represent P(token|topic)}
 
 \item{dtm}{a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.}
 }
 \value{
 Returns a \code{\link[tibble]{tibble}} with the following columns:
-  \code{topic} is the integer row number of \code{phi}.
+  \code{topic} is the integer row number of \code{beta}.
   \code{prevalence} is the frequency of each topic throughout the corpus it
     was trained on normalized so that it sums to 100.
   \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
@@ -39,7 +39,7 @@ Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}
 
   An alternative calculation (not implemented here) might have been
 
-  \code{prevalence <- colSums(dtm) * t(phi) \%>\% colSums()}
+  \code{prevalence <- colSums(dtm) * t(beta) \%>\% colSums()}
 
   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
 }

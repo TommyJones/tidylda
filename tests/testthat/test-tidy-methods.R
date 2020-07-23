@@ -26,36 +26,36 @@ lda <- tidylda(
 
 test_that("tidy.tidylda works as expected", {
   
-  # tidy phi
-  tidy_phi <- tidy(
+  # tidy beta
+  tidy_beta <- tidy(
     x = lda,
-    matrix = "phi"
+    matrix = "beta"
   )
   
-  expect_named(tidy_phi, c("topic", "token", "phi"))
+  expect_named(tidy_beta, c("topic", "token", "beta"))
   
-  expect_type(tidy_phi[[1]], "double")
+  expect_type(tidy_beta[[1]], "double")
   
-  expect_type(tidy_phi[[2]], "character")
+  expect_type(tidy_beta[[2]], "character")
   
-  expect_type(tidy_phi[[3]], "double")
+  expect_type(tidy_beta[[3]], "double")
   
-  # log to tidy phi
-  tidy_phi_log <- tidy(
+  # log to tidy beta
+  tidy_beta_log <- tidy(
     x = lda,
-    matrix = "phi",
+    matrix = "beta",
     log = TRUE
   )
   
-  expect_named(tidy_phi_log, c("topic", "token", "log_phi"))
+  expect_named(tidy_beta_log, c("topic", "token", "log_beta"))
   
-  expect_type(tidy_phi_log[[1]], "double")
+  expect_type(tidy_beta_log[[1]], "double")
   
-  expect_type(tidy_phi_log[[2]], "character")
+  expect_type(tidy_beta_log[[2]], "character")
   
-  expect_type(tidy_phi_log[[3]], "double")
+  expect_type(tidy_beta_log[[3]], "double")
   
-  expect_equal(sum(colnames(lda$phi) %in% tidy_phi$token), length(colnames(lda$phi)))
+  expect_equal(sum(colnames(lda$beta) %in% tidy_beta$token), length(colnames(lda$beta)))
   
   # tidy theta
   tidy_theta <- tidy(
@@ -109,7 +109,7 @@ test_that("tidy throws errors for malformed inputs", {
   expect_error(
     tidy(
       x = lda,
-      matrix = "phi",
+      matrix = "beta",
       log = "WRONG"
     )
   )
@@ -144,11 +144,11 @@ test_that("glance.tidylda behaves nicely", {
     "iterations", "burnin"
   ))
   
-  expect_equal(g$num_topics, nrow(lda$phi))
+  expect_equal(g$num_topics, nrow(lda$beta))
   
   expect_equal(g$num_documents, nrow(lda$theta))
   
-  expect_equal(g$num_tokens, ncol(lda$phi))
+  expect_equal(g$num_tokens, ncol(lda$beta))
   
   expect_equal(g$iterations, lda$call$iterations)
   
@@ -166,11 +166,11 @@ test_that("glance works with updated models", {
     "iterations", "burnin"
   ))
   
-  expect_equal(g$num_topics, nrow(l2$phi))
+  expect_equal(g$num_topics, nrow(l2$beta))
   
   expect_equal(g$num_documents, nrow(l2$theta))
   
-  expect_equal(g$num_tokens, ncol(l2$phi))
+  expect_equal(g$num_tokens, ncol(l2$beta))
   
   expect_equal(g$iterations, l2$call$iterations)
   
@@ -210,7 +210,7 @@ test_that("augment.tidylda behaves nicely", {
   # correctly identified topics?
   expect_equal(
     a %>% 
-      dplyr::filter(term %in% colnames(lda$phi)) %>%
+      dplyr::filter(term %in% colnames(lda$beta)) %>%
       dplyr::select(topic) %>%
       dplyr::summarise(na_topic = sum(is.na(topic))) %>%
       as.numeric,
@@ -228,7 +228,7 @@ test_that("augment.tidylda behaves nicely", {
   
   expect_false(
     a %>% 
-      dplyr::filter(term %in% colnames(lda$phi)) %>%
+      dplyr::filter(term %in% colnames(lda$beta)) %>%
       dplyr::select(-c(document, term)) %>%
       colSums() %>%
       sum %>% 

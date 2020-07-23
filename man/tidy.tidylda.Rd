@@ -10,10 +10,10 @@
 \method{tidy}{matrix}(x, matrix, log = FALSE, ...)
 }
 \arguments{
-\item{x}{an object of class \code{tidylda} or an individual \code{phi}, 
+\item{x}{an object of class \code{tidylda} or an individual \code{beta}, 
 \code{theta}, or \code{lambda} matrix.}
 
-\item{matrix}{the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
+\item{matrix}{the matrix to tidy; one of \code{'beta'}, \code{'theta'}, or
 \code{'lambda'}}
 
 \item{log}{do you want to have the result on a log scale? Defaults to \code{FALSE}}
@@ -23,8 +23,8 @@
 \value{
 Returns a \code{\link[tibble]{tibble}}.
 
-  If \code{matrix = "phi"} then the result is a table of one row per topic
-  and token with the following columns: \code{topic}, \code{token}, \code{phi}
+  If \code{matrix = "beta"} then the result is a table of one row per topic
+  and token with the following columns: \code{topic}, \code{token}, \code{beta}
 
   If \code{matrix = "theta"} then the result is a table of one row per document
   and topic with the following columns: \code{document}, \code{topic}, \code{theta}
@@ -43,7 +43,7 @@ Useful for predictions and called from tidy.tidylda
 
 \note{
 If \code{log = TRUE} then "log_" will be appended to the name of the third
-  column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".
+  column of the resulting table. e.g "\code{beta}" becomes "\code{log_beta}".
 }
 \examples{
 \donttest{
@@ -51,7 +51,7 @@ dtm <- textmineR::nih_sample_dtm
 
 lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 
-tidy_phi <- tidy(lda, matrix = "phi")
+tidy_beta <- tidy(lda, matrix = "beta")
 
 tidy_theta <- tidy(lda, matrix = "theta")
 

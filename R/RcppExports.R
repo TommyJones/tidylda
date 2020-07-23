@@ -7,18 +7,18 @@
 #'   One run of the Gibbs sampler and other magic to initialize some objects.
 #'   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.
 #' @param Cd_in IntegerMatrix denoting counts of topics in documents
-#' @param Phi_in NumericMatrix denoting probability of words in topics
+#' @param Beta_in NumericMatrix denoting probability of words in topics
 #' @param dtm_in arma::sp_mat document term matrix
 #' @param alpha NumericVector prior for topics over documents
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in
-#'   some way by this function. In the case of \code{Cd_in} and \code{Phi_in},
+#'   some way by this function. In the case of \code{Cd_in} and \code{Beta_in},
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
 #'   is transposed for speed when looping over columns. 
-create_lexicon <- function(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads) {
-    .Call(`_tidylda_create_lexicon`, Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
+create_lexicon <- function(Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads) {
+    .Call(`_tidylda_create_lexicon`, Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads)
 }
 
 #' Main C++ Gibbs sampler for Latent Dirichlet Allocation
@@ -38,19 +38,19 @@ create_lexicon <- function(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
 #' @param burnin int number of burn in iterations
 #' @param calc_likelihood bool do you want to calculate the log likelihood each
 #'   iteration?
-#' @param Phi_in NumericMatrix denoting probability of tokens in topics
+#' @param Beta_in NumericMatrix denoting probability of tokens in topics
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
 #' @param threads unsigned integer, how many parallel threads?
 #' @param verbose bool do you want to print out a progress bar?
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in
-#'   some way by this function. In the case of \code{eta_in} and \code{Phi_in},
+#'   some way by this function. In the case of \code{eta_in} and \code{Beta_in},
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. In the case
 #'   of all others, they may be explicitly modified during training. 
-fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads = 1L, verbose = FALSE) {
-    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads, verbose)
+fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads = 1L, verbose = FALSE) {
+    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads, verbose)
 }
 
 # Register entry points for exported C++ functions

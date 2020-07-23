@@ -9,7 +9,7 @@
 #' @param k Integer number of topics.
 #' @param iterations Integer number of iterations for the Gibbs sampler to run.
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
-#'        the resulting "phi" and "theta" matrices are an average over all iterations
+#'        the resulting "beta" and "theta" matrices are an average over all iterations
 #'        greater than \code{burnin}.
 #' @param alpha Numeric scalar or vector of length \code{k}. This is the prior
 #'        for topics over documents.
@@ -33,7 +33,7 @@
 #'
 #'   Topic-token and topic-document assignments are not initialized based on a
 #'   uniform-random sampling, as is common. Instead, topic-token probabilities
-#'   (i.e. \code{phi}) are initialized by sampling from a Dirichlet distribution
+#'   (i.e. \code{beta}) are initialized by sampling from a Dirichlet distribution
 #'   with \code{eta} as its parameter. The same is done for topic-document
 #'   probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
 #'   function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
@@ -41,7 +41,7 @@
 #'   topics to documents.
 #'
 #'   When you use burn-in iterations (i.e. \code{burnin = TRUE}), the resulting
-#'   \code{phi} and \code{theta} matrices are calculated by averaging over every
+#'   \code{beta} and \code{theta} matrices are calculated by averaging over every
 #'   iteration after the specified  number of burn-in iterations. If you do not
 #'   use burn-in iterations, then the matrices are calculated from the last run
 #'   only. Ideally, you'd burn in every iteration before convergence, then average
@@ -261,7 +261,7 @@ tidylda_bridge <- function(
     burnin = burnin,
     optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    Phi_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
+    Beta_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
     freeze_topics = FALSE, # this stays FALSE for initial fitting
     threads = threads,
     verbose = verbose

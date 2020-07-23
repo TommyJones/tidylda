@@ -19,10 +19,10 @@ posterior(x, ...)
 
 \item{...}{Other arguments, currently not used.}
 
-\item{matrix}{A character of either 'theta' or 'phi', indicating from which
+\item{matrix}{A character of either 'theta' or 'beta', indicating from which
 matrix to draw posterior samples.}
 
-\item{which}{Row index of \code{theta}, for document, or \code{phi}, for
+\item{which}{Row index of \code{theta}, for document, or \code{beta}, for
 topic, from which to draw samples. \code{which} may also be a vector of
 indices.}
 
@@ -35,12 +35,12 @@ indices.}
 
 Returns a data frame where each row is a single sample from the posterior. 
 Each column is the distribution over a single parameter. The variable \code{var}
-is a facet for subsetting by document (for theta) or topic (for phi).
+is a facet for subsetting by document (for theta) or topic (for beta).
 }
 \description{
 These functions are used to sample from the marginal posteriors
   of a \code{tidylda} topic model. This is useful for quantifying uncertainty
-  around the parameters of \code{phi} or \code{theta}.
+  around the parameters of \code{beta} or \code{theta}.
 }
 \details{
 To sample from the marginal posteriors of a model, you must first make a call
@@ -49,7 +49,7 @@ to \code{posterior} and then a call to \code{generate}.
 \code{posterior} takes an object of class \code{tidylda} and constructs an
 object of class \code{tidylda_posterior} which contains two matrices. The rows
 of these matrices are Dirichlet parameters used to sample from the marginal
-posteriors of \code{theta} and \code{phi}.
+posteriors of \code{theta} and \code{beta}.
 
 \code{generate} takes an object of class \code{tidylda_posterior} and samples
 from the marginal posterior of the parameters specified by the \code{matrix}
@@ -65,7 +65,7 @@ p <- posterior(m)
 # sample from the marginal posterior corresponding to topic 1
 t1 <- generate(
   x = p,
-  matrix = "phi",
+  matrix = "beta",
   which = 1,
   times = 100  
 )

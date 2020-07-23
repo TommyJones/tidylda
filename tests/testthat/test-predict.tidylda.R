@@ -130,7 +130,7 @@ test_that("malformed args in predict throw errors", {
   # no overlap in vocabulary sets every topic to 1/k and no message or warning
   p <- predict(object = lda, new_data = nd, method = "dot", no_common_tokens = "uniform")
   
-  expect_equal(mean(p), 1 / nrow(lda$phi))
+  expect_equal(mean(p), 1 / nrow(lda$beta))
   
   # no_common_tokens has illegal value
   expect_error(

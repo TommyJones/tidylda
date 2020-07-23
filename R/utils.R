@@ -156,17 +156,17 @@ format_alpha <- function(alpha, k) {
   )
 }
 
-#' Get Count Matrices from Phi or Theta (and Priors)
+#' Get Count Matrices from Beta or Theta (and Priors)
 #' @keywords internal
 #' @description
 #'   This function is a core component of \code{\link[tidylda]{initialize_topic_counts}}.
 #'   See details, below.
-#' @param prob_matrix a numeric \code{phi} or \code{theta} matrix
+#' @param prob_matrix a numeric \code{beta} or \code{theta} matrix
 #' @param prior_matrix a matrix of same dimension as \code{prob_matrix} whose 
 #'   entries represent the relevant prior (\code{alpha} or \code{eta})
 #' @param total_vector a vector of token counts of length \code{ncol(prob_matrix)}
 #' @details 
-#'   This function uses a probability matrix (theta or phi), its prior (alpha or
+#'   This function uses a probability matrix (theta or beta), its prior (alpha or
 #'   eta, respectively), and a vector of counts to simulate what the the Cd or
 #'   Cv matrix would be at the end of a Gibbs run that resulted in that probability
 #'   matrix.
@@ -176,7 +176,7 @@ format_alpha <- function(alpha, k) {
 #'   
 #'   \code{(Cd[i, j] + alpha[i, j]) / sum(Cd[, j] + alpha[, j])}
 #'   
-#'   Similarly, phi comes from
+#'   Similarly, beta comes from
 #'   
 #'   \code{(Cv[i, j] + eta[i, j]) / sum(Cv[, j] + eta[, j])}
 #'   
@@ -184,7 +184,7 @@ format_alpha <- function(alpha, k) {
 #'   matrices. They could also be vectors or scalars.)
 #'   
 #'   So, this function uses the above formulas to try and reconstruct Cd or Cv
-#'   from theta and alpha or phi and eta, respectively. As of this writing,
+#'   from theta and alpha or beta and eta, respectively. As of this writing,
 #'   this method is experimental. In the future, there will be a paper with
 #'   more technical details cited here.
 #'   
@@ -318,7 +318,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #'   by \code{\link[tidylda]{format_alpha}}
 #' @param eta the numeric matrix prior for topics over documents as formatted
 #'   by \code{\link[tidylda]{format_eta}}
-#' @param phi_initial if specified, a numeric matrix for the probability of tokens
+#' @param beta_initial if specified, a numeric matrix for the probability of tokens
 #'   in topics. Must be specified for predictions or updates as called by
 #'   \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{refit.tidylda}}
 #'   respectively.
@@ -356,7 +356,7 @@ initialize_topic_counts <- function(
   k, 
   alpha, 
   eta, 
-  phi_initial = NULL,
+  beta_initial = NULL,
   theta_initial = NULL, 
   freeze_topics = FALSE,
   threads = 1,
@@ -373,17 +373,17 @@ initialize_topic_counts <- function(
     threads = as.integer(threads) # ignore decimal inputs
   }
   
-  # initialize phi if not already specified
-  # this phi is used to sample topics for inital counts in the C++ function
-  if (is.null(phi_initial)) {
-    # phi_initial <- gtools::rdirichlet(n = k, alpha = eta)
+  # initialize beta if not already specified
+  # this beta is used to sample topics for inital counts in the C++ function
+  if (is.null(beta_initial)) {
+    # beta_initial <- gtools::rdirichlet(n = k, alpha = eta)
     
-    phi_initial <- apply(eta, 1, function(x) {
+    beta_initial <- apply(eta, 1, function(x) {
       gtools::rdirichlet(n = 1, alpha = x) + 
         .Machine$double.eps # avoid underflow
     })
     
-    phi_initial <- t(phi_initial)
+    beta_initial <- t(beta_initial)
   }
   
   # initialize theta if not already specified
@@ -395,7 +395,7 @@ initialize_topic_counts <- function(
   }
   
   # initialize Cd by calling recover_counts_from_probs
-  # we don't need to initialize Cv because we can use the probabilities in phi,
+  # we don't need to initialize Cv because we can use the probabilities in beta,
   # along with our sampled Cd to do a single Gibbs iteration to populate all three
   # of Cd, Ck, and Cv
   
@@ -419,7 +419,7 @@ initialize_topic_counts <- function(
   lexicon <- 
     create_lexicon(
       Cd_in = Cd_start,
-      Phi_in = phi_initial,
+      Beta_in = beta_initial,
       dtm_in = dtm, 
       alpha = alpha,
       freeze_topics = freeze_topics,
@@ -436,11 +436,11 @@ initialize_topic_counts <- function(
 #'   and \code{\link[tidylda]{refit.tidylda}} and used to augment
 #'   \code{\link[tidylda]{print.tidylda}}.
 #' @param theta numeric matrix whose rows represent P(topic|document)
-#' @param phi numeric matrix whose rows represent P(token|topic)
+#' @param beta numeric matrix whose rows represent P(token|topic)
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
 #' @return
 #'   Returns a \code{\link[tibble]{tibble}} with the following columns:
-#'   \code{topic} is the integer row number of \code{phi}.
+#'   \code{topic} is the integer row number of \code{beta}.
 #'   \code{prevalence} is the frequency of each topic throughout the corpus it
 #'     was trained on normalized so that it sums to 100.
 #'   \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
@@ -458,13 +458,13 @@ initialize_topic_counts <- function(
 #'
 #'   An alternative calculation (not implemented here) might have been
 #'
-#'   \code{prevalence <- colSums(dtm) * t(phi) \%>\% colSums()}
+#'   \code{prevalence <- colSums(dtm) * t(beta) \%>\% colSums()}
 #'
 #'   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
-summarize_topics <- function(theta, phi, dtm) {
+summarize_topics <- function(theta, beta, dtm) {
   
   # probabilistic coherence with default M = 5
-  coherence <- textmineR::CalcProbCoherence(phi = phi, dtm = dtm)
+  coherence <- textmineR::CalcProbCoherence(phi = beta, dtm = dtm)
   
   # prevalence of each topic, weighted by terms
   prevalence <- Matrix::rowSums(dtm) * theta
@@ -474,7 +474,7 @@ summarize_topics <- function(theta, phi, dtm) {
   prevalence <- round(prevalence * 100, 2)
   
   # top 3 terms
-  top_terms <- t(textmineR::GetTopTerms(phi, 3))
+  top_terms <- t(textmineR::GetTopTerms(beta, 3))
   
   top_terms <- apply(top_terms, 1, function(x) {
     paste(c(x, "..."), collapse = ", ")
@@ -482,7 +482,7 @@ summarize_topics <- function(theta, phi, dtm) {
   
   # combine into a summary
   summary <- data.frame(
-    topic = as.numeric(rownames(phi)),
+    topic = as.numeric(rownames(beta)),
     prevalence = prevalence,
     coherence = coherence,
     top_terms = top_terms,
@@ -523,7 +523,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #' @return
 #'   Returns an S3 object of class \code{tidylda} with the following slots:
 #'
-#'   \code{phi} is a numeric matrix whose rows are the posterior estimates
+#'   \code{beta} is a numeric matrix whose rows are the posterior estimates
 #'     of P(token|topic)
 #'
 #'   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
@@ -601,37 +601,37 @@ new_tidylda <- function(
   
   rownames(theta) <- rownames(dtm)
   
-  ### format phi and all the rest ###
+  ### format beta and all the rest ###
   
   if (!is_prediction) {
     ### format posteriors correctly ###
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-      phi <- lda$Cv_mean + lda$eta
+      beta <- lda$Cv_mean + lda$eta
       Cv <- lda$Cv_mean
     } else { # if you didn't use burnin use standard counts (Cd etc.)
-      phi <- lda$Cv + lda$eta
+      beta <- lda$Cv + lda$eta
       Cv <- lda$Cv
     }
     
-    phi <- phi / rowSums(phi)
+    beta <- beta / rowSums(beta)
     
-    phi[is.na(phi)] <- 0 # just in case of a numeric issue
+    beta[is.na(beta)] <- 0 # just in case of a numeric issue
     
-    colnames(phi) <- colnames(dtm)
+    colnames(beta) <- colnames(dtm)
     
-    rownames(phi) <- colnames(theta)
+    rownames(beta) <- colnames(theta)
     
     
     ### collect the results ###
     
     # lambda
     lambda <- calc_lambda(
-      phi = phi, theta = theta,
+      beta = beta, theta = theta,
       p_docs = Matrix::rowSums(dtm)
     )
     
     # eta
-    colnames(lda$eta) <- colnames(phi)
+    colnames(lda$eta) <- colnames(beta)
     
     if (eta$eta_class == "scalar") {
       eta_out <- lda$eta[1, 1]
@@ -652,7 +652,7 @@ new_tidylda <- function(
     } else if (alpha$alpha_class == "vector" | optimize_alpha) {
       alpha_out <- lda$alpha
       
-      names(alpha_out) <- rownames(phi)
+      names(alpha_out) <- rownames(beta)
     } else { # this should be impossible, but science is hard and I am dumb.
       alpha_out <- lda$alpha
       
@@ -661,7 +661,7 @@ new_tidylda <- function(
     
     # resulting object
     summary <- tryCatch(
-      summarize_topics(phi = phi, theta = theta, dtm = dtm),
+      summarize_topics(beta = beta, theta = theta, dtm = dtm),
       error = function() stop("summarize_topics failed. model$summary corrupted.")
     )
     
@@ -671,7 +671,7 @@ new_tidylda <- function(
     ))
     
     result <- list(
-      phi = phi,
+      beta = beta,
       theta = theta,
       lambda = lambda,
       alpha = alpha_out,
@@ -696,7 +696,7 @@ new_tidylda <- function(
           calc_lda_r2(
             dtm = dtm,
             theta = theta,
-            phi = phi,
+            beta = beta,
             threads
           ),
           error = function() stop("calc_r2 failed. R-squared corrupted.")
@@ -724,9 +724,9 @@ new_tidylda <- function(
 #' @description Formats inputs and hands off to mvrsquared::calc_rsquared
 #' @param dtm must be of class dgCMatrix
 #' @param theta a theta matrix
-#' @param phi a phi matrix
+#' @param beta a beta matrix
 #' @param threads number of parallel threads
-calc_lda_r2 <- function(dtm, theta, phi, threads) {
+calc_lda_r2 <- function(dtm, theta, beta, threads) {
   
   # weight rows of theta by document length
   x <- Matrix::rowSums(dtm) * theta
@@ -734,7 +734,7 @@ calc_lda_r2 <- function(dtm, theta, phi, threads) {
   # claculate r-squared
   r2 <- mvrsquared::calc_rsquared(
     y = dtm,
-    yhat = list(x = x, w = phi),
+    yhat = list(x = x, w = beta),
     return_ss_only = FALSE,
     threads = threads
   )
@@ -794,7 +794,7 @@ tidy_dgcmatrix <- function(x, ...) {
 #' classifying new documents in a frequentist context and supports
 #' \code{\link[tidylda]{augment}}.
 #' @param theta a theta matrix
-#' @param phi a phi matrix
+#' @param beta a beta matrix
 #' @param p_docs A numeric vector of length \code{nrow(theta)} that is
 #'   proportional to the number of terms in each document,  defaults to NULL.
 #' @param correct Logical. Do you want to set NAs or NaNs in the final result to
@@ -803,12 +803,12 @@ tidy_dgcmatrix <- function(x, ...) {
 #' @return
 #' Returns a \code{matrix} whose rows correspond to topics and whose columns
 #' correspond to tokens. The i,j entry corresponds to P(topic_i|token_j)
-calc_lambda <- function(phi, theta, p_docs = NULL, correct = TRUE){
+calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
   
   # set up constants
   D <- nrow(theta)
   K <- ncol(theta)
-  V <- ncol(phi)
+  V <- ncol(beta)
   
   # probability of each document (assumed to be equiprobable)
   if(is.null(p_docs)){
@@ -825,7 +825,7 @@ calc_lambda <- function(phi, theta, p_docs = NULL, correct = TRUE){
   p_t <- p_d %*% theta
   
   # get the probability of each word from the model    
-  p_w <- p_t %*% phi
+  p_w <- p_t %*% beta
   
   
   
@@ -833,12 +833,12 @@ calc_lambda <- function(phi, theta, p_docs = NULL, correct = TRUE){
   lambda <- matrix(0, ncol=ncol(p_t), nrow=ncol(p_t))
   diag(lambda) <- p_t
   
-  lambda <- lambda %*% phi
+  lambda <- lambda %*% beta
   
   lambda <- t(apply(lambda, 1, function(x) x / p_w))
   
-  rownames(lambda) <- rownames(phi)
-  colnames(lambda) <- colnames(phi)
+  rownames(lambda) <- rownames(beta)
+  colnames(lambda) <- colnames(beta)
   
   # give us zeros instead of NAs when we have NA or NaN entries
   if (correct) {

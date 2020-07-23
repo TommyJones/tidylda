@@ -16,7 +16,7 @@ fit_lda_c(
   burnin,
   optimize_alpha,
   calc_likelihood,
-  Phi_in,
+  Beta_in,
   freeze_topics,
   threads = 1L,
   verbose = FALSE
@@ -48,7 +48,7 @@ as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 \item{calc_likelihood}{bool do you want to calculate the log likelihood each
 iteration?}
 
-\item{Phi_in}{NumericMatrix denoting probability of tokens in topics}
+\item{Beta_in}{NumericMatrix denoting probability of tokens in topics}
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 
@@ -61,7 +61,7 @@ This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
 }
 \details{
 Arguments ending in \code{_in} are copied and their copies modified in
-  some way by this function. In the case of \code{eta_in} and \code{Phi_in},
+  some way by this function. In the case of \code{eta_in} and \code{Beta_in},
   the only modification is that they are converted from matrices to nested
   \code{std::vector} for speed, reliability, and thread safety. In the case
   of all others, they may be explicitly modified during training.

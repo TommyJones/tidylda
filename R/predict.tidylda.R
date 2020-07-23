@@ -113,7 +113,7 @@ predict.tidylda <- function(
   
   ### Align vocabulary ----
   # this is fancy because of how we do indexing in gibbs sampling
-  vocab_original <- colnames(object$phi) # tokens in training set
+  vocab_original <- colnames(object$beta) # tokens in training set
 
   vocab_intersect <- intersect(vocab_original, colnames(dtm_new_data))
 
@@ -156,7 +156,7 @@ predict.tidylda <- function(
     bad_docs <- which(rowSums(repl) > 0)
     
     rownames(result) <- rownames(dtm_new_data)
-    colnames(result) <- rownames(object$phi)
+    colnames(result) <- rownames(object$beta)
     
     # how do you want to handle empty documents?
     if (no_common_tokens[1] %in% c("default", "zero")) {
@@ -195,17 +195,17 @@ predict.tidylda <- function(
     )
 
     # make sure priors are formatted correctly
-    eta <- format_eta(object$eta, k = nrow(object$phi), Nv = ncol(dtm_new_data))
+    eta <- format_eta(object$eta, k = nrow(object$beta), Nv = ncol(dtm_new_data))
 
-    alpha <- format_alpha(object$alpha, k = nrow(object$phi))
+    alpha <- format_alpha(object$alpha, k = nrow(object$beta))
 
     # get initial counts
     counts <- initialize_topic_counts(
       dtm = dtm_new_data,
-      k = nrow(object$phi),
+      k = nrow(object$beta),
       alpha = alpha$alpha,
       eta = eta$eta,
-      phi_initial = object$phi,
+      beta_initial = object$beta,
       theta_initial = theta_initial,
       freeze_topics = TRUE,
       threads = threads,
@@ -224,7 +224,7 @@ predict.tidylda <- function(
       burnin = burnin,
       optimize_alpha = FALSE,
       calc_likelihood = FALSE,
-      Phi_in = object$phi, 
+      Beta_in = object$beta, 
       freeze_topics = TRUE,
       threads = threads,
       verbose = verbose

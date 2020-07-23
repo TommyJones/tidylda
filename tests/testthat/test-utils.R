@@ -164,7 +164,7 @@ test_that("lambda works as expected",{
   # proper function
   l <- 
     tidylda:::calc_lambda(
-      phi = lda$phi,
+      beta = lda$beta,
       theta = lda$theta,
       p_docs = Matrix::rowSums(d1),
       correct = TRUE
@@ -175,7 +175,7 @@ test_that("lambda works as expected",{
   # p_docs is null
   l <- 
     tidylda:::calc_lambda(
-      phi = lda$phi,
+      beta = lda$beta,
       theta = lda$theta,
       p_docs = NULL,
       correct = TRUE
@@ -190,7 +190,7 @@ test_that("lambda works as expected",{
   
   expect_warning(
     tidylda:::calc_lambda(
-      phi = lda$phi,
+      beta = lda$beta,
       theta = lda$theta,
       p_docs = p,
       correct = TRUE

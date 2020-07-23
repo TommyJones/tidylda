@@ -1,13 +1,13 @@
 #' Draw from the marginal posteriors of a tidylda topic model
 #' @description These functions are used to sample from the marginal posteriors
 #'   of a \code{tidylda} topic model. This is useful for quantifying uncertainty
-#'   around the parameters of \code{phi} or \code{theta}.
+#'   around the parameters of \code{beta} or \code{theta}.
 #' @param x For \code{posterior}, an object of class
 #'   \code{tidylda}. For \code{generate}, an object of class
 #'   \code{tidylda_posterior} obtained by a call to \code{posterior}.
-#' @param matrix A character of either 'theta' or 'phi', indicating from which
+#' @param matrix A character of either 'theta' or 'beta', indicating from which
 #'   matrix to draw posterior samples.
-#' @param which Row index of \code{theta}, for document, or \code{phi}, for
+#' @param which Row index of \code{theta}, for document, or \code{beta}, for
 #'   topic, from which to draw samples. \code{which} may also be a vector of
 #'   indices.
 #' @param times Integer number of samples to draw.
@@ -23,7 +23,7 @@
 #' \code{posterior} takes an object of class \code{tidylda} and constructs an
 #' object of class \code{tidylda_posterior} which contains two matrices. The rows
 #' of these matrices are Dirichlet parameters used to sample from the marginal
-#' posteriors of \code{theta} and \code{phi}.
+#' posteriors of \code{theta} and \code{beta}.
 #' 
 #' \code{generate} takes an object of class \code{tidylda_posterior} and samples
 #' from the marginal posterior of the parameters specified by the \code{matrix}
@@ -33,7 +33,7 @@
 #' \href{http://www.arbylon.net/publications/text-est.pdf}{http://www.arbylon.net/publications/text-est.pdf}
 #' @return Returns a data frame where each row is a single sample from the posterior. 
 #' Each column is the distribution over a single parameter. The variable \code{var}
-#' is a facet for subsetting by document (for theta) or topic (for phi).
+#' is a facet for subsetting by document (for theta) or topic (for beta).
 #' @export
 #' @examples
 #' \dontrun{
@@ -45,7 +45,7 @@
 #' # sample from the marginal posterior corresponding to topic 1
 #' t1 <- generate(
 #'   x = p,
-#'   matrix = "phi",
+#'   matrix = "beta",
 #'   which = 1,
 #'   times = 100  
 #' )
@@ -69,14 +69,14 @@ posterior.tidylda <- function(x, ...) {
   # get proper alpha
   alpha <- format_alpha(
     x$alpha, 
-    k = nrow(x$phi)
+    k = nrow(x$beta)
   )
   
   # get proper eta
   eta <- format_eta(
     x$eta, 
-    k = nrow(x$phi), 
-    Nv = ncol(x$phi)
+    k = nrow(x$beta), 
+    Nv = ncol(x$beta)
   )
   
   # extract dirichlet parameters for theta
@@ -85,18 +85,18 @@ posterior.tidylda <- function(x, ...) {
   colnames(theta_par) <- rownames(x$theta)
   rownames(theta_par) <- colnames(x$theta)
   
-  # extract dirichlet parameters for phi
-  phi_par <- x$counts$Cv + eta$eta
+  # extract dirichlet parameters for beta
+  beta_par <- x$counts$Cv + eta$eta
   
-  rownames(phi_par) <- rownames(x$phi)
-  colnames(phi_par) <- colnames(x$phi)
+  rownames(beta_par) <- rownames(x$beta)
+  colnames(beta_par) <- colnames(x$beta)
   
-  phi_par <- t(phi_par)
+  beta_par <- t(beta_par)
   
   # prepare and return result
   result <- list(
     theta_par = theta_par,
-    phi_par = phi_par
+    beta_par = beta_par
   )
   
   class(result) <- "tidylda_posterior"
@@ -115,8 +115,8 @@ generate.tidylda_posterior <- function(
 ) {
   
   # check inputs
-  if (! matrix[1] %in% c("theta", "phi")) {
-    stop("matrix must be one of 'theta' or 'phi'")
+  if (! matrix[1] %in% c("theta", "beta")) {
+    stop("matrix must be one of 'theta' or 'beta'")
   }
   
   if (any(is.na(which)) | any(is.infinite(which))) {
@@ -147,7 +147,7 @@ generate.tidylda_posterior <- function(
       stop("which is contains values greater than the maximum number of documents.")
     }
   } else {
-    obj <- x$phi_par
+    obj <- x$beta_par
     # do one more check on which
     if (any(which > ncol(obj))) {
       stop("which is contains values greater than the maximum number of topics.")
@@ -206,11 +206,11 @@ generate.tidylda_posterior <- function(
   } else {
     names(result)[names(result) == "idx1"] <- "token" 
     names(result)[names(result) == "idx2"] <- "topic" 
-    names(result)[names(result) == "value"] <- "phi"
+    names(result)[names(result) == "value"] <- "beta"
     
     result$topic <- as.numeric(result$topic)
     
-    result <- result[, c("topic", "token", "sample", "phi")]
+    result <- result[, c("topic", "token", "sample", "beta")]
   }
   
   result

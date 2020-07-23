@@ -2,12 +2,12 @@
 % Please edit documentation in R/utils.R
 \name{recover_counts_from_probs}
 \alias{recover_counts_from_probs}
-\title{Get Count Matrices from Phi or Theta (and Priors)}
+\title{Get Count Matrices from Beta or Theta (and Priors)}
 \usage{
 recover_counts_from_probs(prob_matrix, prior_matrix, total_vector)
 }
 \arguments{
-\item{prob_matrix}{a numeric \code{phi} or \code{theta} matrix}
+\item{prob_matrix}{a numeric \code{beta} or \code{theta} matrix}
 
 \item{prior_matrix}{a matrix of same dimension as \code{prob_matrix} whose 
 entries represent the relevant prior (\code{alpha} or \code{eta})}
@@ -19,7 +19,7 @@ This function is a core component of \code{\link[tidylda]{initialize_topic_count
   See details, below.
 }
 \details{
-This function uses a probability matrix (theta or phi), its prior (alpha or
+This function uses a probability matrix (theta or beta), its prior (alpha or
   eta, respectively), and a vector of counts to simulate what the the Cd or
   Cv matrix would be at the end of a Gibbs run that resulted in that probability
   matrix.
@@ -29,7 +29,7 @@ This function uses a probability matrix (theta or phi), its prior (alpha or
   
   \code{(Cd[i, j] + alpha[i, j]) / sum(Cd[, j] + alpha[, j])}
   
-  Similarly, phi comes from
+  Similarly, beta comes from
   
   \code{(Cv[i, j] + eta[i, j]) / sum(Cv[, j] + eta[, j])}
   
@@ -37,7 +37,7 @@ This function uses a probability matrix (theta or phi), its prior (alpha or
   matrices. They could also be vectors or scalars.)
   
   So, this function uses the above formulas to try and reconstruct Cd or Cv
-  from theta and alpha or phi and eta, respectively. As of this writing,
+  from theta and alpha or beta and eta, respectively. As of this writing,
   this method is experimental. In the future, there will be a paper with
   more technical details cited here.
   

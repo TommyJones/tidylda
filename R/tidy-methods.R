@@ -39,9 +39,9 @@ glance.tidylda <- function(x, ...) {
   }
   
   out <- data.frame(
-    num_topics = nrow(x$phi),
+    num_topics = nrow(x$beta),
     num_documents = nrow(x$theta),
-    num_tokens = ncol(x$phi),
+    num_tokens = ncol(x$beta),
     iterations = call_params$iterations,
     burnin = call_params$burnin,
     stringsAsFactors = FALSE
@@ -53,17 +53,17 @@ glance.tidylda <- function(x, ...) {
 #' Tidy a matrix from a \code{tidylda} topic model
 #' @description
 #' Tidy the result of a \code{tidylda} topic model
-#' @param x an object of class \code{tidylda} or an individual \code{phi}, 
+#' @param x an object of class \code{tidylda} or an individual \code{beta}, 
 #'   \code{theta}, or \code{lambda} matrix.
-#' @param matrix the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
+#' @param matrix the matrix to tidy; one of \code{'beta'}, \code{'theta'}, or
 #'   \code{'lambda'}
 #' @param log do you want to have the result on a log scale? Defaults to \code{FALSE}
 #' @param ... other arguments passed to methods,currently not used
 #' @return
 #'   Returns a \code{\link[tibble]{tibble}}.
 #'
-#'   If \code{matrix = "phi"} then the result is a table of one row per topic
-#'   and token with the following columns: \code{topic}, \code{token}, \code{phi}
+#'   If \code{matrix = "beta"} then the result is a table of one row per topic
+#'   and token with the following columns: \code{topic}, \code{token}, \code{beta}
 #'
 #'   If \code{matrix = "theta"} then the result is a table of one row per document
 #'   and topic with the following columns: \code{document}, \code{topic}, \code{theta}
@@ -72,14 +72,14 @@ glance.tidylda <- function(x, ...) {
 #'   and token with the following columns: \code{topic}, \code{token}, \code{lambda}
 #' @note
 #'   If \code{log = TRUE} then "log_" will be appended to the name of the third
-#'   column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".
+#'   column of the resulting table. e.g "\code{beta}" becomes "\code{log_beta}".
 #' @examples
 #' \donttest{
 #' dtm <- textmineR::nih_sample_dtm
 #'
 #' lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 #'
-#' tidy_phi <- tidy(lda, matrix = "phi")
+#' tidy_beta <- tidy(lda, matrix = "beta")
 #'
 #' tidy_theta <- tidy(lda, matrix = "theta")
 #'
@@ -89,12 +89,12 @@ glance.tidylda <- function(x, ...) {
 tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
   
   if (!inherits(matrix, "character") |
-      !sum(c("phi", "theta", "lambda") %in% matrix) >= 1) {
-    stop("matrix should be one of c('phi', 'theta', 'lambda')")
+      !sum(c("beta", "theta", "lambda") %in% matrix) >= 1) {
+    stop("matrix should be one of c('beta', 'theta', 'lambda')")
   }
   
-  if (matrix == "phi") {
-    out <- tidy.matrix(x = x$phi, matrix = matrix, log = log)
+  if (matrix == "beta") {
+    out <- tidy.matrix(x = x$beta, matrix = matrix, log = log)
   } else if (matrix == "lambda") {
     out <- tidy.matrix(x = x$lambda, matrix = matrix, log = log)
   } else {
@@ -112,8 +112,8 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
   
   # check inputs
   if (!inherits(matrix, "character") |
-      !sum(c("phi", "theta", "lambda") %in% matrix) >= 1) {
-    stop("matrix should be one of c('phi', 'theta', 'lambda')")
+      !sum(c("beta", "theta", "lambda") %in% matrix) >= 1) {
+    stop("matrix should be one of c('beta', 'theta', 'lambda')")
   }
   
   if (!is.logical(log)) {
@@ -129,9 +129,9 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     names_to = "index", values_to = "value"
   )
   
-  if (matrix == "phi") {
+  if (matrix == "beta") {
     
-    colnames(out) <- c("topic", "token", "phi")
+    colnames(out) <- c("topic", "token", "beta")
     
     out$topic <- as.numeric(out$topic)
     

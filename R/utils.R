@@ -660,11 +660,15 @@ new_tidylda <- function(
     }
     
     # resulting object
-    summary <- tryCatch(
+    summary <- try(
+      tryCatch(
       summarize_topics(beta = beta, theta = theta, dtm = dtm),
-      error = function() stop("summarize_topics failed. model$summary corrupted.")
+      error = function(err){
+        err$message <- "summarize_topics failed. model$summary corrupted."
+        stop(err)
+      })
     )
-    
+
     log_likelihood <- as_tibble(data.frame(
       iteration = lda$log_likelihood[1, ],
       log_likelihood = lda$log_likelihood[2, ]
@@ -699,7 +703,10 @@ new_tidylda <- function(
             beta = beta,
             threads
           ),
-          error = function() stop("calc_r2 failed. R-squared corrupted.")
+          error = function(err){
+            err$message <- "calc_r2 failed. R-squared corrupted."
+            stop(err)
+          } 
         )
       )
     }

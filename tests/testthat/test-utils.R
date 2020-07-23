@@ -146,3 +146,56 @@ test_that("tidy_dgcmatrix works as expected",{
   expect_equal(nrow(tmat), sum(d > 0))
   
 })
+
+test_that("lambda works as expected",{
+  dtm <- textmineR::nih_sample_dtm
+  
+  d1 <- dtm[1:50, ]
+  
+  # make sure we have different vocabulary for each data set
+  d1 <- d1[, Matrix::colSums(d1) > 0]
+  
+  lda <- tidylda(
+    data = d1,
+    k = 4,
+    iterations = 20
+  )
+  
+  # proper function
+  l <- 
+    tidylda:::calc_lambda(
+      phi = lda$phi,
+      theta = lda$theta,
+      p_docs = Matrix::rowSums(d1),
+      correct = TRUE
+    )
+  
+  expect_true(inherits(l, "matrix"))
+  
+  # p_docs is null
+  l <- 
+    tidylda:::calc_lambda(
+      phi = lda$phi,
+      theta = lda$theta,
+      p_docs = NULL,
+      correct = TRUE
+    )
+  
+  expect_true(inherits(l, "matrix"))
+  
+  # p_docs contains NA values
+  p <- Matrix::rowSums(d1)
+  
+  p[5] <- NA
+  
+  expect_warning(
+    tidylda:::calc_lambda(
+      phi = lda$phi,
+      theta = lda$theta,
+      p_docs = p,
+      correct = TRUE
+    )
+  )
+  
+  
+})

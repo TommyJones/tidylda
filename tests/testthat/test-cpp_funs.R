@@ -7,21 +7,21 @@ k <- 10
 
 alpha <- rep(0.1, k)
 
-beta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
+eta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
 
 counts <- 
   initialize_topic_counts(
     dtm = dtm, 
     k = 4,
     alpha = rep(0.1, 10), 
-    beta = matrix(0.05, nrow = 10, ncol = ncol(dtm)),
+    eta = matrix(0.05, nrow = 10, ncol = ncol(dtm)),
     threads = 1
   )
 
 m <- fit_lda_c(
   Docs = counts$Docs,
   Zd_in = counts$Zd,
-  beta_in = beta,
+  eta_in = eta,
   alpha_in = alpha,
   Cd_in = counts$Cd,
   Cv_in = counts$Cv,

@@ -49,8 +49,8 @@ RcppExport SEXP _tidylda_create_lexicon(SEXP Cd_inSEXP, SEXP Phi_inSEXP, SEXP dt
     return rcpp_result_gen;
 }
 // fit_lda_c
-Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& beta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics, const std::size_t& threads, const bool& verbose);
-static SEXP _tidylda_fit_lda_c_try(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& eta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Phi_in, const bool& freeze_topics, const std::size_t& threads, const bool& verbose);
+static SEXP _tidylda_fit_lda_c_try(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP eta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const std::vector<std::vector<std::size_t>>& >::type Docs(DocsSEXP);
@@ -59,7 +59,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const IntegerMatrix& >::type Cv_in(Cv_inSEXP);
     Rcpp::traits::input_parameter< const std::vector<long>& >::type Ck_in(Ck_inSEXP);
     Rcpp::traits::input_parameter< const std::vector<double> >::type alpha_in(alpha_inSEXP);
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type beta_in(beta_inSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type eta_in(eta_inSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type iterations(iterationsSEXP);
     Rcpp::traits::input_parameter< const int& >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< const bool& >::type optimize_alpha(optimize_alphaSEXP);
@@ -68,15 +68,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool& >::type freeze_topics(freeze_topicsSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool& >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_lda_c(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(fit_lda_c(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads, verbose));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP beta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP, SEXP Cv_inSEXP, SEXP Ck_inSEXP, SEXP alpha_inSEXP, SEXP eta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP optimize_alphaSEXP, SEXP calc_likelihoodSEXP, SEXP Phi_inSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_tidylda_fit_lda_c_try(DocsSEXP, Zd_inSEXP, Cd_inSEXP, Cv_inSEXP, Ck_inSEXP, alpha_inSEXP, beta_inSEXP, iterationsSEXP, burninSEXP, optimize_alphaSEXP, calc_likelihoodSEXP, Phi_inSEXP, freeze_topicsSEXP, threadsSEXP, verboseSEXP));
+        rcpp_result_gen = PROTECT(_tidylda_fit_lda_c_try(DocsSEXP, Zd_inSEXP, Cd_inSEXP, Cv_inSEXP, Ck_inSEXP, alpha_inSEXP, eta_inSEXP, iterationsSEXP, burninSEXP, optimize_alphaSEXP, calc_likelihoodSEXP, Phi_inSEXP, freeze_topicsSEXP, threadsSEXP, verboseSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {

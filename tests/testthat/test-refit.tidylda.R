@@ -15,7 +15,7 @@ lda <- tidylda(
   data = d1,
   k = 4,
   iterations = 20, burnin = 10,
-  alpha = 0.1, beta = 0.05,
+  alpha = 0.1, eta = 0.05,
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
@@ -164,15 +164,15 @@ test_that("can update models", {
   
   expect_equal(ncol(lda2$phi), length(union(colnames(d1), colnames(d2))))
   
-  # update models with scalar beta
+  # update models with scalar eta
   
-  # update models with matrix beta
+  # update models with matrix eta
   l1 <- tidylda(
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1,
-    beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
+    eta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
@@ -181,7 +181,7 @@ test_that("can update models", {
   
   l2 <- refit(l1, d2, iterations = 20)
   
-  expect_equal(ncol(l2$beta), length(union(colnames(d1), colnames(d2))))
+  expect_equal(ncol(l2$eta), length(union(colnames(d1), colnames(d2))))
 })
 
 test_that("errors are thrown for malformed inputs to refit.tidylda", {

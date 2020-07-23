@@ -10,7 +10,7 @@ recover_counts_from_probs(prob_matrix, prior_matrix, total_vector)
 \item{prob_matrix}{a numeric \code{phi} or \code{theta} matrix}
 
 \item{prior_matrix}{a matrix of same dimension as \code{prob_matrix} whose 
-entries represent the relevant prior (\code{alpha} or \code{beta})}
+entries represent the relevant prior (\code{alpha} or \code{eta})}
 
 \item{total_vector}{a vector of token counts of length \code{ncol(prob_matrix)}}
 }
@@ -20,7 +20,7 @@ This function is a core component of \code{\link[tidylda]{initialize_topic_count
 }
 \details{
 This function uses a probability matrix (theta or phi), its prior (alpha or
-  beta, respectively), and a vector of counts to simulate what the the Cd or
+  eta, respectively), and a vector of counts to simulate what the the Cd or
   Cv matrix would be at the end of a Gibbs run that resulted in that probability
   matrix.
   
@@ -31,19 +31,19 @@ This function uses a probability matrix (theta or phi), its prior (alpha or
   
   Similarly, phi comes from
   
-  \code{(Cv[i, j] + beta[i, j]) / sum(Cv[, j] + beta[, j])}
+  \code{(Cv[i, j] + eta[i, j]) / sum(Cv[, j] + eta[, j])}
   
-  (The above are written to be general with respect to alpha and beta being
+  (The above are written to be general with respect to alpha and eta being
   matrices. They could also be vectors or scalars.)
   
   So, this function uses the above formulas to try and reconstruct Cd or Cv
-  from theta and alpha or phi and beta, respectively. As of this writing,
+  from theta and alpha or phi and eta, respectively. As of this writing,
   this method is experimental. In the future, there will be a paper with
   more technical details cited here.
   
   The priors must be matrices for the purposes of the function. This is to
-  support topic seeding and model updates. The former requires beta to be a 
-  matrix. The latter may require beta to be a matrix. Here, alpha is also
+  support topic seeding and model updates. The former requires eta to be a 
+  matrix. The latter may require eta to be a matrix. Here, alpha is also
   required to be a matrix for compatibility.
   
   All that said, for now \code{\link[tidylda]{initialize_topic_counts}} only

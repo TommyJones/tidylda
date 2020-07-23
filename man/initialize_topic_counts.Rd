@@ -8,7 +8,7 @@ initialize_topic_counts(
   dtm,
   k,
   alpha,
-  beta,
+  eta,
   phi_initial = NULL,
   theta_initial = NULL,
   freeze_topics = FALSE,
@@ -24,8 +24,8 @@ initialize_topic_counts(
 \item{alpha}{the numeric vector prior for topics over documents as formatted
 by \code{\link[tidylda]{format_alpha}}}
 
-\item{beta}{the numeric matrix prior for topics over documents as formatted
-by \code{\link[tidylda]{format_beta}}}
+\item{eta}{the numeric matrix prior for topics over documents as formatted
+by \code{\link[tidylda]{format_eta}}}
 
 \item{phi_initial}{if specified, a numeric matrix for the probability of tokens
 in topics. Must be specified for predictions or updates as called by
@@ -71,7 +71,7 @@ Implementing seeded (or guided) LDA models and transfer learning means that
   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that
   you aren't using fancy seeding or transfer learning, this makes a random
   initialization by sampling from Dirichlet distributions parameterized by
-  priors \code{alpha} and \code{beta}.
+  priors \code{alpha} and \code{eta}.
 }
 \note{
 All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing

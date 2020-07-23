@@ -10,7 +10,7 @@ tidylda_bridge(
   iterations,
   burnin,
   alpha,
-  beta,
+  eta,
   optimize_alpha,
   calc_likelihood,
   calc_r2,

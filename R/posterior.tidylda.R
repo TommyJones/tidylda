@@ -72,9 +72,9 @@ posterior.tidylda <- function(x, ...) {
     k = nrow(x$phi)
   )
   
-  # get proper beta
-  beta <- format_beta(
-    x$beta, 
+  # get proper eta
+  eta <- format_eta(
+    x$eta, 
     k = nrow(x$phi), 
     Nv = ncol(x$phi)
   )
@@ -86,7 +86,7 @@ posterior.tidylda <- function(x, ...) {
   rownames(theta_par) <- colnames(x$theta)
   
   # extract dirichlet parameters for phi
-  phi_par <- x$counts$Cv + beta$beta
+  phi_par <- x$counts$Cv + eta$eta
   
   rownames(phi_par) <- rownames(x$phi)
   colnames(phi_par) <- colnames(x$phi)

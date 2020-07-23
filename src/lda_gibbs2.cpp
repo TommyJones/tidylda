@@ -197,7 +197,7 @@ Rcpp::List create_lexicon(
 //' @param Cd_in IntegerMatrix denoting counts of topics in documents
 //' @param Cv_in IntegerMatrix denoting counts of tokens in topics
 //' @param Ck_in IntegerVector denoting counts of topics across all tokens
-//' @param beta_in NumericMatrix for prior of tokens over topics
+//' @param eta_in NumericMatrix for prior of tokens over topics
 //' @param alpha_in NumericVector prior for topics over documents
 //' @param iterations int number of gibbs iterations to run in total
 //' @param burnin int number of burn in iterations
@@ -210,7 +210,7 @@ Rcpp::List create_lexicon(
 //' @param verbose bool do you want to print out a progress bar?
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
-//'   some way by this function. In the case of \code{beta_in} and \code{Phi_in},
+//'   some way by this function. In the case of \code{eta_in} and \code{Phi_in},
 //'   the only modification is that they are converted from matrices to nested
 //'   \code{std::vector} for speed, reliability, and thread safety. In the case
 //'   of all others, they may be explicitly modified during training. 
@@ -222,7 +222,7 @@ Rcpp::List fit_lda_c(
     const IntegerMatrix&                          Cv_in,
     const std::vector<long>&                      Ck_in,
     const std::vector<double>                     alpha_in, 
-    const NumericMatrix&                          beta_in, 
+    const NumericMatrix&                          eta_in, 
     const std::size_t&                            iterations, 
     const int&                                    burnin,
     const bool&                                   optimize_alpha, 
@@ -244,7 +244,7 @@ Rcpp::List fit_lda_c(
   auto Ck = Ck_in;
   
   auto alpha = alpha_in;
-  auto beta = mat_to_vec(beta_in, true);
+  auto eta = mat_to_vec(eta_in, true);
   
   auto Phi = mat_to_vec(Phi_in, true);
   
@@ -258,7 +258,7 @@ Rcpp::List fit_lda_c(
   
   auto sum_tokens = std::accumulate(Ck.begin(), Ck.end(), 0);
   auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
-  auto sum_beta = std::accumulate(beta[0].begin(), beta[0].end(), 0.0);
+  auto sum_eta = std::accumulate(eta[0].begin(), eta[0].end(), 0.0);
   
   // For aggregating samples post burn in
   std::vector<std::vector<long>> Cd_sum(Nd);
@@ -310,17 +310,17 @@ Rcpp::List fit_lda_c(
     log_likelihood[t] = tmp;
   }
   
-  double lgbeta(0.0); // if calc_likelihood, we need this term
+  double lgeta(0.0); // if calc_likelihood, we need this term
   
   double lgalpha(0.0); // if calc_likelihood, we need this term
   
   if (calc_likelihood) { // if calc_likelihood, actuAllocationy populate this stuff
     
     for (auto v = 0; v < Nv; v++) {
-      lgbeta += lgamma(beta[0][v]);
+      lgeta += lgamma(eta[0][v]);
     }
     
-    lgbeta = (lgbeta - lgamma(sum_beta)) * Nk; 
+    lgeta = (lgeta - lgamma(sum_eta)) * Nk; 
     
     for (auto k = 0; k < Nk; k++) {
       lgalpha += lgamma(alpha[k]);
@@ -376,8 +376,8 @@ Rcpp::List fit_lda_c(
               
               // calculate probability vector
               for (auto k = 0; k < Nk; k++) {
-                qz[k] = (Cv_batch[j][k][doc[n]] + beta[k][doc[n]]) / 
-                  (Ck_batch[j][k] + sum_beta) *
+                qz[k] = (Cv_batch[j][k][doc[n]] + eta[k][doc[n]]) / 
+                  (Ck_batch[j][k] + sum_eta) *
                   (Cd[d][k] + alpha[k]) / 
                   (doc.size() + sum_alpha);
               }
@@ -480,7 +480,7 @@ Rcpp::List fit_lda_c(
       
       double denom(0.0);
       
-      double lp_beta(0.0); // log probability of beta prior
+      double lp_eta(0.0); // log probability of eta prior
       
       for (auto k = 0; k < Nk; k++) {
         
@@ -490,18 +490,18 @@ Rcpp::List fit_lda_c(
         
         // get the denominator
         for (auto v = 0; v < Nv; v++) {
-          denom += Cv[k][v] + beta[k][v];
+          denom += Cv[k][v] + eta[k][v];
         }
         
         // get the probability
         for (auto v = 0; v < Nv; v++) {
-          phi_prob[k][v] = ((double)Cv[k][v] + beta[k][v]) / denom;
+          phi_prob[k][v] = ((double)Cv[k][v] + eta[k][v]) / denom;
           
-          lp_beta += (beta[k][v] - 1) * log(phi_prob[k][v]);
+          lp_eta += (eta[k][v] - 1) * log(phi_prob[k][v]);
         }
       }
       
-      lp_beta += lgbeta;
+      lp_eta += lgeta;
       
       // for each document, get the log probability of the words
       
@@ -550,7 +550,7 @@ Rcpp::List fit_lda_c(
       
       tmp[1] = lpd; // log probability of whole corpus under the model w/o priors
       
-      tmp[2] = lpd + lp_alpha + lp_beta; // second likelihood calculation here
+      tmp[2] = lpd + lp_alpha + lp_eta; // second likelihood calculation here
       
       log_likelihood[t] = tmp;
       
@@ -611,6 +611,6 @@ Rcpp::List fit_lda_c(
     _["Cv_sum"]         = vec_to_mat(Cv_sum, true),
     _["log_likelihood"] = vec_to_mat(log_likelihood),
     _["alpha"]          = alpha,
-    _["beta"]           = beta_in // does not get modified, so don't waste compute converting beta
+    _["eta"]           = eta_in // does not get modified, so don't waste compute converting eta
   );
 }

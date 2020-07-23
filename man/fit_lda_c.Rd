@@ -11,7 +11,7 @@ fit_lda_c(
   Cv_in,
   Ck_in,
   alpha_in,
-  beta_in,
+  eta_in,
   iterations,
   burnin,
   optimize_alpha,
@@ -37,7 +37,7 @@ as formatted by \code{\link[tidylda]{initialize_topic_counts}}}
 
 \item{alpha_in}{NumericVector prior for topics over documents}
 
-\item{beta_in}{NumericMatrix for prior of tokens over topics}
+\item{eta_in}{NumericMatrix for prior of tokens over topics}
 
 \item{iterations}{int number of gibbs iterations to run in total}
 
@@ -61,7 +61,7 @@ This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
 }
 \details{
 Arguments ending in \code{_in} are copied and their copies modified in
-  some way by this function. In the case of \code{beta_in} and \code{Phi_in},
+  some way by this function. In the case of \code{eta_in} and \code{Phi_in},
   the only modification is that they are converted from matrices to nested
   \code{std::vector} for speed, reliability, and thread safety. In the case
   of all others, they may be explicitly modified during training.

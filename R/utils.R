@@ -53,68 +53,68 @@ convert_dtm <- function(dtm) {
   out
 }
 
-#' Format \code{beta} For Input into \code{fit_lda_c}
+#' Format \code{eta} For Input into \code{fit_lda_c}
 #' @keywords internal
 #' @description
-#'   There are a bunch of ways users could format \code{beta} but the C++ Gibbs
+#'   There are a bunch of ways users could format \code{eta} but the C++ Gibbs
 #'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
 #'   appropriate formatting. It also returns errors if the user input a malformatted
-#'   \code{beta}.
-#' @param beta the prior for words over topics. Can be a numeric scalar, numeric
+#'   \code{eta}.
+#' @param eta the prior for words over topics. Can be a numeric scalar, numeric
 #'   vector, or numeric matrix.
 #' @param k the number of topics.
 #' @param Nv the total size of the vocabulary as inherited from \code{ncol(dtm)}
 #'   in \code{\link[tidylda]{tidylda}}.
 #' @return
-#'   Returns a list with two elements: \code{beta} and \code{beta_class}.
-#'   \code{beta} is the post-formatted version of \code{beta} in the form of a
-#'   \code{k} by \code{Nv} numeric matrix. \code{beta_class} is a character
-#'   denoting whether or not the user-supplied \code{beta} was a "scalar",
+#'   Returns a list with two elements: \code{eta} and \code{eta_class}.
+#'   \code{eta} is the post-formatted version of \code{eta} in the form of a
+#'   \code{k} by \code{Nv} numeric matrix. \code{eta_class} is a character
+#'   denoting whether or not the user-supplied \code{eta} was a "scalar",
 #'   "vector", or "matrix".
-format_beta <- function(beta, k, Nv) {
-  if (!is.numeric(beta) | sum(is.na(beta)) > 0 | sum(beta == 0) == length(beta)) {
-    stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
+format_eta <- function(eta, k, Nv) {
+  if (!is.numeric(eta) | sum(is.na(eta)) > 0 | sum(eta == 0) == length(eta)) {
+    stop("eta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
          a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
          values and at least one non-zero value.")
   }
   
-  if (length(beta) == 1) { # if beta is a scalar
+  if (length(eta) == 1) { # if eta is a scalar
     
-    beta <- matrix(beta, nrow = k, ncol = Nv)
+    eta <- matrix(eta, nrow = k, ncol = Nv)
     
-    beta_class <- "scalar"
-  } else if (is.vector(beta)) { # if beta is a vector
+    eta_class <- "scalar"
+  } else if (is.vector(eta)) { # if eta is a vector
     
-    if (length(beta) != Nv) { # if you didn't specify this vector right
-      stop("beta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
+    if (length(eta) != Nv) { # if you didn't specify this vector right
+      stop("eta must be a numeric scalar, a numeric vector of length 'ncol(dtm)', or
          a numeric matrix with 'k' rows and 'ncol(dtm)' columns with no missing 
          values and at least one non-zero value.")
     }
     
     # otherwise let's carry on...
-    # make beta a matrix to format for C++ funciton
-    beta <- t(beta + matrix(0, nrow = length(beta), ncol = k))
+    # make eta a matrix to format for C++ funciton
+    eta <- t(eta + matrix(0, nrow = length(eta), ncol = k))
     
-    beta_class <- "vector"
-  } else if (is.matrix(beta)) { # if beta is a matrix
+    eta_class <- "vector"
+  } else if (is.matrix(eta)) { # if eta is a matrix
     
     # check dims before moving on
-    if (nrow(beta) != k | ncol(beta) != Nv) {
+    if (nrow(eta) != k | ncol(eta) != Nv) {
       stop(
-        "If beta is a matrix, it must have the same number of rows as topics ",
+        "If eta is a matrix, it must have the same number of rows as topics ",
         "and it must have the same number of columns (tokens) as your dtm. ",
-        "But I see nrow(beta) = ", nrow(beta), " and k = ", k, ". I also see ",
-        "ncol(beta) = ", ncol(beta), " but ncol(dtm) = ", Nv
+        "But I see nrow(eta) = ", nrow(eta), " and k = ", k, ". I also see ",
+        "ncol(eta) = ", ncol(eta), " but ncol(dtm) = ", Nv
       )
     }
     
-    beta_class <- "matrix"
+    eta_class <- "matrix"
   }
   
   
   list(
-    beta = beta,
-    beta_class = beta_class
+    eta = eta,
+    eta_class = eta_class
   )
 }
 
@@ -163,11 +163,11 @@ format_alpha <- function(alpha, k) {
 #'   See details, below.
 #' @param prob_matrix a numeric \code{phi} or \code{theta} matrix
 #' @param prior_matrix a matrix of same dimension as \code{prob_matrix} whose 
-#'   entries represent the relevant prior (\code{alpha} or \code{beta})
+#'   entries represent the relevant prior (\code{alpha} or \code{eta})
 #' @param total_vector a vector of token counts of length \code{ncol(prob_matrix)}
 #' @details 
 #'   This function uses a probability matrix (theta or phi), its prior (alpha or
-#'   beta, respectively), and a vector of counts to simulate what the the Cd or
+#'   eta, respectively), and a vector of counts to simulate what the the Cd or
 #'   Cv matrix would be at the end of a Gibbs run that resulted in that probability
 #'   matrix.
 #'   
@@ -178,19 +178,19 @@ format_alpha <- function(alpha, k) {
 #'   
 #'   Similarly, phi comes from
 #'   
-#'   \code{(Cv[i, j] + beta[i, j]) / sum(Cv[, j] + beta[, j])}
+#'   \code{(Cv[i, j] + eta[i, j]) / sum(Cv[, j] + eta[, j])}
 #'   
-#'   (The above are written to be general with respect to alpha and beta being
+#'   (The above are written to be general with respect to alpha and eta being
 #'   matrices. They could also be vectors or scalars.)
 #'   
 #'   So, this function uses the above formulas to try and reconstruct Cd or Cv
-#'   from theta and alpha or phi and beta, respectively. As of this writing,
+#'   from theta and alpha or phi and eta, respectively. As of this writing,
 #'   this method is experimental. In the future, there will be a paper with
 #'   more technical details cited here.
 #'   
 #'   The priors must be matrices for the purposes of the function. This is to
-#'   support topic seeding and model updates. The former requires beta to be a 
-#'   matrix. The latter may require beta to be a matrix. Here, alpha is also
+#'   support topic seeding and model updates. The former requires eta to be a 
+#'   matrix. The latter may require eta to be a matrix. Here, alpha is also
 #'   required to be a matrix for compatibility.
 #'   
 #'   All that said, for now \code{\link[tidylda]{initialize_topic_counts}} only
@@ -311,13 +311,13 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that
 #'   you aren't using fancy seeding or transfer learning, this makes a random
 #'   initialization by sampling from Dirichlet distributions parameterized by
-#'   priors \code{alpha} and \code{beta}.
+#'   priors \code{alpha} and \code{eta}.
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
 #' @param k the number of topics
 #' @param alpha the numeric vector prior for topics over documents as formatted
 #'   by \code{\link[tidylda]{format_alpha}}
-#' @param beta the numeric matrix prior for topics over documents as formatted
-#'   by \code{\link[tidylda]{format_beta}}
+#' @param eta the numeric matrix prior for topics over documents as formatted
+#'   by \code{\link[tidylda]{format_eta}}
 #' @param phi_initial if specified, a numeric matrix for the probability of tokens
 #'   in topics. Must be specified for predictions or updates as called by
 #'   \code{\link[tidylda]{predict.tidylda}} or \code{\link[tidylda]{refit.tidylda}}
@@ -355,7 +355,7 @@ initialize_topic_counts <- function(
   dtm, 
   k, 
   alpha, 
-  beta, 
+  eta, 
   phi_initial = NULL,
   theta_initial = NULL, 
   freeze_topics = FALSE,
@@ -376,9 +376,9 @@ initialize_topic_counts <- function(
   # initialize phi if not already specified
   # this phi is used to sample topics for inital counts in the C++ function
   if (is.null(phi_initial)) {
-    # phi_initial <- gtools::rdirichlet(n = k, alpha = beta)
+    # phi_initial <- gtools::rdirichlet(n = k, alpha = eta)
     
-    phi_initial <- apply(beta, 1, function(x) {
+    phi_initial <- apply(eta, 1, function(x) {
       gtools::rdirichlet(n = 1, alpha = x) + 
         .Machine$double.eps # avoid underflow
     })
@@ -508,7 +508,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #' @param is_prediction is this for a prediction (as opposed to initial fitting,
 #'   or update)? Defaults to \code{FALSE}
 #' @param alpha output of \code{\link[tidylda]{format_alpha}}
-#' @param beta output of \code{\link[tidylda]{format_beta}}
+#' @param eta output of \code{\link[tidylda]{format_eta}}
 #' @param optimize_alpha did you optimize \code{alpha} when making a call to
 #'   \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
 #'   argument is ignored.
@@ -539,7 +539,7 @@ summarize_topics <- function(theta, phi, dtm) {
 #'     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
 #'     call to \code{\link[tidylda]{fit_lda_c}}.
 #'
-#'   \code{beta} is the prior for tokens over topics. This is what the user passed
+#'   \code{eta} is the prior for tokens over topics. This is what the user passed
 #'     when calling \code{\link[tidylda]{tidylda}}.
 #'
 #'   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
@@ -573,7 +573,7 @@ new_tidylda <- function(
   burnin, 
   is_prediction = FALSE,
   alpha = NULL, 
-  beta = NULL,
+  eta = NULL,
   optimize_alpha = NULL, 
   calc_r2 = NULL,
   calc_likelihood = NULL, 
@@ -606,10 +606,10 @@ new_tidylda <- function(
   if (!is_prediction) {
     ### format posteriors correctly ###
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-      phi <- lda$Cv_mean + lda$beta
+      phi <- lda$Cv_mean + lda$eta
       Cv <- lda$Cv_mean
     } else { # if you didn't use burnin use standard counts (Cd etc.)
-      phi <- lda$Cv + lda$beta
+      phi <- lda$Cv + lda$eta
       Cv <- lda$Cv
     }
     
@@ -630,19 +630,19 @@ new_tidylda <- function(
       p_docs = Matrix::rowSums(dtm)
     )
     
-    # beta
-    colnames(lda$beta) <- colnames(phi)
+    # eta
+    colnames(lda$eta) <- colnames(phi)
     
-    if (beta$beta_class == "scalar") {
-      beta_out <- lda$beta[1, 1]
-    } else if (beta$beta_class == "vector") {
-      beta_out <- lda$beta[1, ]
-    } else if (beta$beta_class == "matrix") {
-      beta_out <- lda$beta
+    if (eta$eta_class == "scalar") {
+      eta_out <- lda$eta[1, 1]
+    } else if (eta$eta_class == "vector") {
+      eta_out <- lda$eta[1, ]
+    } else if (eta$eta_class == "matrix") {
+      eta_out <- lda$eta
     } else { # this should be impossible, but science is hard and I am dumb.
-      beta_out <- lda$beta
+      eta_out <- lda$eta
       
-      warning("something went wrong formatting beta. refit.tidylda and predict.tidylda might be affected")
+      warning("something went wrong formatting eta. refit.tidylda and predict.tidylda might be affected")
     }
     
     # alpha
@@ -675,7 +675,7 @@ new_tidylda <- function(
       theta = theta,
       lambda = lambda,
       alpha = alpha_out,
-      beta = beta_out,
+      eta = eta_out,
       summary = summary,
       call = call,
       log_likelihood = log_likelihood,

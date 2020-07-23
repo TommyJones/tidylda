@@ -95,29 +95,29 @@ test_that("convert_dtm can handle various inputs", {
   expect_error(convert_dtm(list(a = vec)))
 })
 
-### tests for format_beta and format_alpha ----
+### tests for format_eta and format_alpha ----
 
 # since all variations (I think) that don't throw an error are tested in
 # test-lda_core.R, this just tests bad inputs
 
-test_that("format_beta chokes on bad inputs", {
+test_that("format_eta chokes on bad inputs", {
 
-  # beta non numeric
-  expect_error(format_beta(beta = "WRONG!", k = 3, Nv = 10))
+  # eta non numeric
+  expect_error(format_eta(eta = "WRONG!", k = 3, Nv = 10))
 
-  # beta has na values
-  expect_error(format_beta(beta = NA, k = 3, Nv = 10))
+  # eta has na values
+  expect_error(format_eta(eta = NA, k = 3, Nv = 10))
 
-  # beta is zero
-  expect_error(format_beta(beta = 0, k = 3, Nv = 10))
+  # eta is zero
+  expect_error(format_eta(eta = 0, k = 3, Nv = 10))
 
-  # beta doesn't conform to vocabulary or topics
-  expect_error(format_beta(beta = numeric(5) + 3, k = 3, Nv = 10))
+  # eta doesn't conform to vocabulary or topics
+  expect_error(format_eta(eta = numeric(5) + 3, k = 3, Nv = 10))
 
-  expect_error(format_beta(beta = matrix(1, nrow = 2, ncol = 10), k = 3, Nv = 10))
+  expect_error(format_eta(eta = matrix(1, nrow = 2, ncol = 10), k = 3, Nv = 10))
 
-  # beta is a completely unsupported type
-  expect_error(format_beta(beta = list(numeric(10) + 3), k = 3, Nv = 10))
+  # eta is a completely unsupported type
+  expect_error(format_eta(eta = list(numeric(10) + 3), k = 3, Nv = 10))
 })
 
 test_that("format_alpha also chokes on bad inputs", {

@@ -25,8 +25,8 @@ conventions from the [tidyverse](https://style.tidyverse.org/) and
 
 In addition this implementation of LDA allows you to:
 
-  - use asymmetric prior parameters alpha and beta
-  - use a matrix prior parameter, beta to seed topics into a model
+  - use asymmetric prior parameters alpha and eta
+  - use a matrix prior parameter, eta to seed topics into a model
   - use a previously-trained model as a prior for a new model
   - apply LDA in a transfer-learning paradigm, updating a model’s
     parameters with additional data (or additional iterations)
@@ -64,7 +64,7 @@ unseen documents, and update the model with those new documents.
     with a computationally-simple and efficient dot product and it may
     be interesting to analyze in its own right.
   - `alpha` is the prior that tunes `theta`
-  - `beta` is the prior that tunes `phi`
+  - `eta` is the prior that tunes `phi`
 
 ## Example
 
@@ -135,7 +135,7 @@ lda <- tidylda(
   iterations = 200, 
   burnin = 175,
   alpha = 0.1, # also accepts vector inputs
-  beta = 0.05, # also accepts vector or matrix inputs
+  eta = 0.05, # also accepts vector or matrix inputs
   optimize_alpha = FALSE, # experimental
   calc_likelihood = TRUE,
   calc_r2 = TRUE, # see https://arxiv.org/abs/1911.11061
@@ -162,7 +162,7 @@ glance(lda)
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
 #> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
-#>     beta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
+#>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 
 #> The model's R-squared is  0.2677 
@@ -407,7 +407,7 @@ print(lda2)
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
 #> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
-#>     beta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
+#>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 
 #> The model's R-squared is  0.2677 

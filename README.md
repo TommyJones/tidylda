@@ -59,8 +59,8 @@ unseen documents, and update the model with those new documents.
     documents, or P(topic|document)
   - `phi` is a matrix whose rows are distributions of tokens over
     topics, or P(token|topic)
-  - `gamma` is a matrix whose rows are distributions of topics over
-    tokens, or P(topic|token) `gamma` is useful for making predictions
+  - `lambda` is a matrix whose rows are distributions of topics over
+    tokens, or P(topic|token) `lambda` is useful for making predictions
     with a computationally-simple and efficient dot product and it may
     be interesting to analyze in its own right.
   - `alpha` is the prior that tunes `theta`
@@ -71,12 +71,12 @@ unseen documents, and update the model with those new documents.
 ``` r
 library(tidytext)
 library(tidyverse)
-#> ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
+#> ── Attaching packages ─────────────────────────────────────────────────────── tidyverse 1.3.0 ──
 #> ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
 #> ✓ tibble  3.0.3     ✓ dplyr   1.0.0
 #> ✓ tidyr   1.1.0     ✓ stringr 1.4.0
 #> ✓ readr   1.3.1     ✓ forcats 0.5.0
-#> ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+#> ── Conflicts ────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)
@@ -242,11 +242,11 @@ tidy_phi
 #> 10     1 onset mdd    0.0000673
 #> # … with 15,230 more rows
 
-tidy_gamma <- tidy(lda, matrix = "gamma")
+tidy_lambda <- tidy(lda, matrix = "lambda")
 
-tidy_gamma
+tidy_lambda
 #> # A tibble: 15,240 x 3
-#>    topic token          gamma
+#>    topic token         lambda
 #>    <dbl> <chr>          <dbl>
 #>  1     1 adolescence  0.00780
 #>  2     1 age          0.00912
@@ -344,7 +344,7 @@ ggplot(compare_mat) +
 
 ``` r
 
-# Not shown: aggregating over documents results in recovering the "tidy" gamma.
+# Not shown: aggregating over documents results in recovering the "tidy" lambda.
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?

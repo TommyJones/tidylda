@@ -60,8 +60,8 @@ This package is still in its early stages of development. However, some basic fu
 
 * `theta` is a matrix whose rows are distributions of topics over documents, or P(topic|document)
 * `phi` is a matrix whose rows are distributions of tokens over topics, or P(token|topic)
-* `gamma` is a matrix whose rows are distributions of topics over tokens, or P(topic|token)
-  `gamma` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
+* `lambda` is a matrix whose rows are distributions of topics over tokens, or P(topic|token)
+  `lambda` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
 * `alpha` is the prior that tunes `theta`
 * `beta` is the prior that tunes `phi`
 
@@ -151,9 +151,9 @@ tidy_phi <- tidy(lda, matrix = "phi")
 
 tidy_phi
 
-tidy_gamma <- tidy(lda, matrix = "gamma")
+tidy_lambda <- tidy(lda, matrix = "lambda")
 
-tidy_gamma
+tidy_lambda
 
 # append observation-level data
 augmented_docs <- augment(lda, data = tidy_docs)
@@ -210,7 +210,7 @@ ggplot(compare_mat) +
            stat = "identity", position = "dodge") +
   labs(title = "Prediction using 'augment' vs 'predict(..., method = \"dot\")'")
 
-# Not shown: aggregating over documents results in recovering the "tidy" gamma.
+# Not shown: aggregating over documents results in recovering the "tidy" lambda.
 
 ### updating the model ----
 # now that you have new documents, maybe you want to fold them into the model?

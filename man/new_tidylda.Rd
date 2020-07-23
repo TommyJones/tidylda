@@ -57,11 +57,9 @@ Returns an S3 object of class \code{tidylda} with the following slots:
   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
     P(topic|document)
 
-  \code{gamma} is a numeric matrix whose rows are the posterior estimates of
-    P(topic|token). This is calculated by making a call to
-    \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
-    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is
-    proportional to \code{Matrix::rowSums(dtm)}).
+  \code{lambda} is a numeric matrix whose rows are the posterior estimates of
+    P(topic|token), calculated using Bayes's rule.
+    See \code{\link[tidylda]{calc_lambda}}.
 
   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
     is \code{FALSE}, \code{alpha} is what the user passed when calling

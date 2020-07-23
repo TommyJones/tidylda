@@ -20,6 +20,7 @@ jones
 Lifecycle
 malformatted
 mvrsquared
+NaNs
 NumericMatrix
 NumericVector
 Rcpp

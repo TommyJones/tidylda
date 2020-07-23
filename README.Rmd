@@ -35,8 +35,8 @@ Implements an algorithm for Latent Dirichlet Allocation using style conventions 
     
 In addition this implementation of LDA allows you to:
 
-* use asymmetric prior parameters alpha and beta
-* use a matrix prior parameter, beta to seed topics into a model
+* use asymmetric prior parameters alpha and eta
+* use a matrix prior parameter, eta, to seed topics into a model
 * use a previously-trained model as a prior for a new model
 * apply LDA in a transfer-learning paradigm, updating a model's parameters with additional data (or additional iterations)
 
@@ -63,7 +63,7 @@ This package is still in its early stages of development. However, some basic fu
 * `lambda` is a matrix whose rows are distributions of topics over tokens, or P(topic|token)
   `lambda` is useful for making predictions with a computationally-simple and efficient dot product and it may be interesting to analyze in its own right.
 * `alpha` is the prior that tunes `theta`
-* `beta` is the prior that tunes `beta`
+* `eta` is the prior that tunes `beta`
 
 ## Example
 
@@ -121,7 +121,7 @@ lda <- tidylda(
   iterations = 200, 
   burnin = 175,
   alpha = 0.1, # also accepts vector inputs
-  beta = 0.05, # also accepts vector or matrix inputs
+  eta = 0.05, # also accepts vector or matrix inputs
   optimize_alpha = FALSE, # experimental
   calc_likelihood = TRUE,
   calc_r2 = TRUE, # see https://arxiv.org/abs/1911.11061

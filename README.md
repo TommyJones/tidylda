@@ -25,8 +25,8 @@ conventions from the [tidyverse](https://style.tidyverse.org/) and
 
 In addition this implementation of LDA allows you to:
 
-  - use asymmetric prior parameters alpha and beta
-  - use a matrix prior parameter, beta to seed topics into a model
+  - use asymmetric prior parameters alpha and eta
+  - use a matrix prior parameter, eta, to seed topics into a model
   - use a previously-trained model as a prior for a new model
   - apply LDA in a transfer-learning paradigm, updating a model’s
     parameters with additional data (or additional iterations)
@@ -64,19 +64,19 @@ unseen documents, and update the model with those new documents.
     with a computationally-simple and efficient dot product and it may
     be interesting to analyze in its own right.
   - `alpha` is the prior that tunes `theta`
-  - `beta` is the prior that tunes `beta`
+  - `eta` is the prior that tunes `beta`
 
 ## Example
 
 ``` r
 library(tidytext)
 library(tidyverse)
-#> ── Attaching packages ─────────────────────────────────────────────────────── tidyverse 1.3.0 ──
+#> ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
 #> ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
 #> ✓ tibble  3.0.3     ✓ dplyr   1.0.0
 #> ✓ tidyr   1.1.0     ✓ stringr 1.4.0
 #> ✓ readr   1.3.1     ✓ forcats 0.5.0
-#> ── Conflicts ────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+#> ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)
@@ -135,7 +135,7 @@ lda <- tidylda(
   iterations = 200, 
   burnin = 175,
   alpha = 0.1, # also accepts vector inputs
-  beta = 0.05, # also accepts vector or matrix inputs
+  eta = 0.05, # also accepts vector or matrix inputs
   optimize_alpha = FALSE, # experimental
   calc_likelihood = TRUE,
   calc_r2 = TRUE, # see https://arxiv.org/abs/1911.11061
@@ -162,8 +162,8 @@ glance(lda)
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
 #> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
-#>     optimize_alpha = FALSE, calc_likelihood = TRUE, calc_r2 = TRUE, 
-#>     return_data = FALSE, beta = 0.05)
+#>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
+#>     calc_r2 = TRUE, return_data = FALSE)
 #> 
 #> The model's R-squared is  0.2677 
 #> The  5  most prevalent topics are:
@@ -407,8 +407,8 @@ print(lda2)
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
 #> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
-#>     optimize_alpha = FALSE, calc_likelihood = TRUE, calc_r2 = TRUE, 
-#>     return_data = FALSE, beta = 0.05)
+#>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
+#>     calc_r2 = TRUE, return_data = FALSE)
 #> 
 #> The model's R-squared is  0.2677 
 #> The  5  most prevalent topics are:

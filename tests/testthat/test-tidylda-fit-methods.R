@@ -48,7 +48,7 @@ test_that("can fit lda models without error", {
   
   expect_equal(sum(dim(lda$phi) == c(4, ncol(d1))), 2)
 
-  expect_equal(sum(dim(lda$phi) == dim(lda$gamma)), 2)
+  expect_equal(sum(dim(lda$phi) == dim(lda$lambda)), 2)
 
   expect_equal(sum(dim(lda$theta) == c(nrow(d1), nrow(lda$phi))), 2)
 

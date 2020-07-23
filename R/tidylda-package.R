@@ -17,9 +17,7 @@ NULL
 #' @importFrom rlang .data
 #' @importFrom stats median
 #' @importFrom stringr str_replace_all
-#' @importFrom textmineR CalcGamma
 #' @importFrom textmineR CalcProbCoherence
-#' @importFrom textmineR CalcTopicModelR2
 #' @importFrom tibble as_tibble
 #' @importFrom tidyr pivot_longer
 #' @importFrom tidyr %>%

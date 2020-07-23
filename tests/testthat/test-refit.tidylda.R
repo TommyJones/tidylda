@@ -50,7 +50,7 @@ test_that("can update models", {
   
   expect_equal(sum(dim(lda2$phi) == dim(lda$phi)), 2)
   
-  expect_equal(sum(dim(lda2$gamma) == dim(lda$gamma)), 2)
+  expect_equal(sum(dim(lda2$lambda) == dim(lda$lambda)), 2)
   
   
   # new data adding no extra topics no phi as prior

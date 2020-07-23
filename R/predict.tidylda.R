@@ -148,7 +148,7 @@ predict.tidylda <- function(
       result <- result / Matrix::rowSums(result)
     }
 
-    result <- result %*% t(object$gamma[, vocab_original])
+    result <- result %*% t(object$lambda[, vocab_original])
     result <- as.matrix(result)
     
     repl <- is.na(result)

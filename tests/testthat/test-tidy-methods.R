@@ -73,21 +73,21 @@ test_that("tidy.tidylda works as expected", {
   
   expect_equal(sum(colnames(lda$theta) %in% tidy_theta$topic), length(colnames(lda$theta)))
   
-  # tidy gamma
-  tidy_gamma <- tidy(
+  # tidy lambda
+  tidy_lambda <- tidy(
     x = lda,
-    matrix = "gamma"
+    matrix = "lambda"
   )
   
-  expect_named(tidy_gamma, c("topic", "token", "gamma"))
+  expect_named(tidy_lambda, c("topic", "token", "lambda"))
   
-  expect_type(tidy_gamma[[1]], "double")
+  expect_type(tidy_lambda[[1]], "double")
   
-  expect_type(tidy_gamma[[2]], "character")
+  expect_type(tidy_lambda[[2]], "character")
   
-  expect_type(tidy_gamma[[3]], "double")
+  expect_type(tidy_lambda[[3]], "double")
   
-  expect_equal(sum(colnames(lda$gamma) %in% tidy_gamma$token), length(colnames(lda$gamma)))
+  expect_equal(sum(colnames(lda$lambda) %in% tidy_lambda$token), length(colnames(lda$lambda)))
   
 })
 

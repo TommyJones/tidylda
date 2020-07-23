@@ -54,9 +54,9 @@ glance.tidylda <- function(x, ...) {
 #' @description
 #' Tidy the result of a \code{tidylda} topic model
 #' @param x an object of class \code{tidylda} or an individual \code{phi}, 
-#'   \code{theta}, or \code{gamma} matrix.
+#'   \code{theta}, or \code{lambda} matrix.
 #' @param matrix the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
-#'   \code{'gamma'}
+#'   \code{'lambda'}
 #' @param log do you want to have the result on a log scale? Defaults to \code{FALSE}
 #' @param ... other arguments passed to methods,currently not used
 #' @return
@@ -68,8 +68,8 @@ glance.tidylda <- function(x, ...) {
 #'   If \code{matrix = "theta"} then the result is a table of one row per document
 #'   and topic with the following columns: \code{document}, \code{topic}, \code{theta}
 #'
-#'   If \code{matrix = "gamma"} then the result is a table of one row per topic
-#'   and token with the following columns: \code{topic}, \code{token}, \code{gamma}
+#'   If \code{matrix = "lambda"} then the result is a table of one row per topic
+#'   and token with the following columns: \code{topic}, \code{token}, \code{lambda}
 #' @note
 #'   If \code{log = TRUE} then "log_" will be appended to the name of the third
 #'   column of the resulting table. e.g "\code{phi}" becomes "\code{log_phi}".
@@ -83,20 +83,20 @@ glance.tidylda <- function(x, ...) {
 #'
 #' tidy_theta <- tidy(lda, matrix = "theta")
 #'
-#' tidy_gamma <- tidy(lda, matrix = "gamma")
+#' tidy_lambda <- tidy(lda, matrix = "lambda")
 #' }
 #' @export
 tidy.tidylda <- function(x, matrix, log = FALSE, ...) {
   
   if (!inherits(matrix, "character") |
-      !sum(c("phi", "theta", "gamma") %in% matrix) >= 1) {
-    stop("matrix should be one of c('phi', 'theta', 'gamma')")
+      !sum(c("phi", "theta", "lambda") %in% matrix) >= 1) {
+    stop("matrix should be one of c('phi', 'theta', 'lambda')")
   }
   
   if (matrix == "phi") {
     out <- tidy.matrix(x = x$phi, matrix = matrix, log = log)
-  } else if (matrix == "gamma") {
-    out <- tidy.matrix(x = x$gamma, matrix = matrix, log = log)
+  } else if (matrix == "lambda") {
+    out <- tidy.matrix(x = x$lambda, matrix = matrix, log = log)
   } else {
     out <- tidy.matrix(x = x$theta, matrix = matrix, log = log)
   }
@@ -112,8 +112,8 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
   
   # check inputs
   if (!inherits(matrix, "character") |
-      !sum(c("phi", "theta", "gamma") %in% matrix) >= 1) {
-    stop("matrix should be one of c('phi', 'theta', 'gamma')")
+      !sum(c("phi", "theta", "lambda") %in% matrix) >= 1) {
+    stop("matrix should be one of c('phi', 'theta', 'lambda')")
   }
   
   if (!is.logical(log)) {
@@ -135,9 +135,9 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     
     out$topic <- as.numeric(out$topic)
     
-  } else if (matrix == "gamma") {
+  } else if (matrix == "lambda") {
     
-    colnames(out) <- c("topic", "token", "gamma")
+    colnames(out) <- c("topic", "token", "lambda")
     
     out$topic <- as.numeric(out$topic)
     
@@ -182,7 +182,7 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
 #' @details 
 #'   The key statistic for \code{augment} is P(topic | document, token) =
 #'   P(topic | token) * P(token | document). P(topic | token) are the entries
-#'   of the 'gamma' matrix in the \code{\link[tidylda]{tidylda}} object passed
+#'   of the 'lambda' matrix in the \code{\link[tidylda]{tidylda}} object passed
 #'   with \code{x}. P(token | document) is taken to be the frequency of each
 #'   token normalized within each document.
 #' @export
@@ -244,17 +244,17 @@ augment.tidylda <- function(
     
   }
   
-  tidy_gamma <- tidy(x, "gamma")
+  tidy_lambda <- tidy(x, "lambda")
   
-  tidy_gamma <- tidyr::pivot_wider(
-    tidy_gamma, 
+  tidy_lambda <- tidyr::pivot_wider(
+    tidy_lambda, 
     names_from = .data$topic, 
-    values_from = .data$gamma
+    values_from = .data$lambda
   )
   
   result <- dplyr::left_join(
     data,
-    tidy_gamma,
+    tidy_lambda,
     by = c("term" = "token")
   )
   

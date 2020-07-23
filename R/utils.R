@@ -529,11 +529,9 @@ summarize_topics <- function(theta, phi, dtm) {
 #'   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
 #'     P(topic|document)
 #'
-#'   \code{gamma} is a numeric matrix whose rows are the posterior estimates of
-#'     P(topic|token). This is calculated by making a call to
-#'     \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
-#'     \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is
-#'     proportional to \code{Matrix::rowSums(dtm)}).
+#'   \code{lambda} is a numeric matrix whose rows are the posterior estimates of
+#'     P(topic|token), calculated using Bayes's rule.
+#'     See \code{\link[tidylda]{calc_lambda}}.
 #'
 #'   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
 #'     is \code{FALSE}, \code{alpha} is what the user passed when calling
@@ -626,8 +624,8 @@ new_tidylda <- function(
     
     ### collect the results ###
     
-    # gamma
-    gamma <- textmineR::CalcGamma(
+    # lambda
+    lambda <- calc_lambda(
       phi = phi, theta = theta,
       p_docs = Matrix::rowSums(dtm)
     )
@@ -675,7 +673,7 @@ new_tidylda <- function(
     result <- list(
       phi = phi,
       theta = theta,
-      gamma = gamma,
+      lambda = lambda,
       alpha = alpha_out,
       beta = beta_out,
       summary = summary,
@@ -787,3 +785,67 @@ tidy_dgcmatrix <- function(x, ...) {
   colnames(ret) <- c("document", "term", "count")
   ret
 }
+
+#' Calculate a matrix whose rows represent P(topic_i|tokens)
+#' @keywords internal
+#' @description 
+#' Use Bayes' rule to get P(topic|token) from the estimated parameters of a
+#' probabilistic topic model.This resulting "lambda" matrix can be used for
+#' classifying new documents in a frequentist context and supports
+#' \code{\link[tidylda]{augment}}.
+#' @param theta a theta matrix
+#' @param phi a phi matrix
+#' @param p_docs A numeric vector of length \code{nrow(theta)} that is
+#'   proportional to the number of terms in each document,  defaults to NULL.
+#' @param correct Logical. Do you want to set NAs or NaNs in the final result to
+#'   zero? Useful when hitting computational underflow. Defaults to \code{TRUE}.
+#'   Set to \code{FALSE} for troubleshooting or diagnostics.
+#' @return
+#' Returns a \code{matrix} whose rows correspond to topics and whose columns
+#' correspond to tokens. The i,j entry corresponds to P(topic_i|token_j)
+calc_lambda <- function(phi, theta, p_docs = NULL, correct = TRUE){
+  
+  # set up constants
+  D <- nrow(theta)
+  K <- ncol(theta)
+  V <- ncol(phi)
+  
+  # probability of each document (assumed to be equiprobable)
+  if(is.null(p_docs)){
+    p_d <- rep(1/nrow(theta), nrow(theta))
+  }else{
+    if(sum(is.na(p_docs)) > 0){
+      warning("found missing values in p_docs. Setting them as 0.")
+      p_docs[ is.na(p_docs) ] <- 0 
+    }
+    p_d <- p_docs / sum(p_docs)
+  }
+  
+  # get the probability of each topic
+  p_t <- p_d %*% theta
+  
+  # get the probability of each word from the model    
+  p_w <- p_t %*% phi
+  
+  
+  
+  # get our result
+  lambda <- matrix(0, ncol=ncol(p_t), nrow=ncol(p_t))
+  diag(lambda) <- p_t
+  
+  lambda <- lambda %*% phi
+  
+  lambda <- t(apply(lambda, 1, function(x) x / p_w))
+  
+  rownames(lambda) <- rownames(phi)
+  colnames(lambda) <- colnames(phi)
+  
+  # give us zeros instead of NAs when we have NA or NaN entries
+  if (correct) {
+    lambda[is.na(lambda)] <- 0 
+  }
+  
+  return(lambda)
+}
+
+

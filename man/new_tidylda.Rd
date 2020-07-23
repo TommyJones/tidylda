@@ -10,7 +10,7 @@ new_tidylda(
   burnin,
   is_prediction = FALSE,
   alpha = NULL,
-  beta = NULL,
+  eta = NULL,
   optimize_alpha = NULL,
   calc_r2 = NULL,
   calc_likelihood = NULL,
@@ -30,7 +30,7 @@ or update)? Defaults to \code{FALSE}}
 
 \item{alpha}{output of \code{\link[tidylda]{format_alpha}}}
 
-\item{beta}{output of \code{\link[tidylda]{format_beta}}}
+\item{eta}{output of \code{\link[tidylda]{format_eta}}}
 
 \item{optimize_alpha}{did you optimize \code{alpha} when making a call to
 \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
@@ -57,11 +57,9 @@ Returns an S3 object of class \code{tidylda} with the following slots:
   \code{theta} is a numeric matrix  whose rows are the posterior estimates of
     P(topic|document)
 
-  \code{gamma} is a numeric matrix whose rows are the posterior estimates of
-    P(topic|token). This is calculated by making a call to
-    \code{link[textmineR]{CalcGamma}} which uses Bayes's rule to calculate
-    \code{gamma} from \code{phi}, \code{theta}, and P(document) (which is
-    proportional to \code{Matrix::rowSums(dtm)}).
+  \code{lambda} is a numeric matrix whose rows are the posterior estimates of
+    P(topic|token), calculated using Bayes's rule.
+    See \code{\link[tidylda]{calc_lambda}}.
 
   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
     is \code{FALSE}, \code{alpha} is what the user passed when calling
@@ -69,7 +67,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
     call to \code{\link[tidylda]{fit_lda_c}}.
 
-  \code{beta} is the prior for tokens over topics. This is what the user passed
+  \code{eta} is the prior for tokens over topics. This is what the user passed
     when calling \code{\link[tidylda]{tidylda}}.
 
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}

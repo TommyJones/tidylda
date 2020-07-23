@@ -195,7 +195,7 @@ predict.tidylda <- function(
     )
 
     # make sure priors are formatted correctly
-    beta <- format_beta(object$beta, k = nrow(object$phi), Nv = ncol(dtm_new_data))
+    eta <- format_eta(object$eta, k = nrow(object$phi), Nv = ncol(dtm_new_data))
 
     alpha <- format_alpha(object$alpha, k = nrow(object$phi))
 
@@ -204,7 +204,7 @@ predict.tidylda <- function(
       dtm = dtm_new_data,
       k = nrow(object$phi),
       alpha = alpha$alpha,
-      beta = beta$beta,
+      eta = eta$eta,
       phi_initial = object$phi,
       theta_initial = theta_initial,
       freeze_topics = TRUE,
@@ -219,7 +219,7 @@ predict.tidylda <- function(
       Cv_in = counts$Cv,
       Ck_in = counts$Ck,
       alpha_in = alpha$alpha,
-      beta_in = beta$beta,
+      eta_in = eta$eta,
       iterations = iterations,
       burnin = burnin,
       optimize_alpha = FALSE,

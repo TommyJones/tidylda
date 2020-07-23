@@ -34,7 +34,7 @@ c("document", "term") at a minimum.}
 \details{
 The key statistic for \code{augment} is P(topic | document, token) =
   P(topic | token) * P(token | document). P(topic | token) are the entries
-  of the 'gamma' matrix in the \code{\link[tidylda]{tidylda}} object passed
+  of the 'lambda' matrix in the \code{\link[tidylda]{tidylda}} object passed
   with \code{x}. P(token | document) is taken to be the frequency of each
   token normalized within each document.
 }

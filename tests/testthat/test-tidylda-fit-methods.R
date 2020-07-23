@@ -19,7 +19,7 @@ test_that("can fit lda models without error", {
     iterations = 20, 
     burnin = 10,
     alpha = 0.1, 
-    beta = 0.05,
+    eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
@@ -44,7 +44,7 @@ test_that("can fit lda models without error", {
 
   expect_length(lda$alpha, 1)
   
-  expect_length(lda$beta, 1)
+  expect_length(lda$eta, 1)
   
   expect_equal(sum(dim(lda$phi) == c(4, ncol(d1))), 2)
 
@@ -65,7 +65,7 @@ test_that("can fit lda models without error", {
     iterations = 20, 
     burnin = 10,
     alpha = 0.1, 
-    beta = 0.05,
+    eta = 0.05,
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
@@ -81,7 +81,7 @@ test_that("can fit lda models without error", {
     iterations = 20, 
     burnin = 10,
     alpha = rep(0.1, 4), 
-    beta = rep(0.05, ncol(d1)),
+    eta = rep(0.05, ncol(d1)),
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
@@ -90,33 +90,33 @@ test_that("can fit lda models without error", {
 
   expect_length(lda$alpha, 4)
 
-  expect_length(lda$beta, ncol(d1))
+  expect_length(lda$eta, ncol(d1))
 
-  # beta as matrix prior
+  # eta as matrix prior
   lda <- tidylda(
     data = d1,
     k = 4,
     iterations = 20, 
     burnin = 10,
     alpha = 0.1, 
-    beta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
+    eta = matrix(0.05, nrow = 4, ncol = ncol(d1)),
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE
   )
 
-  expect_true(inherits(lda$beta, "matrix"))
+  expect_true(inherits(lda$eta, "matrix"))
 })
 
-test_that("sparse priors for beta don't cause underflow failures", {
+test_that("sparse priors for eta don't cause underflow failures", {
   m <- tidylda(
     data = textmineR::nih_sample_dtm,
     k = 10,
     iterations = 20,
     burnin = 15,
     alpha = 0.05,
-    beta = 0.01,
+    eta = 0.01,
     optimize_alpha = FALSE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
@@ -134,7 +134,7 @@ test_that("errors hit for malformed parameters", {
       data = d1,
       k = 1,
       iterations = 20, burnin = 10,
-      alpha = 0.1, beta = 0.05,
+      alpha = 0.1, eta = 0.05,
       optimize_alpha = TRUE,
       calc_likelihood = FALSE,
       calc_r2 = FALSE,
@@ -148,7 +148,7 @@ test_that("errors hit for malformed parameters", {
     tidylda(
       data = d1,
       k = 10,
-      alpha = 0.1, beta = 0.05,
+      alpha = 0.1, eta = 0.05,
       optimize_alpha = TRUE,
       calc_likelihood = FALSE,
       calc_r2 = FALSE,
@@ -163,7 +163,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 21,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -175,7 +175,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = "4",
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -193,7 +193,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = "FALSE",
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -204,7 +204,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = "FALSE",
     calc_r2 = FALSE,
@@ -215,7 +215,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = "FALSE",
@@ -226,7 +226,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -237,7 +237,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -249,7 +249,7 @@ test_that("errors hit for malformed parameters", {
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
-    alpha = 0.1, beta = 0.05,
+    alpha = 0.1, eta = 0.05,
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
@@ -276,7 +276,7 @@ test_that("parallelism works as expected", {
       data = d1,
       k = 4,
       iterations = 20, burnin = 10,
-      alpha = 0.1, beta = 0.05,
+      alpha = 0.1, eta = 0.05,
       optimize_alpha = FALSE,
       calc_likelihood = TRUE,
       calc_r2 = TRUE,

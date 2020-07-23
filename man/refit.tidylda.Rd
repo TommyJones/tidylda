@@ -45,7 +45,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{additional_k}{Integer number of topics to add, defaults to 0.}
 
-\item{phi_as_prior}{Logical. Do you want to replace \code{beta} with \code{phi}
+\item{phi_as_prior}{Logical. Do you want to replace \code{eta} with \code{phi}
 from the previous model as the prior for words over topics?}
 
 \item{threads}{Number of parallel threads, defaults to 1.}
@@ -64,14 +64,14 @@ Update an LDA model using collapsed Gibbs sampling.
 \details{
 \code{refit} allows you to (a) update the probabilities (i.e. weights) of
   a previously-fit model with new data or additional iterations and (b) optionally
-  use \code{phi} of a previously-fit LDA topic model as the \code{beta} prior
+  use \code{phi} of a previously-fit LDA topic model as the \code{eta} prior
   for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
   \code{phi_as_prior = TRUE} respectively.
 
-  If \code{phi_as_prior = TRUE}, then the new \code{beta} is equal to \code{phi}
+  If \code{phi_as_prior = TRUE}, then the new \code{eta} is equal to \code{phi}
   from the old model. (For handling of new tokens, see below.) Then each row
-  of the new \code{beta} is rescaled so that each row has the same magnitude
-  as the previous model's \code{beta}.
+  of the new \code{eta} is rescaled so that each row has the same magnitude
+  as the previous model's \code{eta}.
 
   Instead of initializing token-topic assignments in the manner for new
   models (see \code{\link[tidylda]{tidylda}}), the update initializes in 2
@@ -86,7 +86,7 @@ Update an LDA model using collapsed Gibbs sampling.
 
   \code{refit} handles the addition of new vocabulary by adding a flat prior
   over new tokens. Specifically, each entry in the new prior is equal to the
-  median value of \code{beta} from the old model. The resulting model will
+  median value of \code{eta} from the old model. The resulting model will
   have the total vocabulary of the old model plus any new vocabulary tokens.
   In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(new_data)}
   where \code{phi} is from the new model and \code{new_data} is the additional data.
@@ -95,8 +95,8 @@ Update an LDA model using collapsed Gibbs sampling.
   to an integer greater than zero. New entries to \code{alpha} have a flat
   prior equal to the median value of \code{alpha} in the old model. (Note that
   if \code{alpha} itself is a flat prior, i.e. scalar, then the new topics have
-  the same value for their prior.) New entries to \code{beta} are the average
-  of all previous topics in \code{beta}.
+  the same value for their prior.) New entries to \code{eta} are the average
+  of all previous topics in \code{eta}.
 }
 \note{
 Updates are, as of this writing, are almost-surely useful but their behaviors

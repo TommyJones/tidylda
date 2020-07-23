@@ -11,7 +11,7 @@ lda <- tidylda(
   data = d1,
   k = 4,
   iterations = 20, burnin = 10,
-  alpha = 0.1, beta = 0.05,
+  alpha = 0.1, eta = 0.05,
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,

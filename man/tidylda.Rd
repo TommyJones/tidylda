@@ -10,7 +10,7 @@ tidylda(
   iterations = NULL,
   burnin = -1,
   alpha = 0.1,
-  beta = 0.05,
+  eta = 0.05,
   optimize_alpha = FALSE,
   calc_likelihood = TRUE,
   calc_r2 = FALSE,
@@ -39,7 +39,7 @@ greater than \code{burnin}.}
 \item{alpha}{Numeric scalar or vector of length \code{k}. This is the prior
 for topics over documents.}
 
-\item{beta}{Numeric scalar, numeric vector of length \code{ncol(data)},
+\item{eta}{Numeric scalar, numeric vector of length \code{ncol(data)},
 or numeric matrix with \code{k} rows and \code{ncol(data)} columns.
 This is the prior for words over topics.}
 
@@ -74,7 +74,7 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   Topic-token and topic-document assignments are not initialized based on a
   uniform-random sampling, as is common. Instead, topic-token probabilities
   (i.e. \code{phi}) are initialized by sampling from a Dirichlet distribution
-  with \code{beta} as its parameter. The same is done for topic-document
+  with \code{eta} as its parameter. The same is done for topic-document
   probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
   function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
   a single Gibbs iteration to initialize assignments of tokens to topics and
@@ -97,7 +97,7 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 
   The log likelihood calculation is the same that can be found on page 9 of
   \url{https://arxiv.org/pdf/1510.08628.pdf}. The only difference is that the
-  version in \code{\link[tidylda]{tidylda}} allows \code{beta} to be a
+  version in \code{\link[tidylda]{tidylda}} allows \code{eta} to be a
   vector or matrix. (Vector used in this function, matrix used for model
   updates in \code{\link[tidylda]{refit.tidylda}}. At present, the
   log likelihood function appears to be ok for assessing convergence. i.e. It

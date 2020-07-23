@@ -32,7 +32,7 @@ create_lexicon <- function(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
 #' @param Cd_in IntegerMatrix denoting counts of topics in documents
 #' @param Cv_in IntegerMatrix denoting counts of tokens in topics
 #' @param Ck_in IntegerVector denoting counts of topics across all tokens
-#' @param beta_in NumericMatrix for prior of tokens over topics
+#' @param eta_in NumericMatrix for prior of tokens over topics
 #' @param alpha_in NumericVector prior for topics over documents
 #' @param iterations int number of gibbs iterations to run in total
 #' @param burnin int number of burn in iterations
@@ -45,12 +45,12 @@ create_lexicon <- function(Cd_in, Phi_in, dtm_in, alpha, freeze_topics, threads)
 #' @param verbose bool do you want to print out a progress bar?
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in
-#'   some way by this function. In the case of \code{beta_in} and \code{Phi_in},
+#'   some way by this function. In the case of \code{eta_in} and \code{Phi_in},
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. In the case
 #'   of all others, they may be explicitly modified during training. 
-fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads = 1L, verbose = FALSE) {
-    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, beta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads, verbose)
+fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads = 1L, verbose = FALSE) {
+    .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Phi_in, freeze_topics, threads, verbose)
 }
 
 # Register entry points for exported C++ functions

@@ -11,10 +11,10 @@
 }
 \arguments{
 \item{x}{an object of class \code{tidylda} or an individual \code{phi}, 
-\code{theta}, or \code{gamma} matrix.}
+\code{theta}, or \code{lambda} matrix.}
 
 \item{matrix}{the matrix to tidy; one of \code{'phi'}, \code{'theta'}, or
-\code{'gamma'}}
+\code{'lambda'}}
 
 \item{log}{do you want to have the result on a log scale? Defaults to \code{FALSE}}
 
@@ -29,8 +29,8 @@ Returns a \code{\link[tibble]{tibble}}.
   If \code{matrix = "theta"} then the result is a table of one row per document
   and topic with the following columns: \code{document}, \code{topic}, \code{theta}
 
-  If \code{matrix = "gamma"} then the result is a table of one row per topic
-  and token with the following columns: \code{topic}, \code{token}, \code{gamma}
+  If \code{matrix = "lambda"} then the result is a table of one row per topic
+  and token with the following columns: \code{topic}, \code{token}, \code{lambda}
 }
 \description{
 Tidy the result of a \code{tidylda} topic model
@@ -55,6 +55,6 @@ tidy_phi <- tidy(lda, matrix = "phi")
 
 tidy_theta <- tidy(lda, matrix = "theta")
 
-tidy_gamma <- tidy(lda, matrix = "gamma")
+tidy_lambda <- tidy(lda, matrix = "lambda")
 }
 }

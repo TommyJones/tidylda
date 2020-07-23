@@ -15,7 +15,7 @@
 #'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
 #' @param return_data Logical. Do you want \code{new_data} returned as part of the model object?
 #' @param additional_k Integer number of topics to add, defaults to 0.
-#' @param phi_as_prior Logical. Do you want to replace \code{beta} with \code{phi}
+#' @param phi_as_prior Logical. Do you want to replace \code{eta} with \code{phi}
 #'        from the previous model as the prior for words over topics?
 #' @param threads Number of parallel threads, defaults to 1.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
@@ -25,14 +25,14 @@
 #' @details
 #'   \code{refit} allows you to (a) update the probabilities (i.e. weights) of
 #'   a previously-fit model with new data or additional iterations and (b) optionally
-#'   use \code{phi} of a previously-fit LDA topic model as the \code{beta} prior
+#'   use \code{phi} of a previously-fit LDA topic model as the \code{eta} prior
 #'   for the new model. This is tuned by setting \code{phi_as_prior = FALSE} or
 #'   \code{phi_as_prior = TRUE} respectively.
 #'
-#'   If \code{phi_as_prior = TRUE}, then the new \code{beta} is equal to \code{phi}
+#'   If \code{phi_as_prior = TRUE}, then the new \code{eta} is equal to \code{phi}
 #'   from the old model. (For handling of new tokens, see below.) Then each row
-#'   of the new \code{beta} is rescaled so that each row has the same magnitude
-#'   as the previous model's \code{beta}.
+#'   of the new \code{eta} is rescaled so that each row has the same magnitude
+#'   as the previous model's \code{eta}.
 #'
 #'   Instead of initializing token-topic assignments in the manner for new
 #'   models (see \code{\link[tidylda]{tidylda}}), the update initializes in 2
@@ -47,7 +47,7 @@
 #'
 #'   \code{refit} handles the addition of new vocabulary by adding a flat prior
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
-#'   median value of \code{beta} from the old model. The resulting model will
+#'   median value of \code{eta} from the old model. The resulting model will
 #'   have the total vocabulary of the old model plus any new vocabulary tokens.
 #'   In other words, after running \code{refit.tidylda} \code{ncol(phi) >= ncol(new_data)}
 #'   where \code{phi} is from the new model and \code{new_data} is the additional data.
@@ -56,8 +56,8 @@
 #'   to an integer greater than zero. New entries to \code{alpha} have a flat
 #'   prior equal to the median value of \code{alpha} in the old model. (Note that
 #'   if \code{alpha} itself is a flat prior, i.e. scalar, then the new topics have
-#'   the same value for their prior.) New entries to \code{beta} are the average
-#'   of all previous topics in \code{beta}.
+#'   the same value for their prior.) New entries to \code{eta} are the average
+#'   of all previous topics in \code{eta}.
 #' @note
 #'  Updates are, as of this writing, are almost-surely useful but their behaviors
 #'  have not been optimized or well-studied. Caveat emptor!
@@ -191,33 +191,33 @@ refit.tidylda <- function(
 
   ### Pull out objects used for update ----
 
-  # format of beta
+  # format of eta
   if (phi_as_prior) {
-    beta <- list(
-      beta = object$phi,
-      beta_class = "matrix"
+    eta <- list(
+      eta = object$phi,
+      eta_class = "matrix"
     )
 
-    # re-scale so that beta has the same magnitude of the old beta
+    # re-scale so that eta has the same magnitude of the old eta
 
-    if (is.matrix(object$beta)) {
-      beta$beta <- beta$beta * rowSums(object$beta)
-    } else if (is.vector(object$beta)) {
-      beta$beta <- beta$beta * sum(object$beta)
-    } else if (length(object$beta) == 1) {
-      beta$beta <- beta$beta * (object$beta * ncol(object$phi))
+    if (is.matrix(object$eta)) {
+      eta$eta <- eta$eta * rowSums(object$eta)
+    } else if (is.vector(object$eta)) {
+      eta$eta <- eta$eta * sum(object$eta)
+    } else if (length(object$eta) == 1) {
+      eta$eta <- eta$eta * (object$eta * ncol(object$phi))
     } else { # this case shouldn't happen
 
-      stop("object$beta must be a numeric scalar, a numeric vector of length 
+      stop("object$eta must be a numeric scalar, a numeric vector of length 
          'ncol(object$phi)', or a numeric matrix with 'nrow(object$phi)' rows 
          and 'ncol(object$phi)' columns with no missing  values and at least 
          one non-zero value.")
     }
   } else {
-    beta <- format_beta(beta = object$beta, k = nrow(object$phi), Nv = ncol(object$phi))
+    eta <- format_eta(eta = object$eta, k = nrow(object$phi), Nv = ncol(object$phi))
   }
 
-  dimnames(beta$beta) <- dimnames(object$phi)
+  dimnames(eta$eta) <- dimnames(object$phi)
 
   # phi_initial and theta_initial
   phi_initial <- object$phi
@@ -256,35 +256,35 @@ refit.tidylda <- function(
   dtm <- cbind(dtm, m_add_to_dtm)
 
   # uniform prior over new words
-  beta$beta <- cbind(beta$beta, m_add_to_model + stats::median(beta$beta))
+  eta$eta <- cbind(eta$eta, m_add_to_model + stats::median(eta$eta))
 
-  beta$beta <- beta$beta[, colnames(dtm)]
+  eta$eta <- eta$eta[, colnames(dtm)]
 
   phi_initial <- cbind(phi_initial, m_add_to_model + stats::median(phi_initial))
 
   phi_initial <- phi_initial[, colnames(dtm)] / rowSums(phi_initial[, colnames(dtm)])
 
 
-  # add topics to beta and phi_initial
-  # prior for topics inherets from beta, specifically colMeans(beta)
+  # add topics to eta and phi_initial
+  # prior for topics inherets from eta, specifically colMeans(eta)
   # basically means that new topics are an average of old topics. If you used
-  # a scalar or vector for object$beta, then prior for new topics will be
-  # identical to prior for old topics. If object$beta was a matrix where rows
+  # a scalar or vector for object$eta, then prior for new topics will be
+  # identical to prior for old topics. If object$eta was a matrix where rows
   # were not identical (i.e. you seeded specific topics), then your new topics
   # will have a prior that is the average of all old topics.
   m_add <- matrix(0,
     nrow = additional_k,
-    ncol = ncol(beta$beta)
+    ncol = ncol(eta$eta)
   )
 
-  m_add <- t(t(m_add) + colMeans(beta$beta))
+  m_add <- t(t(m_add) + colMeans(eta$eta))
 
-  beta$beta <- rbind(beta$beta, m_add) # add new topics to beta
+  eta$eta <- rbind(eta$eta, m_add) # add new topics to eta
 
   phi_initial <- rbind(phi_initial, m_add / rowSums(m_add)) # new topics to phi
 
   # add topics to alpha and theta_initial
-  # prior for new topics is uniform, similar to beta, it's the median of alpha
+  # prior for new topics is uniform, similar to eta, it's the median of alpha
   # adding new topics to theta_inital is a little more complicated. We take the
   # median of each row of theta_initial, add that to the new topics and then
   # reweight so each row still sums to 1.
@@ -321,7 +321,7 @@ refit.tidylda <- function(
     dtm = dtm,
     k = nrow(phi_initial),
     alpha = alpha$alpha,
-    beta = beta$beta,
+    eta = eta$eta,
     phi_initial = phi_initial,
     theta_initial = theta_initial,
     freeze_topics = FALSE, # false because this is an update
@@ -336,7 +336,7 @@ refit.tidylda <- function(
     Cv_in = counts$Cv,
     Ck_in = counts$Ck,
     alpha_in = alpha$alpha,
-    beta_in = beta$beta,
+    eta_in = eta$eta,
     iterations = iterations,
     burnin = burnin,
     optimize_alpha = optimize_alpha,
@@ -354,7 +354,7 @@ refit.tidylda <- function(
     burnin = burnin,
     is_prediction = FALSE,
     alpha = alpha, 
-    beta = beta,
+    eta = eta,
     optimize_alpha = optimize_alpha, 
     calc_r2 = calc_r2,
     calc_likelihood = calc_likelihood,

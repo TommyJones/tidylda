@@ -83,7 +83,7 @@ arma::uword samp_one(const arma::vec &pvec) {
   
   // draw randomly from (0,s)
   double u = arma::conv_to<double>::from(qvec.tail(1L));
-  u *= arma::randu(); // note that this will not respect R seed! Must fix!
+  u *= arma::randu(); 
   
   // find interval into which u falls
   for (arma::uword k = 0; k < pvec.n_elem; ++k) {

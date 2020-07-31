@@ -98,7 +98,7 @@ int log_sample_one(
     double                    &e      // sample from an exponential(1.0) RV
 ) {
   
-  const std::size_t Nk = p.size();
+  const std::size_t Nk = log_p.size();
   
   // check whether all elements are finite and numbers
   if (std::any_of(log_p.begin(), log_p.end(), [](double j){ 

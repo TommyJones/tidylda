@@ -4,8 +4,6 @@
 ^src/*\.so$
 ^src/*\.dll$
 
-^.travis.yml$
-
 ^_notes.md$
 ^cran-comments.md$
 ^\.gitignore$
@@ -20,3 +18,4 @@
 ^src/nuclear_option$
 
 ^ignore$
+^\.github$

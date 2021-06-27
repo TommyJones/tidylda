@@ -7,12 +7,11 @@
 
 [![AppVeyor build
 status](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidylda?branch=main&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
-[![Travis-CI Build
-Status](https://travis-ci.com/TommyJones/tidylda.svg?branch=main)](https://travis-ci.com/TommyJones/tidylda)
-[![Coverage
-Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](https://codecov.io/gh/tommyjones/tidylda/branch/main)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![Codecov test
+coverage](https://codecov.io/gh/tommyjones/tidylda/branch/main/graph/badge.svg)](https://codecov.io/gh/tommyjones/tidylda?branch=main)
+[![R-CMD-check](https://github.com/tommyjones/tidylda/workflows/R-CMD-check/badge.svg)](https://github.com/tommyjones/tidylda/actions)
 <!-- badges: end -->
 
 Latent Dirichlet Allocation Using ‘tidyverse’ Conventions
@@ -71,12 +70,12 @@ unseen documents, and update the model with those new documents.
 ``` r
 library(tidytext)
 library(tidyverse)
-#> ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
-#> ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-#> ✓ tibble  3.0.3     ✓ dplyr   1.0.0
-#> ✓ tidyr   1.1.0     ✓ stringr 1.4.0
-#> ✓ readr   1.3.1     ✓ forcats 0.5.0
-#> ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+#> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
+#> ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
+#> ✓ tibble  3.1.2     ✓ dplyr   1.0.7
+#> ✓ tidyr   1.1.3     ✓ stringr 1.4.0
+#> ✓ readr   1.4.0     ✓ forcats 0.5.1
+#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)
@@ -315,8 +314,6 @@ augment_predict <-
   as_tibble(t(augment_predict[, -1]))
 #> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
 #> Using compatibility `.name_repair`.
-#> This warning is displayed once every 8 hours.
-#> Call `lifecycle::last_warnings()` to see where this warning was generated.
 
 colnames(augment_predict) <- unique(tidy_docs$document)
 

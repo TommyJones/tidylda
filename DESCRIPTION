@@ -29,7 +29,6 @@ Description: Implements an algorithm for Latent Dirichlet
 License: MIT + file LICENSE
 URL: https://www.tidylda.com/
 BugReports: https://github.com/TommyJones/tidylda/issues
-Depends: 
 Imports:
     dplyr,
     generics,
@@ -51,7 +50,8 @@ Suggests:
     quanteda,
     testthat,
     tm,
-    spelling
+    spelling,
+    covr
 LinkingTo: 
     Rcpp,
     RcppArmadillo,

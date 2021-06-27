@@ -20,3 +20,5 @@
 ^src/nuclear_option$
 
 ^ignore$
+^codecov\.yml$
+^\.github$

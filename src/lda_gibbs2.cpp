@@ -34,8 +34,7 @@ Rcpp::List create_lexicon(
     const NumericMatrix&       Beta_in,
     const arma::sp_mat&        dtm_in,
     const std::vector<double>& alpha,
-    const bool&                freeze_topics,
-    const int&                 threads
+    const bool&                freeze_topics
 ) {
   // ***************************************************************************
   // Initialize some variables
@@ -60,8 +59,7 @@ Rcpp::List create_lexicon(
   // Go through each document and split it into a lexicon and then sample a
   // topic for each token within that document
   // ***************************************************************************
-  RcppThread::parallelFor(0, Nd, [&](std::size_t d) {
-    
+  for (auto d = 0; d < Nd; d++) {
     std::vector<double> qz(Nk); // placehodler for probability of topic
     
     arma::uword z; // placeholder for topic sampled
@@ -69,7 +67,7 @@ Rcpp::List create_lexicon(
     // make a temporary vector to hold token indices
     auto nd(0);
     
-    for (auto v = 0; v < Nv; ++v) {
+    for (auto v = 0; v < Nv; v++) {
       nd += dtm(v, d);
     }
     
@@ -79,11 +77,11 @@ Rcpp::List create_lexicon(
     // fill in with token indices
     std::size_t j = 0; // index of doc, advances when we have non-zero entries
     
-    for (auto v = 0; v < Nv; ++v) {
+    for (auto v = 0; v < Nv; v++) {
       if (dtm(v, d) > 0) { // if non-zero, add elements to doc
         
         // calculate probability of topics based on initially-sampled Beta and Cd
-        for (auto k = 0; k < Nk; ++k) {
+        for (auto k = 0; k < Nk; k++) {
           qz[k] = log(Beta[k][v]) + log(Cd[d][k] + alpha[k]) - log(nd + sum_alpha - 1);
         }
         
@@ -103,8 +101,9 @@ Rcpp::List create_lexicon(
     
     Zd[d] = zd;
     
-    RcppThread::checkUserInterrupt();
-  },threads);
+    Rcpp::checkUserInterrupt();    
+  }
+
   
   // ***************************************************************************
   // Calculate Cd, Cv, and Ck from the sampled topics
@@ -121,15 +120,16 @@ Rcpp::List create_lexicon(
   // this is so it's accessed efficiently below
   std::vector<std::vector<long>> Cv(Nv);
   
-  RcppThread::parallelFor(0, Nv, [&Cv, &Nk] (std::size_t v) {
+  for (auto v = 0; v < Nv; v++) {
     std::vector<long> cv_row(Nk);
     for (auto k = 0; k < Nk; k++) {
       cv_row[k] = 0;
     }
     Cv[v] = cv_row;
     
-    RcppThread::checkUserInterrupt();
-  }, threads);
+    Rcpp::checkUserInterrupt();
+    
+  }
   
   // loop over Zd and Docs to count topics sampled for each token
   // can't do this loop in parallel because of potential collisions in
@@ -166,7 +166,7 @@ Rcpp::List create_lexicon(
       Cd[d] = cd_row;
     }
     
-    RcppThread::checkUserInterrupt();
+    Rcpp::checkUserInterrupt();
   }
   
   // ***************************************************************************

@@ -86,21 +86,22 @@
 #'   iterations = 200, burnin = 175
 #' )
 #'
-#' # update an existing model by adding documents
+#' # update an existing model by adding documents using old model as prior
 #' m2 <- refit(
 #'   object = m,
 #'   new_data = rbind(d1, d2),
 #'   iterations = 200,
-#'   burnin = 175
+#'   burnin = 175,
+#'   prior_weight = 1
 #' )
 #'
-#' # use an old model as a prior for a new model
+#' # use an old model to initialize new model and not use old model as prior
 #' m3 <- refit(
 #'   object = m,
 #'   new_data = d2, # new documents only
-#'   beta_as_prior = TRUE,
 #'   iterations = 200,
-#'   burnin = 175
+#'   burnin = 175,
+#'   prior_weight = NA
 #' )
 #'
 #' # add topics while updating a model by adding documents

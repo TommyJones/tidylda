@@ -32,10 +32,10 @@ test_that("can update models", {
   lda2 <- refit(
     object = lda,
     new_data = d1,
-    additional_k = 0,
-    beta_as_prior = FALSE,
     iterations = 20,
     burnin = 10,
+    prior_weight = NA,
+    additional_k = 0,
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
@@ -58,7 +58,7 @@ test_that("can update models", {
     object = lda,
     new_data = d2,
     additional_k = 0,
-    beta_as_prior = FALSE,
+    prior_weight = NA,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -80,7 +80,7 @@ test_that("can update models", {
     object = lda,
     new_data = d2,
     additional_k = 1,
-    beta_as_prior = FALSE,
+    prior_weight = NA,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -102,7 +102,7 @@ test_that("can update models", {
     object = lda,
     new_data = d2,
     additional_k = 3,
-    beta_as_prior = FALSE,
+    prior_weight = NA,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -124,7 +124,7 @@ test_that("can update models", {
     object = lda,
     new_data = d2,
     additional_k = 0,
-    beta_as_prior = TRUE,
+    prior_weight = 1,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -147,7 +147,7 @@ test_that("can update models", {
     object = lda,
     new_data = d2,
     additional_k = 3,
-    beta_as_prior = TRUE,
+    prior_weight = 1,
     iterations = 20,
     burnin = 10,
     optimize_alpha = TRUE,
@@ -277,13 +277,13 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
     )
   )
   
-  # logical things aren't logical
+  # malformed prior weight
   expect_error(
     refit(
       object = lda,
       new_data = d2,
       additional_k = 3,
-      beta_as_prior = "TRUE",
+      prior_weight = TRUE,
       iterations = 20,
       burnin = 10,
       optimize_alpha = TRUE,
@@ -293,12 +293,13 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
     )
   )
   
+  # logical things aren't logical
   expect_error(
     refit(
       object = lda,
       new_data = d2,
       additional_k = 3,
-      beta_as_prior = TRUE,
+      prior_weight = 1,
       iterations = 20,
       burnin = 10,
       optimize_alpha = "TRUE",

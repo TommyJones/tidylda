@@ -9,12 +9,12 @@
   new_data,
   iterations = NULL,
   burnin = -1,
+  prior_weight = 1,
+  additional_k = 0,
   optimize_alpha = FALSE,
   calc_likelihood = FALSE,
   calc_r2 = FALSE,
   return_data = FALSE,
-  additional_k = 0,
-  beta_as_prior = FALSE,
   threads = 1,
   verbose = FALSE,
   ...
@@ -31,6 +31,11 @@
 the resulting "beta" and "theta" matrices are an average over all iterations
 greater than \code{burnin}.}
 
+\item{prior_weight}{Numeric, 0 or greater or \code{NA}. The weight of the 
+\code{beta} as a prior from the base model. See Details, below.}
+
+\item{additional_k}{Integer number of topics to add, defaults to 0.}
+
 \item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
 Defaults to \code{FALSE}. See 'details' of documentation for
 \code{\link[textmineR]{FitLdaModel}}for more information.}
@@ -42,11 +47,6 @@ Useful for assessing convergence. Defaults to \code{FALSE}.}
 Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 
 \item{return_data}{Logical. Do you want \code{new_data} returned as part of the model object?}
-
-\item{additional_k}{Integer number of topics to add, defaults to 0.}
-
-\item{beta_as_prior}{Logical. Do you want to replace \code{eta} with \code{beta}
-from the previous model as the prior for words over topics?}
 
 \item{threads}{Number of parallel threads, defaults to 1.}
 
@@ -67,11 +67,20 @@ Update an LDA model using collapsed Gibbs sampling.
   use \code{beta} of a previously-fit LDA topic model as the \code{eta} prior
   for the new model. This is tuned by setting \code{beta_as_prior = FALSE} or
   \code{beta_as_prior = TRUE} respectively.
+  
+  \code{prior_weight} tunes how strong the base model is represented in the prior.
+  If \code{prior_weight = 1}, then the tokens from the base model's training data
+  have the same relative weight as tokens in \code{new_data}. In other words,
+  it is like just adding training data. If \code{prior_weight} is less than 1,
+  then tokens in \code{new_data} are given more weight. If \code{prior_weight}
+  is greater than 1, then the tokens from the base model's training data are
+  given more weight.
 
-  If \code{beta_as_prior = TRUE}, then the new \code{eta} is equal to \code{beta}
-  from the old model. (For handling of new tokens, see below.) Then each row
-  of the new \code{eta} is rescaled so that each row has the same magnitude
-  as the previous model's \code{eta}.
+  If \code{prior_weight} is \code{NA}, then the new \code{eta} is equal to 
+  \code{eta} from the old model, with new tokens folded in. 
+  (For handling of new tokens, see below.) Effectively, this just controls
+  how the sampler initializes (described below), but does not give prior
+  weight to the base model.
 
   Instead of initializing token-topic assignments in the manner for new
   models (see \code{\link[tidylda]{tidylda}}), the update initializes in 2

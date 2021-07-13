@@ -56,7 +56,7 @@
 #'
 #'   \code{refit} handles the addition of new vocabulary by adding a flat prior
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
-#'   median value of \code{eta} from the old model. The resulting model will
+#'   10th percentile of \code{eta} from the old model. The resulting model will
 #'   have the total vocabulary of the old model plus any new vocabulary tokens.
 #'   In other words, after running \code{refit.tidylda} \code{ncol(beta) >= ncol(new_data)}
 #'   where \code{beta} is from the new model and \code{new_data} is the additional data.
@@ -259,13 +259,14 @@ refit.tidylda <- function(
   
   dtm <- cbind(dtm, m_add_to_dtm)
   
+
   # uniform prior over new words
-  eta$eta <- cbind(eta$eta, m_add_to_model + stats::median(eta$eta))
-  
+  eta$eta <- cbind(eta$eta, m_add_to_model + stats::quantile(eta$eta, 0.1))
+
   eta$eta <- eta$eta[, colnames(dtm)]
-  
-  beta_initial <- cbind(beta_initial, m_add_to_model + stats::median(beta_initial))
-  
+
+  beta_initial <- cbind(beta_initial, m_add_to_model + stats::quantile(beta_initial, 0.1))
+
   beta_initial <- beta_initial[, colnames(dtm)] / rowSums(beta_initial[, colnames(dtm)])
   
   

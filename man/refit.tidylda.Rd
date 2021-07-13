@@ -95,7 +95,7 @@ Update an LDA model using collapsed Gibbs sampling.
 
   \code{refit} handles the addition of new vocabulary by adding a flat prior
   over new tokens. Specifically, each entry in the new prior is equal to the
-  median value of \code{eta} from the old model. The resulting model will
+  10th percentile of \code{eta} from the old model. The resulting model will
   have the total vocabulary of the old model plus any new vocabulary tokens.
   In other words, after running \code{refit.tidylda} \code{ncol(beta) >= ncol(new_data)}
   where \code{beta} is from the new model and \code{new_data} is the additional data.

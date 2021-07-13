@@ -9,6 +9,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // create_lexicon
 Rcpp::List create_lexicon(const IntegerMatrix& Cd_in, const NumericMatrix& Beta_in, const arma::sp_mat& dtm_in, const std::vector<double>& alpha, const bool& freeze_topics, const int& threads);
 static SEXP _tidylda_create_lexicon_try(SEXP Cd_inSEXP, SEXP Beta_inSEXP, SEXP dtm_inSEXP, SEXP alphaSEXP, SEXP freeze_topicsSEXP, SEXP threadsSEXP) {

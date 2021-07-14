@@ -327,7 +327,7 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #'   \code{\link[tidylda]{refit.tidylda}}
 #' @param freeze_topics if \code{TRUE} does not update counts of tokens in topics.
 #'   This is \code{TRUE} for predictions.
-#' @param threads number of parallel threads; defaults to 1
+#' @param threads number of parallel threads, currently unused
 #' @param ... Additional arguments, currently unused
 #' @return
 #'   Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},
@@ -422,8 +422,7 @@ initialize_topic_counts <- function(
       Beta_in = beta_initial,
       dtm_in = dtm, 
       alpha = alpha,
-      freeze_topics = freeze_topics,
-      threads = threads
+      freeze_topics = freeze_topics
     )
   
   lexicon

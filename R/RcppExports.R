@@ -17,8 +17,8 @@
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. \code{dtm_in}
 #'   is transposed for speed when looping over columns. 
-create_lexicon <- function(Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads) {
-    .Call(`_tidylda_create_lexicon`, Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads)
+create_lexicon <- function(Cd_in, Beta_in, dtm_in, alpha, freeze_topics) {
+    .Call(`_tidylda_create_lexicon`, Cd_in, Beta_in, dtm_in, alpha, freeze_topics)
 }
 
 #' Main C++ Gibbs sampler for Latent Dirichlet Allocation
@@ -42,6 +42,7 @@ create_lexicon <- function(Cd_in, Beta_in, dtm_in, alpha, freeze_topics, threads
 #' @param freeze_topics bool if making predictions, set to \code{TRUE}
 #' @param optimize_alpha bool do you want to optimize alpha each iteration?
 #' @param threads unsigned integer, how many parallel threads?
+#'        For now, nothing is actually parallel
 #' @param verbose bool do you want to print out a progress bar?
 #' @details
 #'   Arguments ending in \code{_in} are copied and their copies modified in

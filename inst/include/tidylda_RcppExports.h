@@ -25,17 +25,17 @@ namespace tidylda {
         }
     }
 
-    inline Rcpp::List create_lexicon(const IntegerMatrix& Cd_in, const NumericMatrix& Beta_in, const arma::sp_mat& dtm_in, const std::vector<double>& alpha, const bool& freeze_topics, const int& threads) {
-        typedef SEXP(*Ptr_create_lexicon)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List create_lexicon(const IntegerMatrix& Cd_in, const NumericMatrix& Beta_in, const arma::sp_mat& dtm_in, const std::vector<double>& alpha, const bool& freeze_topics) {
+        typedef SEXP(*Ptr_create_lexicon)(SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_create_lexicon p_create_lexicon = NULL;
         if (p_create_lexicon == NULL) {
-            validateSignature("Rcpp::List(*create_lexicon)(const IntegerMatrix&,const NumericMatrix&,const arma::sp_mat&,const std::vector<double>&,const bool&,const int&)");
+            validateSignature("Rcpp::List(*create_lexicon)(const IntegerMatrix&,const NumericMatrix&,const arma::sp_mat&,const std::vector<double>&,const bool&)");
             p_create_lexicon = (Ptr_create_lexicon)R_GetCCallable("tidylda", "_tidylda_create_lexicon");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_create_lexicon(Shield<SEXP>(Rcpp::wrap(Cd_in)), Shield<SEXP>(Rcpp::wrap(Beta_in)), Shield<SEXP>(Rcpp::wrap(dtm_in)), Shield<SEXP>(Rcpp::wrap(alpha)), Shield<SEXP>(Rcpp::wrap(freeze_topics)), Shield<SEXP>(Rcpp::wrap(threads)));
+            rcpp_result_gen = p_create_lexicon(Shield<SEXP>(Rcpp::wrap(Cd_in)), Shield<SEXP>(Rcpp::wrap(Beta_in)), Shield<SEXP>(Rcpp::wrap(dtm_in)), Shield<SEXP>(Rcpp::wrap(alpha)), Shield<SEXP>(Rcpp::wrap(freeze_topics)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

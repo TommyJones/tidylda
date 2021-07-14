@@ -1,5 +1,12 @@
 // Functions to make a collapsed gibbs sampler for LDA
 
+// Note that at one time, functions here used parallel for loops to do LDA
+// in the spirit of Newman et al. 2009 (ish). That proved problematic for
+// several reasons. So I've rolled this back to be sequential only.
+// I've left a lot of the infrastructure here for parallel
+// sampling (dividing data into batches, for example). That comes with computational
+// costs, but allows easier re-parallelization down the road if desired.
+
 // Export this as a header for use in other packages
 // [[Rcpp::interfaces(r, cpp)]] 
 
@@ -207,6 +214,7 @@ Rcpp::List create_lexicon(
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
 //' @param optimize_alpha bool do you want to optimize alpha each iteration?
 //' @param threads unsigned integer, how many parallel threads?
+//'        For now, nothing is actually parallel
 //' @param verbose bool do you want to print out a progress bar?
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
@@ -264,22 +272,22 @@ Rcpp::List fit_lda_c(
   std::vector<std::vector<long>> Cd_sum(Nd);
   std::vector<std::vector<double>> Cd_mean(Nd);
   
-  RcppThread::parallelFor(0, Nd, [&Nk, &Cd_sum, &Cd_mean] (std::size_t d) {
+  for (auto d = 0; d < Nd; d++) {
     for (auto k = 0; k < Nk; k++) {
       Cd_sum[d].push_back(0);
       Cd_mean[d].push_back(0.0);
     }
-  }, threads);
-  
+  }
+
   std::vector<std::vector<long>> Cv_sum(Nk);
   std::vector<std::vector<double>> Cv_mean(Nk);
   
-  RcppThread::parallelFor(0, Nk, [&Nv, &Cv_sum, &Cv_mean] (std::size_t k) {
+  for (auto k = 0; k < Nk; k++) {
     for (auto v = 0; v < Nv; v++) {
       Cv_sum[k].push_back(0);
       Cv_mean[k].push_back(0.0);
     }
-  }, threads);
+  }
   
   // ***********************************************************************
   // Set up variables for parallel sampling. 
@@ -314,7 +322,7 @@ Rcpp::List fit_lda_c(
   
   double lgalpha(0.0); // if calc_likelihood, we need this term
   
-  if (calc_likelihood) { // if calc_likelihood, actuAllocationy populate this stuff
+  if (calc_likelihood) { // if calc_likelihood, actually populate this stuff
     
     for (auto v = 0; v < Nv; v++) {
       lgeta += lgamma(eta[0][v]);
@@ -341,86 +349,82 @@ Rcpp::List fit_lda_c(
       Ck_batch[j] = Ck;
     }
     
-    RcppThread::parallelFor(
-      0,
-      threads,
-      [&] (std::size_t j) { // for each thread in parallel
+    for (auto j = 0; j < threads; j++) { // for each thread (used to be parallel)
+      auto batch_idx = batch_indices[j];
+      
+      std::vector<double> qz(Nk); // placehodler for probability of topic
+      
+      arma::uword z; // placeholder for topic sampled
+      
+      
+      // do a loop over all documents in the thread with local Ck and Cv
+      for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
         
-        auto batch_idx = batch_indices[j];
+        RcppThread::checkUserInterrupt();
         
-        std::vector<double> qz(Nk); // placehodler for probability of topic
+        // R_CheckUserInterrupt();
         
-        arma::uword z; // placeholder for topic sampled
+        auto doc = Docs[d]; // placeholder for a document
+        auto zd = Zd[d]; // placeholder for doc-word-topic assigment
         
-        
-        // do a loop over all documents in the thread with local Ck and Cv
-        for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
+        for (auto n = 0; n < doc.size(); n++) { // for each word in that document
           
-          RcppThread::checkUserInterrupt();
-          
-          // R_CheckUserInterrupt();
-          
-          auto doc = Docs[d]; // placeholder for a document
-          auto zd = Zd[d]; // placeholder for doc-word-topic assigment
-          
-          for (auto n = 0; n < doc.size(); n++) { // for each word in that document
+          // handle things differently based on freeze_topics
+          // note some copied code, but minimizes number of checks in this loop
+          if (! freeze_topics) {
             
-            // handle things differently based on freeze_topics
-            // note some copied code, but minimizes number of checks in this loop
-            if (! freeze_topics) {
-              
-              // discount for the n-th word with topic z
-              Cd[d][zd[n]]--; 
-              Cv_batch[j][zd[n]][doc[n]]--;
-              Ck_batch[j][zd[n]]--;
-              
-              // calculate probability vector
-              for (auto k = 0; k < Nk; k++) {
-                qz[k] = (Cv_batch[j][k][doc[n]] + eta[k][doc[n]]) / 
-                  (Ck_batch[j][k] + sum_eta) *
-                  (Cd[d][k] + alpha[k]) / 
-                  (doc.size() + sum_alpha);
-              }
-              
-              // sample topic
-              z = samp_one(qz);
-              
-              // update counts based on sampled topic
-              zd[n] = z;
-              
-              Cd[d][zd[n]]++; 
-              Cv_batch[j][zd[n]][doc[n]]++; 
-              Ck_batch[j][zd[n]]++; 
-              
-            } else {
-              
-              // discount for the n-th word with topic z
-              Cd[d][zd[n]]--; 
-              
-              // calculate probability vector
-              for (auto k = 0; k < Nk; k++) {
-                qz[k] = Beta_batch[j][k][doc[n]] *
-                  (Cd[d][k] + alpha[k]) / 
-                  (doc.size() + sum_alpha);
-              }
-              
-              // sample topic
-              z = samp_one(qz);
-              
-              // update counts based on sampled topic
-              zd[n] = z;
-              
-              Cd[d][zd[n]]++; 
-              
-            } // end if
-          } // end loop over tokens
-          
-          Zd[d] = zd; // update vector of sampled topics
-          
-        } // end loop over documents
+            // discount for the n-th word with topic z
+            Cd[d][zd[n]]--; 
+            Cv_batch[j][zd[n]][doc[n]]--;
+            Ck_batch[j][zd[n]]--;
+            
+            // calculate probability vector
+            for (auto k = 0; k < Nk; k++) {
+              qz[k] = (Cv_batch[j][k][doc[n]] + eta[k][doc[n]]) / 
+                (Ck_batch[j][k] + sum_eta) *
+                (Cd[d][k] + alpha[k]) / 
+                (doc.size() + sum_alpha);
+            }
+            
+            // sample topic
+            z = samp_one(qz);
+            
+            // update counts based on sampled topic
+            zd[n] = z;
+            
+            Cd[d][zd[n]]++; 
+            Cv_batch[j][zd[n]][doc[n]]++; 
+            Ck_batch[j][zd[n]]++; 
+            
+          } else {
+            
+            // discount for the n-th word with topic z
+            Cd[d][zd[n]]--; 
+            
+            // calculate probability vector
+            for (auto k = 0; k < Nk; k++) {
+              qz[k] = Beta_batch[j][k][doc[n]] *
+                (Cd[d][k] + alpha[k]) / 
+                (doc.size() + sum_alpha);
+            }
+            
+            // sample topic
+            z = samp_one(qz);
+            
+            // update counts based on sampled topic
+            zd[n] = z;
+            
+            Cd[d][zd[n]]++; 
+            
+          } // end if
+        } // end loop over tokens
         
-      }, threads); // end loop over threads
+        Zd[d] = zd; // update vector of sampled topics
+        
+      } // end loop over documents
+    } // end loop over threads
     
+
     // update global Ck and Cv using batch versions
     if (threads > 1) {
       Ck = update_global_Ck(
@@ -453,22 +457,23 @@ Rcpp::List fit_lda_c(
     // if using burnin, update sums
     if (burnin > -1 && t >= burnin) {
       
-      RcppThread::parallelFor(0, Nd, [&Cd, &Cd_sum, &Nk] (std::size_t d) {
+      for (auto d = 0; d < Nd; d++) {
         for (auto k = 0; k < Nk; k++) {
           Cd_sum[d][k] += Cd[d][k];
         }
-      },
-      threads);
+      }
+      
+
       
       if (! freeze_topics) {
-        RcppThread::parallelFor(0, Nk, [&Cv, &Cv_sum, &Nv] (std::size_t k) {
+        for (auto k = 0; k < Nk; k++) {
           for (auto v = 0; v < Nv; v++) {
             Cv_sum[k][v] += Cv[k][v];
           }
-        },
-        threads);
-      }
-    }
+        }
+      }// end if
+      
+    } // end if
     
     // if calculating log likelihood, do so 
     if (calc_likelihood && !freeze_topics) {
@@ -585,20 +590,21 @@ Rcpp::List fit_lda_c(
     const double diff(iterations - burnin);
     
     // average over chain after burnin
-    RcppThread::parallelFor(0, Nd, [&Nk, &Cd_mean, &Cd_sum, &diff] (std::size_t d) {
+    for (auto d = 0; d < Nd; d++) {
       for (auto k = 0; k < Nk; k++) {
         Cd_mean[d][k] = static_cast<double>(Cd_sum[d][k]) / diff;
       }
-    }, threads);
+    }
     
     if (! freeze_topics) {
-      RcppThread::parallelFor(0, Nk, [&Nv, &Cv_mean, &Cv_sum, &diff] (std::size_t k) {
+      for (auto k = 0; k < Nk; k++) {
         for (auto v = 0; v < Nv; v++) {
           Cv_mean[k][v] = static_cast<double>(Cv_sum[k][v]) / diff;
         }
-      }, threads);
+      }
     }
-  }
+    
+  } // end if
   
   // Return the final list ***
   return Rcpp::List::create(

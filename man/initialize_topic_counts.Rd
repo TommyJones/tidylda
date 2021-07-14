@@ -39,7 +39,7 @@ topics in documents. Must be specified for updates as called by
 \item{freeze_topics}{if \code{TRUE} does not update counts of tokens in topics.
 This is \code{TRUE} for predictions.}
 
-\item{threads}{number of parallel threads; defaults to 1}
+\item{threads}{number of parallel threads, currently unused}
 
 \item{...}{Additional arguments, currently unused}
 }

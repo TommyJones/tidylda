@@ -52,7 +52,8 @@ iteration?}
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 
-\item{threads}{unsigned integer, how many parallel threads?}
+\item{threads}{unsigned integer, how many parallel threads?
+For now, nothing is actually parallel}
 
 \item{verbose}{bool do you want to print out a progress bar?}
 }

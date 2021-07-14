@@ -25,7 +25,7 @@
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
 #' @param return_data Logical. Do you want \code{data} returned as part of the model object?
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
-#'        Defaults to \code{FALSE}.
+#'        Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class \code{tidylda}.
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
@@ -107,7 +107,7 @@ tidylda <- function(
   calc_r2 = FALSE, 
   threads = 1,
   return_data = FALSE,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 ) {
 

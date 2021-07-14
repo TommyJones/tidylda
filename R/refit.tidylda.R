@@ -19,7 +19,7 @@
 #' @param return_data Logical. Do you want \code{new_data} returned as part of the model object?
 #' @param threads Number of parallel threads, defaults to 1.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
-#'        Defaults to \code{FALSE}.
+#'        Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
@@ -125,7 +125,7 @@ refit.tidylda <- function(
   calc_r2 = FALSE, 
   return_data = FALSE,
   threads = 1,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 ) {
   

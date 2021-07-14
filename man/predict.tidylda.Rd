@@ -12,7 +12,7 @@
   burnin = -1,
   no_common_tokens = c("default", "zero", "uniform"),
   threads = 1,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 )
 }
@@ -39,7 +39,7 @@ or "\code{uniform}". See 'details', below for explanation of behavior.}
 \item{threads}{Number of parallel threads, defaults to 1.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
-Only active if \code{method = "gibbs"}. Defaults to \code{FALSE}.}
+Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.}
 
 \item{...}{Additional arguments, currently unused}
 }

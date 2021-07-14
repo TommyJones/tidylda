@@ -19,7 +19,8 @@ lda <- tidylda(
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
-  return_data = FALSE
+  return_data = FALSE,
+  verbose = FALSE
 )
 
 
@@ -38,7 +39,13 @@ test_that("print.tidylda behaves as expected", {
   expect_named(m, names(lda))
   
   # can modify digits
-  m2 <- tidylda(data = d1, k = 5, iterations = 20, calc_r2 = TRUE)
+  m2 <- tidylda(
+    data = d1, 
+    k = 5, 
+    iterations = 20, 
+    calc_r2 = TRUE, 
+    verbose = FALSE
+  )
   
   capture.output(print(m2, digits = 2))
 })

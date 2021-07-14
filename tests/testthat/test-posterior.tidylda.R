@@ -15,7 +15,8 @@ lda <- tidylda(
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
-  return_data = FALSE
+  return_data = FALSE,
+  verbose = FALSE
 )
 
 

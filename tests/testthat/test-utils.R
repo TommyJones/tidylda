@@ -158,7 +158,8 @@ test_that("lambda works as expected",{
   lda <- tidylda(
     data = d1,
     k = 4,
-    iterations = 20
+    iterations = 20,
+    verbose = FALSE
   )
   
   # proper function

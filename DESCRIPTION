@@ -55,6 +55,7 @@ Suggests:
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
+    RcppProgress,
     RcppThread
 VignetteBuilder: 
     knitr

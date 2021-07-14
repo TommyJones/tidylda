@@ -50,7 +50,7 @@ create_lexicon <- function(Cd_in, Beta_in, dtm_in, alpha, freeze_topics) {
 #'   the only modification is that they are converted from matrices to nested
 #'   \code{std::vector} for speed, reliability, and thread safety. In the case
 #'   of all others, they may be explicitly modified during training. 
-fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads = 1L, verbose = FALSE) {
+fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads = 1L, verbose = TRUE) {
     .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads, verbose)
 }
 

@@ -19,7 +19,7 @@ fit_lda_c(
   Beta_in,
   freeze_topics,
   threads = 1L,
-  verbose = FALSE
+  verbose = TRUE
 )
 }
 \arguments{

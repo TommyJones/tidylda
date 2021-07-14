@@ -19,7 +19,8 @@ lda <- tidylda(
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
-  return_data = FALSE
+  return_data = FALSE,
+  verbose = FALSE
 )
 
 
@@ -39,7 +40,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -64,7 +66,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -86,7 +89,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -108,7 +112,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -130,7 +135,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -153,7 +159,8 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_named(lda2, names(lda))
@@ -176,10 +183,11 @@ test_that("can update models", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
-  l2 <- refit(l1, d2, iterations = 20)
+  l2 <- refit(l1, d2, iterations = 20, verbose = FALSE)
   
   expect_equal(ncol(l2$eta), length(union(colnames(d1), colnames(d2))))
 })
@@ -194,7 +202,8 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
   lda2 <- refit(
     object = lda, 
     new_data = nd,
-    iterations = 10
+    iterations = 10,
+    verbose = FALSE
   )
   
   expect_s3_class(lda2, "tidylda")
@@ -206,7 +215,8 @@ test_that("errors are thrown for malformed inputs to refit.tidylda", {
     refit(
       object = lda,
       new_data = d3,
-      iterations = 20
+      iterations = 20,
+      verbose = FALSE
     )
   )
   

@@ -16,7 +16,7 @@ tidylda(
   calc_r2 = FALSE,
   threads = 1,
   return_data = FALSE,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 )
 }
@@ -57,7 +57,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 \item{return_data}{Logical. Do you want \code{data} returned as part of the model object?}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
-Defaults to \code{FALSE}.}
+Defaults to \code{TRUE}.}
 
 \item{...}{Additional arguments, currently unused}
 }

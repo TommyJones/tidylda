@@ -16,7 +16,7 @@
   calc_r2 = FALSE,
   return_data = FALSE,
   threads = 1,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 )
 }
@@ -51,7 +51,7 @@ Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
 \item{threads}{Number of parallel threads, defaults to 1.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
-Defaults to \code{FALSE}.}
+Defaults to \code{TRUE}.}
 
 \item{...}{Additional arguments, currently unused}
 }

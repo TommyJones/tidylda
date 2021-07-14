@@ -23,7 +23,8 @@ test_that("can fit lda models without error", {
     optimize_alpha = FALSE,
     calc_likelihood = TRUE,
     calc_r2 = TRUE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   # make sure r2 is numeric since calc_r2 = TRUE
@@ -69,7 +70,8 @@ test_that("can fit lda models without error", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
 
   expect_length(lda$alpha, 4)
@@ -85,7 +87,8 @@ test_that("can fit lda models without error", {
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
 
   expect_length(lda$alpha, 4)
@@ -103,7 +106,8 @@ test_that("can fit lda models without error", {
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
 
   expect_true(inherits(lda$eta, "matrix"))
@@ -120,7 +124,8 @@ test_that("sparse priors for eta don't cause underflow failures", {
     optimize_alpha = FALSE,
     calc_likelihood = TRUE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   )
   
   expect_s3_class(m, "tidylda")
@@ -138,7 +143,8 @@ test_that("errors hit for malformed parameters", {
       optimize_alpha = TRUE,
       calc_likelihood = FALSE,
       calc_r2 = FALSE,
-      return_data = FALSE
+      return_data = FALSE,
+      verbose = FALSE
     ),
     regexp = "k must be 2 or greater"
   )
@@ -152,7 +158,8 @@ test_that("errors hit for malformed parameters", {
       optimize_alpha = TRUE,
       calc_likelihood = FALSE,
       calc_r2 = FALSE,
-      return_data = FALSE
+      return_data = FALSE,
+      verbose = FALSE
     ),
     label = "iterations not specified"
   )
@@ -167,7 +174,8 @@ test_that("errors hit for malformed parameters", {
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   ))
 
   # non-numeric k
@@ -179,7 +187,8 @@ test_that("errors hit for malformed parameters", {
     optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   ))
 
   # iterations not specified
@@ -197,7 +206,8 @@ test_that("errors hit for malformed parameters", {
     optimize_alpha = "FALSE",
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   ))
 
   expect_error(tidylda(
@@ -208,7 +218,8 @@ test_that("errors hit for malformed parameters", {
     optimize_alpha = FALSE,
     calc_likelihood = "FALSE",
     calc_r2 = FALSE,
-    return_data = FALSE
+    return_data = FALSE,
+    verbose = FALSE
   ))
 
   expect_error(tidylda(
@@ -254,7 +265,8 @@ test_that("errors hit for malformed parameters", {
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE,
-    threads = 2
+    threads = 2,
+    verbose = FALSE
   ), label = "nrow(dtm) / threads < 100")
   
   # data doesn't have column names
@@ -270,6 +282,8 @@ test_that("errors hit for malformed parameters", {
   
 })
 
+# note as of this writing, not parallel, 
+# but use of threads argument should not throw errors
 test_that("parallelism works as expected", {
   suppressWarnings(
     lda <- tidylda(
@@ -281,7 +295,8 @@ test_that("parallelism works as expected", {
       calc_likelihood = TRUE,
       calc_r2 = TRUE,
       return_data = FALSE,
-      threads = 2
+      threads = 2,
+      verbose = FALSE
     )
   )
 

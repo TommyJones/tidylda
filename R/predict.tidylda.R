@@ -16,7 +16,7 @@
 #'        or "\code{uniform}". See 'details', below for explanation of behavior. 
 #' @param threads Number of parallel threads, defaults to 1.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
-#'        Only active if \code{method = "gibbs"}. Defaults to \code{FALSE}.
+#'        Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
 #' @return a "theta" matrix with one row per document and one column per topic
 #' @details 
@@ -70,7 +70,7 @@ predict.tidylda <- function(
   burnin = -1, 
   no_common_tokens = c("default", "zero", "uniform"),
   threads = 1,
-  verbose = FALSE,
+  verbose = TRUE,
   ...
 ){
   

@@ -46,7 +46,7 @@ namespace tidylda {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& eta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Beta_in, const bool& freeze_topics, const std::size_t& threads = 1, const bool& verbose = false) {
+    inline Rcpp::List fit_lda_c(const std::vector<std::vector<std::size_t>>& Docs, const std::vector<std::vector<std::size_t>>& Zd_in, const IntegerMatrix& Cd_in, const IntegerMatrix& Cv_in, const std::vector<long>& Ck_in, const std::vector<double> alpha_in, const NumericMatrix& eta_in, const std::size_t& iterations, const int& burnin, const bool& optimize_alpha, const bool& calc_likelihood, const NumericMatrix& Beta_in, const bool& freeze_topics, const std::size_t& threads = 1, const bool& verbose = true) {
         typedef SEXP(*Ptr_fit_lda_c)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_fit_lda_c p_fit_lda_c = NULL;
         if (p_fit_lda_c == NULL) {

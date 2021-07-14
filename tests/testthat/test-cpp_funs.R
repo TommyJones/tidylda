@@ -31,7 +31,8 @@ m <- fit_lda_c(
   burnin = 10,
   freeze_topics = FALSE,
   calc_likelihood = TRUE,
-  optimize_alpha = TRUE
+  optimize_alpha = TRUE,
+  verbose = FALSE
 )
 
 

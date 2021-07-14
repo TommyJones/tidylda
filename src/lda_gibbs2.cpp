@@ -19,6 +19,9 @@
 
 #include <RcppThread.h>
 
+#include <progress.hpp>
+#include <progress_bar.hpp>
+
 //' Make a lexicon for looping over in the gibbs sampler
 //' @keywords internal
 //' @description
@@ -238,8 +241,13 @@ Rcpp::List fit_lda_c(
     const NumericMatrix&                          Beta_in,
     const bool&                                   freeze_topics,
     const std::size_t&                            threads = 1,
-    const bool&                                   verbose = false
+    const bool&                                   verbose = true
 ) {
+  
+  // ***********************************************************************
+  // Set up progress bar
+  // ***********************************************************************
+  Progress p(iterations, verbose);
   
   // ***********************************************************************
   // Convert input matrices to 2-dimensional std::vector for speed
@@ -570,11 +578,7 @@ Rcpp::List fit_lda_c(
     
     // progress bar
     if (verbose) {
-      Rcout << "=";
-      // every 100th iteration, add a new line
-      if ((t + 1) % 100 == 0) {
-        Rcout << std::endl;
-      }
+      p.increment(); // update progress
     }
     
   } // end iterations

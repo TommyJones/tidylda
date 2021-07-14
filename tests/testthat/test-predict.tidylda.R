@@ -19,7 +19,8 @@ lda <- tidylda(
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
-  return_data = FALSE
+  return_data = FALSE,
+  verbose = FALSE
 )
 
 ### Tests for predictions ----
@@ -31,7 +32,8 @@ test_that("can make predictions without error", {
     new_data = d2[1, ], 
     method = "gibbs", 
     iterations = 20, 
-    burnin = 10
+    burnin = 10,
+    verbose = FALSE
   )
   
   expect_equal(nrow(p), 1)
@@ -46,7 +48,8 @@ test_that("can make predictions without error", {
     new_data = d2, 
     method = "gibbs", 
     iterations = 20, 
-    burnin = 10
+    burnin = 10,
+    verbose = FALSE
   )
   
   expect_equal(nrow(p), nrow(d2))
@@ -73,14 +76,16 @@ test_that("can make predictions without error", {
   
   expect_setequal(colnames(p), colnames(lda$theta))
   
-  # multi row parallel
+  # multi row parallel 
+  # (no longer parallel, but checks that threads arg doesn't cause an error)
   p <- predict(
     object = lda, 
     new_data = d2, 
     method = "gibbs", 
     iterations = 20, 
     burnin = 10,
-    threads = 2
+    threads = 2,
+    verbose = FALSE
   )  
   
   expect_true(inherits(p, "matrix"))
@@ -96,7 +101,8 @@ test_that("malformed args in predict throw errors", {
       method = "gibbs", 
       iterations = 20, 
       burnin = 10,
-      threads = nrow(d2) + 2
+      threads = nrow(d2) + 2,
+      verbose = FALSE
     ), label = "threads > nrow(dtm)"
   )
   # no iterations specified

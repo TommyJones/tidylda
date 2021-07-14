@@ -19,7 +19,8 @@ lda <- tidylda(
   optimize_alpha = TRUE,
   calc_likelihood = TRUE,
   calc_r2 = TRUE,
-  return_data = FALSE
+  return_data = FALSE,
+  verbose = FALSE
 )
 
 ### test tidy methods ----
@@ -157,7 +158,7 @@ test_that("glance.tidylda behaves nicely", {
 })
 
 test_that("glance works with updated models", {
-  l2 <- refit(lda, d2, iterations = 20)
+  l2 <- refit(lda, d2, iterations = 20, verbose = FALSE)
   
   g <- glance(l2)
   

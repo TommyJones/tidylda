@@ -882,10 +882,16 @@ calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
 #'   All 6 differences are averaged together.
 #' @examples
 #' # Load a pre-formatted dtm and topic model
-#' data(nih_sample_topic_model)
-#' data(nih_sample_dtm) 
+#' data(nih_sample_dtm, package = "textmineR")
 #' 
-#' calc_prob_coherence(beta = nih_sample_topic_model$phi, data = nih_sample_dtm, m = 5)
+#' # fit a model
+#' set.seed(12345)
+#' model <- tidylda(
+#'   data = nih_sample_dtm[1:20, ], k = 5,
+#'   iterations = 100, burnin = 50
+#' )
+#' 
+#' calc_prob_coherence(beta = model$beta, data = nih_sample_dtm, m = 5)
 #' @export 
 calc_prob_coherence <- function(beta, data, m = 5){
   # code below is ported almost verbatim from textmineR. Copied here to reduce

@@ -40,8 +40,14 @@ For each pair of words {a, b} in the top M words in a topic, probabilistic
 }
 \examples{
 # Load a pre-formatted dtm and topic model
-data(nih_sample_topic_model)
-data(nih_sample_dtm) 
+data(nih_sample_dtm, package = "textmineR")
 
-calc_prob_coherence(beta = nih_sample_topic_model$phi, data = nih_sample_dtm, m = 5)
+# fit a model
+set.seed(12345)
+model <- tidylda(
+  data = nih_sample_dtm[1:20, ], k = 5,
+  iterations = 100, burnin = 50
+)
+
+calc_prob_coherence(beta = model$beta, data = nih_sample_dtm, m = 5)
 }

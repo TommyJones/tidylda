@@ -105,10 +105,8 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   numbers, rather than the expected negative numbers. Looking into that, but
   in the meantime caveat emptor once again.
   
-  Parallelism, is executed using threading at the C++ level using the
-  \code{\link[RcppThread]{RcppThread}} package. For Gibbs sampling, parallelism
-  is implemented according to
-  \url{http://www.jmlr.org/papers/volume10/newman09a/newman09a.pdf?wptouch_preview_theme=enabled}
+  Parallelism, is not currently implemented. The \code{threads} argument is a
+  placeholder for planned enhancements.
 }
 \examples{
 # load some data

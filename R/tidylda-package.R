@@ -9,6 +9,9 @@
 #' @keywords internal
 NULL
 
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage("tidylda is under active development. The API and behavior may change.")
+}
 
 #' @import Rcpp
 #' @importFrom gtools rdirichlet

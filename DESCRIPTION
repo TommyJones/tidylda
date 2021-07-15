@@ -57,10 +57,7 @@ LinkingTo:
     RcppArmadillo,
     RcppProgress,
     RcppThread
-VignetteBuilder: 
-    knitr
 Encoding: UTF-8
-LazyData: true
 RoxygenNote: 7.1.1
 Language: en-US
 SystemRequirements: C++11

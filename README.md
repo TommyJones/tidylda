@@ -77,6 +77,7 @@ library(tidyverse)
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
 library(tidylda)
+#> tidylda is under active development. The API and behavior may change.
 library(Matrix)
 #> 
 #> Attaching package: 'Matrix'

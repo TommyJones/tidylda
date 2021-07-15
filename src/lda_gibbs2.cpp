@@ -274,8 +274,13 @@ Rcpp::List fit_lda_c(
   
   auto sum_tokens = std::accumulate(Ck.begin(), Ck.end(), 0);
   auto sum_alpha = std::accumulate(alpha.begin(), alpha.end(), 0.0); 
-  auto sum_eta = std::accumulate(eta[0].begin(), eta[0].end(), 0.0);
   
+  std::vector<double> sum_eta(eta.size());
+  
+  for (auto k = 0; k < Nk; k++) {
+    sum_eta[k] = std::accumulate(eta[k].begin(), eta[k].end(), 0.0);
+  }
+
   // For aggregating samples post burn in
   std::vector<std::vector<long>> Cd_sum(Nd);
   std::vector<std::vector<double>> Cd_mean(Nd);
@@ -336,7 +341,7 @@ Rcpp::List fit_lda_c(
       lgeta += lgamma(eta[0][v]);
     }
     
-    lgeta = (lgeta - lgamma(sum_eta)) * Nk; 
+    lgeta = (lgeta - lgamma(sum_eta[0])) * Nk; 
     
     for (auto k = 0; k < Nk; k++) {
       lgalpha += lgamma(alpha[k]);
@@ -389,7 +394,7 @@ Rcpp::List fit_lda_c(
             // calculate probability vector
             for (auto k = 0; k < Nk; k++) {
               qz[k] = (Cv_batch[j][k][doc[n]] + eta[k][doc[n]]) / 
-                (Ck_batch[j][k] + sum_eta) *
+                (Ck_batch[j][k] + sum_eta[k]) *
                 (Cd[d][k] + alpha[k]) / 
                 (doc.size() + sum_alpha);
             }

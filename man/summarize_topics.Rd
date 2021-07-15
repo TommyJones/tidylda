@@ -18,7 +18,7 @@ Returns a \code{\link[tibble]{tibble}} with the following columns:
   \code{topic} is the integer row number of \code{beta}.
   \code{prevalence} is the frequency of each topic throughout the corpus it
     was trained on normalized so that it sums to 100.
-  \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
+  \code{coherence} makes a call to \code{\link[tidylda]{calc_prob_coherence}}
     using the default 5 most-probable terms in each topic.
   \code{top_terms} displays the top 3 most-probable terms in each topic.
 }

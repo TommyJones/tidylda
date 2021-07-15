@@ -442,7 +442,7 @@ initialize_topic_counts <- function(
 #'   \code{topic} is the integer row number of \code{beta}.
 #'   \code{prevalence} is the frequency of each topic throughout the corpus it
 #'     was trained on normalized so that it sums to 100.
-#'   \code{coherence} makes a call to \code{\link[textmineR]{CalcProbCoherence}}
+#'   \code{coherence} makes a call to \code{\link[tidylda]{calc_prob_coherence}}
 #'     using the default 5 most-probable terms in each topic.
 #'   \code{top_terms} displays the top 3 most-probable terms in each topic.
 #' @note
@@ -462,8 +462,8 @@ initialize_topic_counts <- function(
 #'   \code{prevalence <- (prevalence * 100) \%>\% round(3)}
 summarize_topics <- function(theta, beta, dtm) {
   
-  # probabilistic coherence with default M = 5
-  coherence <- textmineR::CalcProbCoherence(phi = beta, dtm = dtm)
+  # probabilistic coherence with default value for m
+  coherence <- calc_prob_coherence(beta = beta, data = dtm)
   
   # prevalence of each topic, weighted by terms
   prevalence <- Matrix::rowSums(dtm) * theta
@@ -473,9 +473,11 @@ summarize_topics <- function(theta, beta, dtm) {
   prevalence <- round(prevalence * 100, 2)
   
   # top 3 terms
-  top_terms <- t(textmineR::GetTopTerms(beta, 3))
+  top_terms <- apply(beta, 1, function(x) {
+    names(x)[order(x, decreasing = TRUE)][1:3]
+  })
   
-  top_terms <- apply(top_terms, 1, function(x) {
+  top_terms <- apply(top_terms, 2, function(x) {
     paste(c(x, "..."), collapse = ", ")
   })
   
@@ -854,4 +856,106 @@ calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
   return(lambda)
 }
 
+#' Probabilistic coherence of topics
+#' @description Calculates the probabilistic coherence of a topic or topics. 
+#' This approximates semantic coherence or human understandability of a topic.
+#' @param beta A numeric matrix or a numeric vector. The vector, or rows of the 
+#' matrix represent the numeric relationship between topic(s) and terms. For
+#' example, this relationship may be p(word|topic) or p(topic|word).
+#' @param data A document term matrix or term co-occurrence matrix. The preferred
+#'   class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support
+#'   for any \code{\link[Matrix]{Matrix-class}} object as well as several other
+#'   commonly-used classes such as \code{\link[base]{matrix}},
+#'   \code{\link[quanteda]{dfm}}, \code{\link[tm]{DocumentTermMatrix}}, and
+#'   \code{\link[slam]{simple_triplet_matrix}}
+#' @param m An integer for the number of words to be used in the calculation. 
+#' Defaults to 5
+#' @return Returns an object of class \code{numeric} corresponding to the 
+#' probabilistic coherence of the input topic(s).
+#' @details 
+#'   For each pair of words {a, b} in the top M words in a topic, probabilistic
+#'   coherence calculates P(b|a) - P(b), where {a} is more probable than {b} in
+#'   the topic. For example, suppose the top 4 words in a topic are {a, b, c, d}.
+#'   Then, we calculate 1. P(a|b) - P(b), P(a|c) - P(c), P(a|d) - P(d)
+#'   2. P(b|c) - P(c), P(b|d) - P(d)
+#'   3. P(c|d) - P(d)
+#'   All 6 differences are averaged together.
+#' @examples
+#' # Load a pre-formatted dtm and topic model
+#' data(nih_sample_topic_model)
+#' data(nih_sample_dtm) 
+#' 
+#' calc_prob_coherence(beta = nih_sample_topic_model$phi, data = nih_sample_dtm, m = 5)
+#' @export 
+calc_prob_coherence <- function(beta, data, m = 5){
+  # code below is ported almost verbatim from textmineR. Copied here to reduce
+  # cross dependencies between textmineR and tidylda
+  
+  # beta is a numeric matrix or numeric vector?
+  if( ! is.numeric(beta) ){
+    stop("beta must be a numeric matrix whose rows index topics and columns\n",
+         " index terms or beta must be a numeric vector whose entries index terms.")
+  }
+  # Ensure dtm is of class dgCMatrix
+  dtm <- convert_dtm(dtm = data)
+  
+  # is m numeric? If it is not an integer, give a warning.
+  if( ! is.numeric(m) | m < 1){
+    stop("M must be an integer in 1:ncol(beta) or 1:length(beta)")
+  }
+  
+  if(length(m) != 1){
+    warning("m is a vector when scalar is expected. Taking only the first value")
+    m <- m[ 1 ]
+  }
+  
+  if(floor(m) != m){
+    warning("m is expected to be an integer. floor(m) is being used.")
+    m <- floor(m)
+  }
+  
+  # # dtm has colnames?
+  # if( is.null(colnames(dtm))){
+  #   stop("dtm must have colnames")
+  # }
+  
+  # Names of beta in colnames(dtm)
+  if( ! is.matrix(beta) ){
+    if(sum(names(beta)[ 1:m ] %in% colnames(dtm)) != length(1:m)){
+      stop("vocabulary of beta (i.e., colnames(beta)) does not match vocabulary of data")
+    }
+  }else if(sum(colnames(beta)[ 1:m ] %in% colnames(dtm)) != length(1:m)){
+    stop("vocabulary of beta (i.e., colnames(beta)) does not match vocabulary of data")
+  }
+  
+  # Declare a function to get probabilistic coherence on one topic
+  pcoh <- function(topic, dtm, m){
+    terms <- names(topic)[order(topic, decreasing = TRUE)][1:m]
+    dtm.t <- dtm[, terms]
+    dtm.t[dtm.t > 0] <- 1
+    count.mat <- Matrix::t(dtm.t) %*% dtm.t
+    num.docs <- nrow(dtm)
+    p.mat <- count.mat/num.docs
+    # result <- sapply(1:(ncol(count.mat) - 1), function(x) {
+    #   mean(p.mat[x, (x + 1):ncol(p.mat)]/p.mat[x, x] - Matrix::diag(p.mat)[(x + 
+    #                                                                           1):ncol(p.mat)], na.rm = TRUE)
+    # })
+    # mean(result, na.rm = TRUE)
+    result <- sapply(1:(ncol(count.mat) - 1), function(x) {
+      p.mat[x, (x + 1):ncol(p.mat)]/p.mat[x, x] - 
+        Matrix::diag(p.mat)[(x + 1):ncol(p.mat)]
+    })
+    mean(unlist(result), na.rm = TRUE) 
+  }
+  
+  # if beta is a single topic vector get that one coherence
+  if( ! is.matrix(beta) ){
+    return(pcoh(topic = beta, dtm = dtm, m = m))
+  }
+  
+  # Otherwise, do it for all the topics
+  apply(beta, 1, function(x){
+    pcoh(topic = x, dtm = dtm, m = m)
+  })
+}
 

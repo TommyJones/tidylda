@@ -1,5 +1,6 @@
 ## Initial version of tidylda
-This is the first version of tidylda submitted to CRAN. 
+This is the first version of tidylda submitted to CRAN.
+FWIW, I have two other packages on CRAN, textmineR and mvrsquared.
 I know that this results in a manual check.
 I will respond with any fixes or changes you deem necessary.
 Thank you for taking the time and effort.

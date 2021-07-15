@@ -12,16 +12,13 @@ Rcpp
 Silge
 TCM
 Zd
-al
 arbylon
 arma
 bool
 burnin
 calc
 dgCMatrix
-doi
 emptor
-et
 gibbs
 gmail
 http
@@ -37,4 +34,5 @@ tidymodels
 tidytext
 tidyverse
 tidyverse’
+understandability
 www

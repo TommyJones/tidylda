@@ -28,9 +28,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 Latent Dirichlet Allocation Using 'tidyverse' Conventions
 
-Copyright 2020 by Thomas W. Jones
-
-Implements an algorithm for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). 
+`tidylda` implements an algorithm for Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). 
     
 In addition this implementation of LDA allows you to:
 

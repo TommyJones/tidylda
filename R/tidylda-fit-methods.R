@@ -142,7 +142,6 @@ tidylda <- function(
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
 #' @return Returns a \code{tidylda} S3 object as documented in \code{\link[tidylda]{new_tidylda}}.
-#'   \code{\link[tidylda]{}}
 tidylda_bridge <- function(
   data, 
   k, 

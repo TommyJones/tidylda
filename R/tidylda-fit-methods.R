@@ -27,7 +27,7 @@
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
-#' @return Returns an S3 object of class \code{tidylda}.
+#' @return Returns an S3 object of class \code{tidylda}. See \code{\link[tidylda]{new_tidylda}}.
 #' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
 #'   written using the excellent Rcpp package. Some implementation notes follow:
 #'
@@ -141,6 +141,8 @@ tidylda <- function(
 #'   Takes in arguments from various \code{tidylda} S3 methods and fits the
 #'   resulting topic model. The arguments to this function are documented in
 #'   \code{\link[tidylda]{tidylda}}.
+#' @return Returns a \code{tidylda} S3 object as documented in \code{\link[tidylda]{new_tidylda}}.
+#'   \code{\link[tidylda]{}}
 tidylda_bridge <- function(
   data, 
   k, 

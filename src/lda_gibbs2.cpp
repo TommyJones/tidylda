@@ -32,6 +32,23 @@
 //' @param dtm_in arma::sp_mat document term matrix
 //' @param alpha NumericVector prior for topics over documents
 //' @param freeze_topics bool if making predictions, set to \code{TRUE}
+//' @return Returns a list with five entries.
+//' 
+//'   \code{Docs} is a list of vectors. Each element is a document, and the contents
+//'   are indices for tokens. Used as an iterator for the Gibbs sampler.
+//'   
+//'   \code{Zd} is a list of vectors, similar to Docs. However, its contents are topic
+//'   assignments of each document/token pair. Used as an iterator for Gibbs
+//'   sampling.
+//'   
+//'   \code{Cd} is a matrix counting the number of times each topic is sampled per
+//'   document.
+//'   
+//'   \code{Cv} is a matrix counting the number of times each topic is sampled per token.
+//'   
+//'   \code{Ck} is a vector counting the total number of times each topic is sampled overall.
+//'   
+//'   \code{Cd}, \code{Cv}, and \code{Ck} are derivatives of \code{Zd}.
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
 //'   some way by this function. In the case of \code{Cd_in} and \code{Beta_in},
@@ -219,6 +236,31 @@ Rcpp::List create_lexicon(
 //' @param threads unsigned integer, how many parallel threads?
 //'        For now, nothing is actually parallel
 //' @param verbose bool do you want to print out a progress bar?
+//' @return Returns a list with the following entries.
+//' 
+//'   \code{Cd} is a matrix counting the number of times each topic is sampled per
+//'   document.
+//'   
+//'   \code{Cv} is a matrix counting the number of times each topic is sampled per token.
+//'   
+//'   \code{Cd_mean} the same as \code{Cd} but values averaged across iterations
+//'   greater than \code{burnin} iterations.
+//'   
+//'   \code{Cv_mean} the same as \code{Cv} but values averaged across iterations
+//'   greater than \code{burnin} iterations.
+//'   
+//'   \code{Cd_sum} the same as \code{Cd} but values summed across iterations
+//'   greater than \code{burnin} iterations.
+//'   
+//'   \code{Cv_sum} the same as \code{Cv} but values summed across iterations
+//'   greater than \code{burnin} iterations.
+//'   
+//'   \code{log_likelihood} a matrix with one row indexing iterations and one
+//'   row of the log likelihood for each iteration.
+//'   
+//'   \code{alpha} a vector of the document-topic prior
+//'   
+//'   \code{_eta} a matrix of the topic-token prior
 //' @details
 //'   Arguments ending in \code{_in} are copied and their copies modified in
 //'   some way by this function. In the case of \code{eta_in} and \code{Beta_in},

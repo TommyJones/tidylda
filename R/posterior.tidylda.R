@@ -36,8 +36,17 @@
 #' is a facet for subsetting by document (for theta) or topic (for beta).
 #' @export
 #' @examples
-#' \dontrun{
-#' # for some tidylda topic model, 'm'...
+#' \donttest{
+#' # load some data
+#' data(nih_sample_dtm, package = "textmineR")
+#'
+#' # fit a model
+#' set.seed(12345)
+#'
+#' m <- tidylda(
+#'   data = nih_sample_dtm[1:20, ], k = 5,
+#'   iterations = 200, burnin = 175
+#' )
 #' 
 #' # construct a posterior object
 #' p <- posterior(m)

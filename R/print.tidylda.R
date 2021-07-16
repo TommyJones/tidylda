@@ -4,6 +4,7 @@
 #' @param digits minimal number of significant digits
 #' @param n Number of rows to show in each displayed \code{\link[tibble]{tibble}}.
 #' @param ... further arguments passed to or from other methods
+#' @return Silently returns \code{x}
 #' @examples
 #' \donttest{
 #' dtm <- textmineR::nih_sample_dtm

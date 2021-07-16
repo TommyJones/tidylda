@@ -165,6 +165,10 @@ format_alpha <- function(alpha, k) {
 #' @param prior_matrix a matrix of same dimension as \code{prob_matrix} whose 
 #'   entries represent the relevant prior (\code{alpha} or \code{eta})
 #' @param total_vector a vector of token counts of length \code{ncol(prob_matrix)}
+#' @return Returns a matrix corresponding to the number of times each topic sampled
+#'   for each document (\code{Cd}) or for each token (\code{Cv}) depending on
+#'   whether or not \code{prob_matrix}/\code{prior_matrix} corresponds to
+#'   \code{theta}/\code{alpha} or \code{beta}/\code{eta} respectively.
 #' @details 
 #'   This function uses a probability matrix (theta or beta), its prior (alpha or
 #'   eta, respectively), and a vector of counts to simulate what the the Cd or
@@ -729,17 +733,18 @@ new_tidylda <- function(
 
 #' Calculate R-squared for a tidylda Model
 #' @keywords internal
-#' @description Formats inputs and hands off to mvrsquared::calc_rsquared
+#' @description Formats inputs and hands off to \link[mvrsquared]{calc_rsquared}
 #' @param dtm must be of class dgCMatrix
 #' @param theta a theta matrix
 #' @param beta a beta matrix
 #' @param threads number of parallel threads
+#' @value Numeric scalar between negative infinity and 1
 calc_lda_r2 <- function(dtm, theta, beta, threads) {
   
   # weight rows of theta by document length
   x <- Matrix::rowSums(dtm) * theta
   
-  # claculate r-squared
+  # calculate r-squared
   r2 <- mvrsquared::calc_rsquared(
     y = dtm,
     yhat = list(x = x, w = beta),
@@ -759,6 +764,9 @@ calc_lda_r2 <- function(dtm, theta, beta, threads) {
 #' @param triplets A data frame or list of i, j, x
 #' @param row_names rownames, if not gotten from rownames(x)
 #' @param col_names colnames, if not gotten from colnames(x)
+#' @return returns a triplet matrix in the form of a data frame. The first
+#'   column indexes rows. The second column indexes columns. The third column
+#'   contains the i,j values.
 #' @note This function ported from \code{\link[tidytext]{tidytext}}, copyright
 #'   2017 David Robinson and Julia Silge. Moved the function here for stability
 #'   reasons, as it is internal to tidytext

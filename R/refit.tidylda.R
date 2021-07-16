@@ -207,7 +207,7 @@ refit.tidylda <- function(
   
   ### Pull out objects used for update ----
   
-  # get base model ieta into a matrix for downstream formatting
+  # get base model eta into a matrix for downstream formatting
   eta <- format_eta(
     eta = object$eta, 
     k = nrow(object$beta), 
@@ -216,7 +216,7 @@ refit.tidylda <- function(
   
   # if necessary, re-scale so that new eta has the weight prescribed by prior-weight
   if (! is.na(prior_weight)) {
-    w_star <- rowSums(object$counts$Cv) + object$eta
+    w_star <- rowSums(object$counts$Cv) + rowSums(eta$eta)
     
     eta$eta <- prior_weight * w_star * object$beta
   }

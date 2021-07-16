@@ -738,7 +738,7 @@ new_tidylda <- function(
 #' @param theta a theta matrix
 #' @param beta a beta matrix
 #' @param threads number of parallel threads
-#' @value Numeric scalar between negative infinity and 1
+#' @return Numeric scalar between negative infinity and 1
 calc_lda_r2 <- function(dtm, theta, beta, threads) {
   
   # weight rows of theta by document length

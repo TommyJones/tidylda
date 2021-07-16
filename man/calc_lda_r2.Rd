@@ -15,6 +15,9 @@ calc_lda_r2(dtm, theta, beta, threads)
 
 \item{threads}{number of parallel threads}
 }
+\value{
+Numeric scalar between negative infinity and 1
+}
 \description{
 Formats inputs and hands off to \link[mvrsquared]{calc_rsquared}
 }

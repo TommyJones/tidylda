@@ -1,5 +1,5 @@
 ## Resubmission
-Thank you to Gregor Seyer for a quick review. I've included exerpts of his
+Thank you to Gregor Seyer for a quick review. I've included excerpts of his
 comments and how I have addressed them below.
 
 CRAN wrote: "If there are references describing the methods in your package, please

@@ -62,7 +62,7 @@ Defaults to \code{TRUE}.}
 \item{...}{Additional arguments, currently unused}
 }
 \value{
-Returns an S3 object of class \code{tidylda}.
+Returns an S3 object of class \code{tidylda}. See \code{\link[tidylda]{new_tidylda}}.
 }
 \description{
 Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling.

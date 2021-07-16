@@ -16,6 +16,6 @@ calc_lda_r2(dtm, theta, beta, threads)
 \item{threads}{number of parallel threads}
 }
 \description{
-Formats inputs and hands off to mvrsquared::calc_rsquared
+Formats inputs and hands off to \link[mvrsquared]{calc_rsquared}
 }
 \keyword{internal}

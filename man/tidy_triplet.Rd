@@ -15,6 +15,11 @@ tidy_triplet(x, triplets, row_names = NULL, col_names = NULL)
 
 \item{col_names}{colnames, if not gotten from colnames(x)}
 }
+\value{
+returns a triplet matrix in the form of a data frame. The first
+  column indexes rows. The second column indexes columns. The third column
+  contains the i,j values.
+}
 \description{
 Utility function to tidy a simple triplet matrix
 }

@@ -14,6 +14,12 @@ entries represent the relevant prior (\code{alpha} or \code{eta})}
 
 \item{total_vector}{a vector of token counts of length \code{ncol(prob_matrix)}}
 }
+\value{
+Returns a matrix corresponding to the number of times each topic sampled
+  for each document (\code{Cd}) or for each token (\code{Cv}) depending on
+  whether or not \code{prob_matrix}/\code{prior_matrix} corresponds to
+  \code{theta}/\code{alpha} or \code{beta}/\code{eta} respectively.
+}
 \description{
 This function is a core component of \code{\link[tidylda]{initialize_topic_counts}}.
   See details, below.

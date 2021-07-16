@@ -21,6 +21,10 @@ tidylda_bridge(
   ...
 )
 }
+\value{
+Returns a \code{tidylda} S3 object as documented in \code{\link[tidylda]{new_tidylda}}.
+  \code{\link[tidylda]{}}
+}
 \description{
 Takes in arguments from various \code{tidylda} S3 methods and fits the
   resulting topic model. The arguments to this function are documented in

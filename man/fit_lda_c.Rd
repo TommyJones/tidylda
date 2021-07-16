@@ -57,6 +57,33 @@ For now, nothing is actually parallel}
 
 \item{verbose}{bool do you want to print out a progress bar?}
 }
+\value{
+Returns a list with the following entries.
+
+  \code{Cd} is a matrix counting the number of times each topic is sampled per
+  document.
+  
+  \code{Cv} is a matrix counting the number of times each topic is sampled per token.
+  
+  \code{Cd_mean} the same as \code{Cd} but values averaged across iterations
+  greater than \code{burnin} iterations.
+  
+  \code{Cv_mean} the same as \code{Cv} but values averaged across iterations
+  greater than \code{burnin} iterations.
+  
+  \code{Cd_sum} the same as \code{Cd} but values summed across iterations
+  greater than \code{burnin} iterations.
+  
+  \code{Cv_sum} the same as \code{Cv} but values summed across iterations
+  greater than \code{burnin} iterations.
+  
+  \code{log_likelihood} a matrix with one row indexing iterations and one
+  row of the log likelihood for each iteration.
+  
+  \code{alpha} a vector of the document-topic prior
+  
+  \code{_eta} a matrix of the topic-token prior
+}
 \description{
 This is the C++ Gibbs sampler for LDA. "Abandon all hope, ye who enter here."
 }

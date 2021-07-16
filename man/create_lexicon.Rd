@@ -17,6 +17,25 @@ create_lexicon(Cd_in, Beta_in, dtm_in, alpha, freeze_topics)
 
 \item{freeze_topics}{bool if making predictions, set to \code{TRUE}}
 }
+\value{
+Returns a list with five entries.
+
+  \code{Docs} is a list of vectors. Each element is a document, and the contents
+  are indices for tokens. Used as an iterator for the Gibbs sampler.
+  
+  \code{Zd} is a list of vectors, similar to Docs. However, its contents are topic
+  assignments of each document/token pair. Used as an iterator for Gibbs
+  sampling.
+  
+  \code{Cd} is a matrix counting the number of times each topic is sampled per
+  document.
+  
+  \code{Cv} is a matrix counting the number of times each topic is sampled per token.
+  
+  \code{Ck} is a vector counting the total number of times each topic is sampled overall.
+  
+  \code{Cd}, \code{Cv}, and \code{Ck} are derivatives of \code{Zd}.
+}
 \description{
 One run of the Gibbs sampler and other magic to initialize some objects.
   Works in concert with \code{\link[tidylda]{initialize_topic_counts}}.

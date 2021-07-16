@@ -15,6 +15,9 @@
 
 \item{...}{further arguments passed to or from other methods}
 }
+\value{
+Silently returns \code{x}
+}
 \description{
 Print a summary for objects of class \code{tidylda}
 }

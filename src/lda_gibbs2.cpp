@@ -14,8 +14,8 @@
 #include "sample_int.h"
 #include "matrix_conversions.h"
 
+#define ARMA_64BIT_WORD 1
 #include <RcppArmadillo.h>
-#define ARMA_64BIT_WORD
 
 #include <RcppThread.h>
 

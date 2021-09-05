@@ -17,8 +17,6 @@
 #include "sample_int.h"
 #include "matrix_conversions.h"
 
-#include <RcppThread.h>
-
 #include <progress.hpp>
 #include <progress_bar.hpp>
 
@@ -415,7 +413,7 @@ Rcpp::List fit_lda_c(
       // do a loop over all documents in the thread with local Ck and Cv
       for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
         
-        RcppThread::checkUserInterrupt();
+        Rcpp::checkUserInterrupt();    
         
         // R_CheckUserInterrupt();
         

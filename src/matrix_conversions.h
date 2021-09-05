@@ -1,6 +1,7 @@
 // This header converts Rcpp matrices to std::vector<> and back again
 #pragma once
 
+#define ARMA_64BIT_WORD 1
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 

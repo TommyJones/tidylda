@@ -10,12 +10,12 @@
 // Export this as a header for use in other packages
 // [[Rcpp::interfaces(r, cpp)]] 
 
+#include <RcppArmadillo.h>
+#define ARMA_64BIT_WORD 1
+
 #include "parallel_gibbs_utils.h"
 #include "sample_int.h"
 #include "matrix_conversions.h"
-
-#include <RcppArmadillo.h>
-#define ARMA_64BIT_WORD
 
 #include <RcppThread.h>
 

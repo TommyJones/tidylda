@@ -1,12 +1,16 @@
 #define ARMA_64BIT_WORD 1
 #include <RcppArmadillo.h>
 
+#include "../src/parallel_gibbs_utils.h"
+#include "../src/sample_int.h"
+#include "../src/matrix_conversions.h"
+
+#include <progress.hpp>
+#include <progress_bar.hpp>
 
 // [[Rcpp::export]]
 arma::sp_mat transpose(arma::sp_mat x) {
-  arma::sp_mat dtm = x.t(); 
-  
-  return dtm;
+  return x.t();
 }
 
 
@@ -16,9 +20,9 @@ arma::sp_mat transpose(arma::sp_mat x) {
 //
 
 /*** R
+library(Matrix)
 
-# note: requires you to manually load ignore.large-sparse-mat.RData
+load("../ignore/large-sparse-mat.RData")
 
-my_transpose <- transpose(sbir_tcm)
-
+x <- transpose(sbir_tcm)
 */

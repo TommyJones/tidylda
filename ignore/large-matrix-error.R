@@ -59,3 +59,4 @@ sbir_embedding <- tidylda(
   calc_r2 = TRUE,
   verbose = TRUE
 )
+

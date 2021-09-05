@@ -7,6 +7,8 @@
 // sampling (dividing data into batches, for example). That comes with computational
 // costs, but allows easier re-parallelization down the road if desired.
 
+// Export this as a header for use in other packages
+// [[Rcpp::interfaces(r, cpp)]] 
 
 #define ARMA_64BIT_WORD 1
 

@@ -1,6 +1,6 @@
 // This header converts Rcpp matrices to std::vector<> and back again
 // Requires #include <Rcpp.h> or #include <RcppArmadillo.h>. This implementation
-// calls this from another header, sample_int.h, but this header will not work 
+// calls this from elsewhere. This, this header will not work 
 // on its own without modifications
 
 #pragma once

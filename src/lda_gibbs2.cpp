@@ -11,10 +11,15 @@
 // [[Rcpp::interfaces(r, cpp)]] 
 
 #define ARMA_64BIT_WORD 1
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins(cpp11)]] 
 
-#include "sample_int.h" // RcppArmadillo.h included here
+#include "sample_int.h" 
 #include "matrix_conversions.h"
 #include "parallel_gibbs_utils.h"
+
+
 
 #include <progress.hpp>
 #include <progress_bar.hpp>

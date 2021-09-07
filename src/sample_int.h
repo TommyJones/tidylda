@@ -1,11 +1,12 @@
 // This file is a header file for a replacement to RcppArmadillo::sample
-// It was predominantly written by Barum Park. 
+// Requires #include <RcppArmadillo.h>. This implementation
+// calls this from elsewhere. This, this header will not work 
+// on its own without modifications
+// The early version was predominantly written by Barum Park. 
 // Unmodified source: https://barumpark.com/blog/2019/Sampling-Integers/
 
 #pragma once
 
-// [[Rcpp::depends(RcppArmadillo)]]
-#include <RcppArmadillo.h>
 #include <Rmath.h>
 
 // a function to calculate the logarithm of the sum of two exponentials

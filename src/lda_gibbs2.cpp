@@ -10,9 +10,16 @@
 // Export this as a header for use in other packages
 // [[Rcpp::interfaces(r, cpp)]] 
 
-#include "parallel_gibbs_utils.h"
-#include "sample_int.h"
+#define ARMA_64BIT_WORD 1
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins(cpp11)]] 
+
+#include "sample_int.h" 
 #include "matrix_conversions.h"
+#include "parallel_gibbs_utils.h"
+
+
 
 #include <RcppArmadillo.h>
 #define ARMA_64BIT_WORD
@@ -21,6 +28,8 @@
 
 #include <progress.hpp>
 #include <progress_bar.hpp>
+
+
 
 //' Make a lexicon for looping over in the gibbs sampler
 //' @keywords internal
@@ -208,6 +217,7 @@ Rcpp::List create_lexicon(
     _["Ck"]   = Ck
   );
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // 

@@ -21,6 +21,11 @@
 
 
 
+#include <RcppArmadillo.h>
+#define ARMA_64BIT_WORD
+
+#include <RcppThread.h>
+
 #include <progress.hpp>
 #include <progress_bar.hpp>
 
@@ -327,7 +332,7 @@ Rcpp::List fit_lda_c(
   for (auto k = 0; k < Nk; k++) {
     sum_eta[k] = std::accumulate(eta[k].begin(), eta[k].end(), 0.0);
   }
-
+  
   // For aggregating samples post burn in
   std::vector<std::vector<long>> Cd_sum(Nd);
   std::vector<std::vector<double>> Cd_mean(Nd);
@@ -338,7 +343,7 @@ Rcpp::List fit_lda_c(
       Cd_mean[d].push_back(0.0);
     }
   }
-
+  
   std::vector<std::vector<long>> Cv_sum(Nk);
   std::vector<std::vector<double>> Cv_mean(Nk);
   
@@ -420,7 +425,7 @@ Rcpp::List fit_lda_c(
       // do a loop over all documents in the thread with local Ck and Cv
       for (auto d = batch_idx[0]; d < batch_idx.size(); d++) { 
         
-        Rcpp::checkUserInterrupt();    
+        RcppThread::checkUserInterrupt();
         
         // R_CheckUserInterrupt();
         
@@ -484,7 +489,7 @@ Rcpp::List fit_lda_c(
       } // end loop over documents
     } // end loop over threads
     
-
+    
     // update global Ck and Cv using batch versions
     if (threads > 1) {
       Ck = update_global_Ck(
@@ -523,7 +528,7 @@ Rcpp::List fit_lda_c(
         }
       }
       
-
+      
       
       if (! freeze_topics) {
         for (auto k = 0; k < Nk; k++) {

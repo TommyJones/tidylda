@@ -5,7 +5,6 @@
 
 #pragma once
 
-
 #include <vector>
 
 using namespace Rcpp;
@@ -116,4 +115,3 @@ IntegerMatrix vec_to_mat(
   
   return out;
 }
-

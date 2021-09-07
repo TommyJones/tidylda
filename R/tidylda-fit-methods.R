@@ -21,7 +21,7 @@
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{TRUE}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
-#'        Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.
+#'        Defaults to \code{FALSE}. See \code{\link[calc_lda_r2]{tidylda}}.
 #' @param threads Number of parallel threads, defaults to 1. See Details, below.
 #' @param return_data Logical. Do you want \code{data} returned as part of the model object?
 #' @param verbose Logical. Do you want to print a progress bar out to the console?

@@ -467,7 +467,11 @@ initialize_topic_counts <- function(
 summarize_topics <- function(theta, beta, dtm) {
   
   # probabilistic coherence with default value for m
-  coherence <- calc_prob_coherence(beta = beta, data = dtm)
+  if (nrow(dtm) == 1) {
+    coherence <- rep(NA, nrow(beta))
+  } else {
+    coherence <- calc_prob_coherence(beta = beta, data = dtm)
+  }
   
   # prevalence of each topic, weighted by terms
   prevalence <- Matrix::rowSums(dtm) * theta

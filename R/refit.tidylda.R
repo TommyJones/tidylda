@@ -214,11 +214,14 @@ refit.tidylda <- function(
     Nv = ncol(object$beta)
   )  
   
+  
   # if necessary, re-scale so that new eta has the weight prescribed by prior-weight
   if (! is.na(prior_weight)) {
     w_star <- rowSums(object$counts$Cv) + rowSums(eta$eta)
     
     eta$eta <- prior_weight * w_star * object$beta
+    
+    eta$eta_class <- "matrix" # always a matrix for refits using eta as prior
   }
   
   dimnames(eta$eta) <- dimnames(object$beta)

@@ -291,7 +291,7 @@ refit.tidylda <- function(
   
   m_add <- t(t(m_add) + colMeans(eta$eta))
   
-  m_add <- m_add / rowSums(m_add) * additiona_eta_sum
+  m_add <- m_add / rowSums(m_add) * additional_eta_sum
   
   eta$eta <- rbind(eta$eta, m_add) # add new topics to eta
   

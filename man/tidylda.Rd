@@ -50,7 +50,7 @@ Defaults to \code{FALSE}. See 'details' below for more information.}
 Useful for assessing convergence. Defaults to \code{TRUE}.}
 
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
-Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
+Defaults to \code{FALSE}. See \code{\link[calc_lda_r2]{tidylda}}.}
 
 \item{threads}{Number of parallel threads, defaults to 1. See Details, below.}
 

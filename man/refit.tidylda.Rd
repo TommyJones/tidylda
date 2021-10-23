@@ -11,6 +11,7 @@
   burnin = -1,
   prior_weight = 1,
   additional_k = 0,
+  additional_eta_sum = 250,
   optimize_alpha = FALSE,
   calc_likelihood = FALSE,
   calc_r2 = FALSE,
@@ -35,6 +36,9 @@ greater than \code{burnin}.}
 \code{beta} as a prior from the base model. See Details, below.}
 
 \item{additional_k}{Integer number of topics to add, defaults to 0.}
+
+\item{additional_eta_sum}{Numeric magnitude of prior for additional topics.
+Ignored if \code{additional_k} is 0. Defaults to 250.}
 
 \item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
 Defaults to \code{FALSE}. See 'details' of documentation for
@@ -104,8 +108,9 @@ Update an LDA model using collapsed Gibbs sampling.
   to an integer greater than zero. New entries to \code{alpha} have a flat
   prior equal to the median value of \code{alpha} in the old model. (Note that
   if \code{alpha} itself is a flat prior, i.e. scalar, then the new topics have
-  the same value for their prior.) New entries to \code{eta} are the average
-  of all previous topics in \code{eta}.
+  the same value for their prior.) New entries to \code{eta} have a shape 
+  from the average of all previous topics in \code{eta} and scaled by
+  \code{additional_eta_sum}.
 }
 \note{
 Updates are, as of this writing, are almost-surely useful but their behaviors

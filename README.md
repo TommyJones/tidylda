@@ -22,15 +22,15 @@ style conventions from the [tidyverse](https://style.tidyverse.org/) and
 
 In addition this implementation of LDA allows you to:
 
-  - use asymmetric prior parameters alpha and eta
-  - use a matrix prior parameter, eta, to seed topics into a model
-  - use a previously-trained model as a prior for a new model
-  - apply LDA in a transfer-learning paradigm, updating a model’s
+-   use asymmetric prior parameters alpha and eta
+-   use a matrix prior parameter, eta, to seed topics into a model
+-   use a previously-trained model as a prior for a new model
+-   apply LDA in a transfer-learning paradigm, updating a model’s
     parameters with additional data (or additional iterations)
 
 Note that the seeding of topics and transfer learning are
 **experimental** for now. They are almost-surely useful but their
-behaviors have not been optimized or well-studied. Caveat emptor\!
+behaviors have not been optimized or well-studied. Caveat emptor!
 
 ## Installation
 
@@ -52,16 +52,16 @@ unseen documents, and update the model with those new documents.
 
 `tidylda` uses the following naming conventions for topic models:
 
-  - `theta` is a matrix whose rows are distributions of topics over
-    documents, or P(topic|document)
-  - `beta` is a matrix whose rows are distributions of tokens over
-    topics, or P(token|topic)
-  - `lambda` is a matrix whose rows are distributions of topics over
-    tokens, or P(topic|token) `lambda` is useful for making predictions
+-   `theta` is a matrix whose rows are distributions of topics over
+    documents, or P(topic\|document)
+-   `beta` is a matrix whose rows are distributions of tokens over
+    topics, or P(token\|topic)
+-   `lambda` is a matrix whose rows are distributions of topics over
+    tokens, or P(topic\|token) `lambda` is useful for making predictions
     with a computationally-simple and efficient dot product and it may
     be interesting to analyze in its own right.
-  - `alpha` is the prior that tunes `theta`
-  - `eta` is the prior that tunes `beta`
+-   `alpha` is the prior that tunes `theta`
+-   `eta` is the prior that tunes `beta`
 
 ## Example
 
@@ -70,9 +70,9 @@ library(tidytext)
 library(tidyverse)
 #> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
 #> ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-#> ✓ tibble  3.1.2     ✓ dplyr   1.0.7
-#> ✓ tidyr   1.1.3     ✓ stringr 1.4.0
-#> ✓ readr   1.4.0     ✓ forcats 0.5.1
+#> ✓ tibble  3.1.5     ✓ dplyr   1.0.7
+#> ✓ tidyr   1.1.4     ✓ stringr 1.4.0
+#> ✓ readr   2.0.1     ✓ forcats 0.5.1
 #> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 #> x dplyr::filter() masks stats::filter()
 #> x dplyr::lag()    masks stats::lag()
@@ -84,7 +84,6 @@ library(Matrix)
 #> The following objects are masked from 'package:tidyr':
 #> 
 #>     expand, pack, unpack
-
 ### Initial set up ---
 # load some documents
 docs <- textmineR::nih_sample 
@@ -149,14 +148,12 @@ qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line
 <img src="man/figures/README-example-1.png" width="100%" />
 
 ``` r
-
 # look at the model overall
 glance(lda)
-#> # A tibble: 1 x 5
+#> # A tibble: 1 × 5
 #>   num_topics num_documents num_tokens iterations burnin
 #>        <int>         <int>      <int>      <dbl>  <dbl>
 #> 1         10            50       1524        200    175
-
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
 #> tidylda(data = d1, k = 10, iterations = 200, burnin = 175, alpha = 0.1, 
@@ -165,7 +162,7 @@ print(lda)
 #> 
 #> The model's R-squared is  0.2677 
 #> The  5  most prevalent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                              
 #>   <dbl>      <dbl>     <dbl> <chr>                                  
 #> 1     7       11.9     0.140 cancer, dcis, cells, ...               
@@ -176,7 +173,7 @@ print(lda)
 #> # … with 5 more rows
 #> 
 #> The  5  most coherent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                              
 #>   <dbl>      <dbl>     <dbl> <chr>                                  
 #> 1     9      10.2      0.509 diabetes, numeracy, data, ...          
@@ -185,10 +182,9 @@ print(lda)
 #> 4     6      10.9      0.295 sud, risk, factors, ...                
 #> 5     5       8.06     0.258 research, disparities, program, ...    
 #> # … with 5 more rows
-
 # it comes with its own summary matrix that's printed out with print(), above
 lda$summary
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>    topic prevalence coherence top_terms                              
 #>    <dbl>      <dbl>     <dbl> <chr>                                  
 #>  1     1      11.0      0.22  cdk5, effects, v4, ...                 
@@ -201,13 +197,11 @@ lda$summary
 #>  8     8       8.83     0.494 function, cmybp, injury, ...           
 #>  9     9      10.2      0.509 diabetes, numeracy, data, ...          
 #> 10    10      10.8      0.303 mitochondrial, plasticity, studies, ...
-
-
 # inspect the individual matrices
 tidy_theta <- tidy(lda, matrix = "theta")
 
 tidy_theta
-#> # A tibble: 500 x 3
+#> # A tibble: 500 × 3
 #>    document topic   theta
 #>    <chr>    <dbl>   <dbl>
 #>  1 8574224      1 0.00238
@@ -221,11 +215,10 @@ tidy_theta
 #>  9 8574224      9 0.00429
 #> 10 8574224     10 0.00238
 #> # … with 490 more rows
-
 tidy_beta <- tidy(lda, matrix = "beta")
 
 tidy_beta
-#> # A tibble: 15,240 x 3
+#> # A tibble: 15,240 × 3
 #>    topic token             beta
 #>    <dbl> <chr>            <dbl>
 #>  1     1 adolescence  0.0000673
@@ -239,11 +232,10 @@ tidy_beta
 #>  9     1 onset        0.0000673
 #> 10     1 onset mdd    0.0000673
 #> # … with 15,230 more rows
-
 tidy_lambda <- tidy(lda, matrix = "lambda")
 
 tidy_lambda
-#> # A tibble: 15,240 x 3
+#> # A tibble: 15,240 × 3
 #>    topic token         lambda
 #>    <dbl> <chr>          <dbl>
 #>  1     1 adolescence  0.00780
@@ -257,12 +249,11 @@ tidy_lambda
 #>  9     1 onset        0.00773
 #> 10     1 onset mdd    0.0201 
 #> # … with 15,230 more rows
-
 # append observation-level data
 augmented_docs <- augment(lda, data = tidy_docs)
 
 augmented_docs
-#> # A tibble: 4,566 x 3
+#> # A tibble: 4,566 × 3
 #>    document term         topic
 #>    <chr>    <chr>        <int>
 #>  1 8574224  adolescence      6
@@ -276,7 +267,6 @@ augmented_docs
 #>  9 8574224  onset            6
 #> 10 8574224  onset mdd        6
 #> # … with 4,556 more rows
-
 ### predictions on held out data ---
 # two methods: gibbs is cleaner and more techically correct in the bayesian sense
 p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
@@ -297,7 +287,6 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 <img src="man/figures/README-example-2.png" width="100%" />
 
 ``` r
-
 ### Augment as an implicit prediction using the 'dot' method ----
 # Aggregating over terms results in a distribution of topics over documents
 # roughly equivalent to using the "dot" method of predictions.
@@ -307,13 +296,13 @@ augment_predict <-
   select(-c(document, term)) %>% 
   summarise_all(function(x) sum(x, na.rm = T))
 #> Adding missing grouping variables: `document`
-
 # reformat for easy plotting
 augment_predict <- 
   as_tibble(t(augment_predict[, -1]))
 #> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
 #> Using compatibility `.name_repair`.
-
+#> This warning is displayed once every 8 hours.
+#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
 colnames(augment_predict) <- unique(tidy_docs$document)
 
 augment_predict$topic <- 1:nrow(augment_predict) %>% as.factor()
@@ -339,7 +328,6 @@ ggplot(compare_mat) +
 <img src="man/figures/README-example-3.png" width="100%" />
 
 ``` r
-
 # Not shown: aggregating over documents results in recovering the "tidy" lambda.
 
 ### updating the model ----
@@ -362,43 +350,39 @@ qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "lin
 <img src="man/figures/README-example-4.png" width="100%" />
 
 ``` r
-
 # look at the model overall
 glance(lda2)
-#> # A tibble: 1 x 5
+#> # A tibble: 1 × 5
 #>   num_topics num_documents num_tokens iterations burnin
 #>        <int>         <int>      <int>      <dbl>  <dbl>
 #> 1         10            99       2962        200    175
-
 print(lda2)
 #> A Latent Dirichlet Allocation Model of  10 topics,  99  documents, and  2962  tokens:
 #> refit.tidylda(object = lda, new_data = d, iterations = 200, burnin = 175, 
 #>     calc_likelihood = TRUE, calc_r2 = TRUE)
 #> 
-#> The model's R-squared is  0.1455 
+#> The model's R-squared is  0.1478 
 #> The  5  most prevalent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                     
 #>   <dbl>      <dbl>     <dbl> <chr>                         
-#> 1     5      15       0.148  research, program, cancer, ...
-#> 2     9      13.1     0.0667 data, health, diabetes, ...   
-#> 3     2      11.5     0.0643 core, research, response, ... 
-#> 4     7      10.0     0.217  cancer, tumor, treatment, ... 
-#> 5     6       9.51    0.245  risk, clinical, sud, ...      
+#> 1     5      14.0     0.148  research, program, cancer, ...
+#> 2     9      12.2     0.0532 data, health, diabetes, ...   
+#> 3     2      11.5     0.0739 core, research, response, ... 
+#> 4     6      11.0     0.163  risk, factors, clinical, ...  
+#> 5     7       9.92    0.217  cancer, tumor, treatment, ... 
 #> # … with 5 more rows
 #> 
 #> The  5  most coherent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                              
 #>   <dbl>      <dbl>     <dbl> <chr>                                  
-#> 1     8       7.65     0.423 injury, function, cmybp, ...           
-#> 2    10       5.7      0.320 mitochondrial, plasticity, studies, ...
-#> 3     6       9.51     0.245 risk, clinical, sud, ...               
-#> 4     7      10.0      0.217 cancer, tumor, treatment, ...          
-#> 5     4       9.23     0.171 cns, cell, cells, ...                  
+#> 1     8       7.74     0.423 injury, function, cmybp, ...           
+#> 2    10       6.09     0.320 mitochondrial, plasticity, studies, ...
+#> 3     7       9.92     0.217 cancer, tumor, treatment, ...          
+#> 4     4       9.2      0.171 cns, cell, cells, ...                  
+#> 5     6      11.0      0.163 risk, factors, clinical, ...           
 #> # … with 5 more rows
-
-
 # how does that compare to the old model?
 print(lda)
 #> A Latent Dirichlet Allocation Model of  10 topics,  50  documents, and  1524  tokens:
@@ -408,7 +392,7 @@ print(lda)
 #> 
 #> The model's R-squared is  0.2677 
 #> The  5  most prevalent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                              
 #>   <dbl>      <dbl>     <dbl> <chr>                                  
 #> 1     7       11.9     0.140 cancer, dcis, cells, ...               
@@ -419,7 +403,7 @@ print(lda)
 #> # … with 5 more rows
 #> 
 #> The  5  most coherent topics are:
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                              
 #>   <dbl>      <dbl>     <dbl> <chr>                                  
 #> 1     9      10.2      0.509 diabetes, numeracy, data, ...          

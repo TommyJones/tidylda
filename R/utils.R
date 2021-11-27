@@ -448,7 +448,7 @@ initialize_topic_counts <- function(
 #'     was trained on normalized so that it sums to 100.
 #'   \code{coherence} makes a call to \code{\link[tidylda]{calc_prob_coherence}}
 #'     using the default 5 most-probable terms in each topic.
-#'   \code{top_terms} displays the top 3 most-probable terms in each topic.
+#'   \code{top_terms} displays the top 5 most-probable terms in each topic.
 #' @note
 #'   \code{prevalence} should be proportional to P(topic). It is calculated by
 #'   weighting on document length. So, topics prevalent in longer documents get
@@ -482,7 +482,7 @@ summarize_topics <- function(theta, beta, dtm) {
   
   # top 3 terms
   top_terms <- apply(beta, 1, function(x) {
-    names(x)[order(x, decreasing = TRUE)][1:3]
+    names(x)[order(x, decreasing = TRUE)][1:5]
   })
   
   top_terms <- apply(top_terms, 2, function(x) {

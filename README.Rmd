@@ -72,7 +72,7 @@ library(Matrix)
 
 ### Initial set up ---
 # load some documents
-docs <- textmineR::nih_sample 
+docs <- nih_sample 
 
 # tokenize using tidytext's unnest_tokens
 tidy_docs <- docs %>% 

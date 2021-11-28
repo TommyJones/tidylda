@@ -3,7 +3,8 @@
 \docType{data}
 \name{nih}
 \alias{nih}
-\alias{nih,nih_sample,nih_sample_dtm}
+\alias{nih_sample}
+\alias{nih_sample_dtm}
 \title{Abstracts and metadata from NIH research grants awarded in 2014}
 \format{
 For \code{nih_sample}, a \code{\link[tibble]{tibble}} of 100 randomly-sampled

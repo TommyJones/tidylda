@@ -50,7 +50,8 @@ generics::generate
 
 #' Abstracts and metadata from NIH research grants awarded in 2014
 #' @name nih
-#' @aliases nih,nih_sample,nih_sample_dtm
+#' @aliases nih_sample
+#' @aliases nih_sample_dtm
 #' @docType data
 #' @description
 #' This dataset holds information on research grants awarded by the National

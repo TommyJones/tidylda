@@ -20,7 +20,6 @@ NULL
 #' @importFrom rlang .data
 #' @importFrom stats median
 #' @importFrom stringr str_replace_all
-#' @importFrom textmineR CalcProbCoherence
 #' @importFrom tibble as_tibble
 #' @importFrom tidyr pivot_longer
 #' @importFrom tidyr %>%

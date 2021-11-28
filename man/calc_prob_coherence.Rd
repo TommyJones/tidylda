@@ -40,7 +40,7 @@ For each pair of words {a, b} in the top M words in a topic, probabilistic
 }
 \examples{
 # Load a pre-formatted dtm and topic model
-data(nih_sample_dtm, package = "textmineR")
+data(nih_sample_dtm)
 
 # fit a model
 set.seed(12345)

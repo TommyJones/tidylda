@@ -40,15 +40,14 @@ greater than \code{burnin}.}
 \item{additional_eta_sum}{Numeric magnitude of prior for additional topics.
 Ignored if \code{additional_k} is 0. Defaults to 250.}
 
-\item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
-Defaults to \code{FALSE}. See 'details' of documentation for
-\code{\link[textmineR]{FitLdaModel}}for more information.}
+\item{optimize_alpha}{Logical. Experimental. Do you want to optimize alpha
+every iteration? Defaults to \code{FALSE}.}
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
 Useful for assessing convergence. Defaults to \code{FALSE}.}
 
 \item{calc_r2}{Logical. Do you want to calculate R-squared after the model is trained?
-Defaults to \code{FALSE}. This calls \code{\link[textmineR]{CalcTopicModelR2}}.}
+Defaults to \code{FALSE}.}
 
 \item{return_data}{Logical. Do you want \code{new_data} returned as part of the model object?}
 
@@ -119,7 +118,7 @@ Updates are, as of this writing, are almost-surely useful but their behaviors
 \examples{
 \donttest{
 # load a document term matrix
-data(nih_sample_dtm, package = "textmineR")
+data(nih_sample_dtm)
 
 d1 <- nih_sample_dtm[1:50, ]
 

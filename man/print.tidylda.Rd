@@ -23,7 +23,7 @@ Print a summary for objects of class \code{tidylda}
 }
 \examples{
 \donttest{
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 lda <- tidylda(data = dtm, k = 10, iterations = 100)
 

@@ -20,7 +20,7 @@ Returns a \code{\link[tibble]{tibble}} with the following columns:
     was trained on normalized so that it sums to 100.
   \code{coherence} makes a call to \code{\link[tidylda]{calc_prob_coherence}}
     using the default 5 most-probable terms in each topic.
-  \code{top_terms} displays the top 3 most-probable terms in each topic.
+  \code{top_terms} displays the top 5 most-probable terms in each topic.
 }
 \description{
 Summarizes topics in a model. Called by \code{\link[tidylda]{tidylda}}

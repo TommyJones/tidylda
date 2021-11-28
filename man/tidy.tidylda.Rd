@@ -47,7 +47,7 @@ If \code{log = TRUE} then "log_" will be appended to the name of the third
 }
 \examples{
 \donttest{
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 

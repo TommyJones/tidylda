@@ -68,7 +68,7 @@ If \code{predict.tidylda} encounters documents that have no tokens in common
 \examples{
 \donttest{
 # load some data
-data(nih_sample_dtm, package = "textmineR")
+data(nih_sample_dtm)
 
 # fit a model
 set.seed(12345)

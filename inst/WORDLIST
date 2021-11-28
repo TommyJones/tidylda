@@ -3,6 +3,7 @@ Blei
 CMD
 Cv
 DTM
+ExPORTER
 IntegerMatrix
 IntegerVector
 Lifecycle
@@ -26,7 +27,6 @@ et
 gibbs
 gmail
 http
-jmlr
 jones
 joss
 malformatted

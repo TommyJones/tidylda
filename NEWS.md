@@ -7,6 +7,7 @@
   as the prior. Miscalculation only affected multiple sequential calls to `refit`
 * Minor improvements to documentation.
 * Model summary now displays top 5 terms per topic, instead of top 3.
+* Removed all explicit dependencies on teh `textmineR` package.
 
 # tidylda 0.0.1
 This is the first released version of tidylda!

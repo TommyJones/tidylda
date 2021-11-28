@@ -1,7 +1,7 @@
 context("Test outputs of C++ functions directly")
 
 ### Define some common objects ----
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 k <- 10
 

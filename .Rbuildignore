@@ -20,3 +20,5 @@
 ^ignore$
 ^\.github$
 ^CRAN-RELEASE$
+
+^data/nih.rda

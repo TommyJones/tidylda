@@ -44,7 +44,6 @@ Imports:
     rlang,
     stats,
     stringr,
-    textmineR,
     tibble,
     tidyr,
     tidytext
@@ -64,3 +63,4 @@ Encoding: UTF-8
 RoxygenNote: 7.1.1
 Language: en-US
 SystemRequirements: C++11
+LazyData: true

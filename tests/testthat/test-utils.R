@@ -2,7 +2,7 @@ context("test utility functions")
 
 library(tidytext, quietly = TRUE, verbose = FALSE)
 
-docs <- textmineR::nih_sample
+docs <- nih_sample
 
 tidy_docs <- unnest_tokens(
   tbl = docs[, c("APPLICATION_ID", "ABSTRACT_TEXT")],
@@ -148,7 +148,7 @@ test_that("tidy_dgcmatrix works as expected",{
 })
 
 test_that("lambda works as expected",{
-  dtm <- textmineR::nih_sample_dtm
+  dtm <- nih_sample_dtm
   
   d1 <- dtm[1:50, ]
   

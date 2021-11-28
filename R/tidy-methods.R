@@ -15,7 +15,7 @@
 #'   \code{burnin}: number of burn-in Gibbs iterations run
 #' @examples
 #' \donttest{
-#' dtm <- textmineR::nih_sample_dtm
+#' dtm <- nih_sample_dtm
 #'
 #' lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 #'
@@ -75,7 +75,7 @@ glance.tidylda <- function(x, ...) {
 #'   column of the resulting table. e.g "\code{beta}" becomes "\code{log_beta}".
 #' @examples
 #' \donttest{
-#' dtm <- textmineR::nih_sample_dtm
+#' dtm <- nih_sample_dtm
 #'
 #' lda <- tidylda(data = dtm, k = 10, iterations = 100, burnin = 75)
 #'

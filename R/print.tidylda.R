@@ -7,7 +7,7 @@
 #' @return Silently returns \code{x}
 #' @examples
 #' \donttest{
-#' dtm <- textmineR::nih_sample_dtm
+#' dtm <- nih_sample_dtm
 #'
 #' lda <- tidylda(data = dtm, k = 10, iterations = 100)
 #'

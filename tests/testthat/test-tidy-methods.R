@@ -1,6 +1,6 @@
 context("tests of tidy methods for tidylda")
 
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 d1 <- dtm[1:50, ]
 
@@ -184,7 +184,7 @@ test_that("glance works with updated models", {
 # note this uses unigrams and bigrams to ensure that there isn't 
 # 100% overlap in vocabulary between data and model
 tidy_docs <- 
-  textmineR::nih_sample[1:10, ] %>% 
+  nih_sample[1:10, ] %>% 
   dplyr::select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
   tidytext::unnest_tokens(output = word, 
                           input = ABSTRACT_TEXT,

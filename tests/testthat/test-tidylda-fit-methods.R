@@ -2,7 +2,7 @@ context("tidylda core tests")
 
 ### Define some common objects ----
 
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 d1 <- dtm[1:50, ]
 
@@ -115,7 +115,7 @@ test_that("can fit lda models without error", {
 
 test_that("sparse priors for eta don't cause underflow failures", {
   m <- tidylda(
-    data = textmineR::nih_sample_dtm,
+    data = nih_sample_dtm,
     k = 10,
     iterations = 20,
     burnin = 15,

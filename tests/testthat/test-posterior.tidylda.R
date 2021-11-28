@@ -1,6 +1,6 @@
 context("tests of posterior methods")
 
-dtm <- textmineR::nih_sample_dtm
+dtm <- nih_sample_dtm
 
 d1 <- dtm[1:50, ]
 

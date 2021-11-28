@@ -37,7 +37,7 @@
 #' @examples
 #' \donttest{
 #' # load some data
-#' data(nih_sample_dtm, package = "textmineR")
+#' data(nih_sample_dtm)
 #'
 #' # fit a model
 #' set.seed(12345)

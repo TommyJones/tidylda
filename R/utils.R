@@ -894,7 +894,7 @@ calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
 #'   All 6 differences are averaged together.
 #' @examples
 #' # Load a pre-formatted dtm and topic model
-#' data(nih_sample_dtm, package = "textmineR")
+#' data(nih_sample_dtm)
 #' 
 #' # fit a model
 #' set.seed(12345)

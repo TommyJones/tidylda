@@ -32,7 +32,7 @@ Description: Implements an algorithm for Latent Dirichlet
 License: MIT + file LICENSE
 URL: https://github.com/TommyJones/tidylda/
 BugReports: https://github.com/TommyJones/tidylda/issues
-Depends: 
+Depends: R (>= 3.5.0)
 Imports:
     dplyr,
     generics,

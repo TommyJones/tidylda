@@ -4,7 +4,14 @@
 \alias{augment.tidylda}
 \title{Augment method for \code{tidylda} objects}
 \usage{
-\method{augment}{tidylda}(x, data, type = c("class", "prob"), ...)
+\method{augment}{tidylda}(
+  x,
+  data,
+  type = c("class", "prob"),
+  document_col = "document",
+  term_col = "term",
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class \code{tidylda}}
@@ -14,6 +21,12 @@ such as is returned by \link[tidytext]{tdm_tidiers} with column names
 c("document", "term") at a minimum.}
 
 \item{type}{one of either "class" or "prob"}
+
+\item{document_col}{character specifying the name of the column that
+corresponds to document IDs. Defaults to \code{"document"}.}
+
+\item{term_col}{character specifying the name of the column that
+corresponds to term/token IDs. Defaults to \code{"term"}.}
 
 \item{...}{other arguments passed to methods,currently not used}
 }

@@ -195,14 +195,14 @@ tidy_docs <-
 test_that("augment.tidylda behaves nicely", {
   
   td <- tidy_docs
-  
-  colnames(td)[1:2] <- c("document", "term")
-  
+
   # tidy tibble input
   a <- augment(
     x = lda, 
     data = td,
-    type = "class"
+    type = "class",
+    document_col = colnames(td)[1],
+    term_col = colnames(td)[2]
   )
   
   # right number of rows?
@@ -211,7 +211,7 @@ test_that("augment.tidylda behaves nicely", {
   # correctly identified topics?
   expect_equal(
     a %>% 
-      dplyr::filter(term %in% colnames(lda$beta)) %>%
+      dplyr::filter(.[[colnames(td)[2]]] %in% colnames(lda$beta)) %>%
       dplyr::select(topic) %>%
       dplyr::summarise(na_topic = sum(is.na(topic))) %>%
       as.numeric,

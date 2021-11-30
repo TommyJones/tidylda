@@ -168,6 +168,10 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
 #'   such as is returned by \link[tidytext]{tdm_tidiers} with column names
 #'   c("document", "term") at a minimum.
 #' @param type one of either "class" or "prob"
+#' @param document_col character specifying the name of the column that
+#'   corresponds to document IDs. Defaults to \code{"document"}.
+#' @param term_col character specifying the name of the column that
+#'   corresponds to term/token IDs. Defaults to \code{"term"}.
 #' @param ... other arguments passed to methods,currently not used
 #' @return
 #'   \code{augment} returns a tidy tibble containing one row per document-token
@@ -190,6 +194,8 @@ augment.tidylda <- function(
   x,
   data,
   type = c("class", "prob"),
+  document_col = "document",
+  term_col = "term",
   ...
 ) {
   
@@ -223,23 +229,38 @@ augment.tidylda <- function(
     # cast as a triplet matrix
     data <- tidy_dgcmatrix(dtm)
     
+    # fix column names
+    document_col <- "document"
+    
+    term_col <- "term"
+    
+    colnames_data <- c(document_col, term_col)
+    
     
   }else {
-    if (! all(c("document", "term") %in% colnames(data))) {
-      stop("data is a data.frame but it does not have c('document' and 'term') colnames)")
+    if (! all(c(document_col, term_col) %in% colnames(data))) {
+      stop(
+        "data is a data.frame but both ",
+        document_col,
+        " and ",
+        term_col, 
+        " aren't in colnames(data)"
+      )
     }
+    
+    # get column names of data to return later
+    colnames_data <- colnames(data)
     
     # if a tidy tibble, need to get fraction of words in each document
     tmp <- 
       data %>% 
-      dplyr::group_by(.data$document, .data$term) %>%
+      dplyr::group_by(.data[[document_col]], .data[[term_col]]) %>%
       dplyr::summarise(n = dplyr::n()) %>%
       dplyr::mutate(count = .data$n / sum(.data$n))
     
     data <- dplyr::left_join(
-      data, 
       tmp,
-      by = c("document" = "document", "term" = "term")
+      data
     )
     
   }
@@ -251,12 +272,14 @@ augment.tidylda <- function(
     names_from = .data$topic, 
     values_from = .data$lambda
   )
-  
-  result <- dplyr::left_join(
-    data,
+
+  result <- dplyr::right_join(
     tidy_lambda,
-    by = c("term" = "token")
+    data,
+    by = c("token" = term_col)
   )
+  
+  colnames(result)[colnames(result) == "token"] <- term_col
   
   topic_names <- colnames(x$theta)
   
@@ -269,9 +292,9 @@ augment.tidylda <- function(
     
     result$topic <- tmp
     
-    result <- result[, c("document", "term", "topic")]
+    result <- result[, c(colnames_data, "topic")]
   } else {
-    result <- result[, c("document", "term", topic_names)]
+    result <- result[, c(colnames_data, topic_names)]
   }
   
   tibble::as_tibble(result)  

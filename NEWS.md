@@ -1,3 +1,5 @@
+# tidylda 0.0.3
+
 # tidylda 0.0.2
 
 * Fixed error encountered with call to `tidylda` with large data sets.

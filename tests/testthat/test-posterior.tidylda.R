@@ -1,5 +1,7 @@
 context("tests of posterior methods")
 
+library(dplyr)
+
 dtm <- nih_sample_dtm
 
 d1 <- dtm[1:50, ]
@@ -22,60 +24,84 @@ lda <- tidylda(
 
 test_that("posterior methods function with good inputs",{
   
-  p <- posterior(lda)
-  
-  # appropriate class
-  expect_s3_class(p, "tidylda_posterior")
-  
-  # dimensions of matrices
-  expect_equal(ncol(p$theta_par), nrow(lda$theta))
-  expect_equal(nrow(p$theta_par), ncol(lda$theta))
-  expect_equal(ncol(p$beta_par), nrow(lda$beta))
-  expect_equal(nrow(p$beta_par), ncol(lda$beta))
-  
   # sample from theta 1 doc
-  g <- generate(
-    x = p,
+  g <- posterior(
+    x = lda,
     matrix = "theta",
     which = 1,
     times = 10
+  )
+  
+  expect_equal(
+    g %>% 
+      group_by(document, sample) %>% 
+      summarise(tot = sum(theta)) %>% 
+      .[["tot"]] %>% 
+      sum(),
+    10
   )
   
   # sample from theta many docs
-  g <- generate(
-    x = p,
+  g <- posterior(
+    x = lda,
     matrix = "theta",
     which = 1:3,
     times = 10
   )
   
+  expect_equal(
+    g %>% 
+      group_by(document, sample) %>% 
+      summarise(tot = sum(theta)) %>% 
+      .[["tot"]] %>% 
+      sum(),
+    30
+  )
+  
   # sample from beta 1 doc
-  g <- generate(
-    x = p,
+  g <- posterior(
+    x = lda,
     matrix = "beta",
     which = 1,
     times = 10
   )
   
+  expect_equal(
+    g %>% 
+      group_by(token, sample) %>% 
+      summarise(tot = sum(beta)) %>% 
+      .[["tot"]] %>% 
+      sum(),
+    10
+  )
+  
   # sample from beta many docs
-  g <- generate(
-    x = p,
+  g <- posterior(
+    x = lda,
     matrix = "beta",
     which = 1:3,
     times = 10
   )
+  
+  expect_equal(
+    g %>% 
+      group_by(token, sample) %>% 
+      summarise(tot = sum(beta)) %>% 
+      .[["tot"]] %>% 
+      sum(),
+    30
+  )
+  
   
 })
 
 
 test_that("posterior methods throw errors when they should",{
   
-  p <- posterior(lda)
-  
   # malformed matrix
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "something",
       which = 1,
       times = 10
@@ -85,8 +111,8 @@ test_that("posterior methods throw errors when they should",{
   
   # which has NAs
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "theta",
       which = c(1, NA),
       times = 10
@@ -96,8 +122,8 @@ test_that("posterior methods throw errors when they should",{
   
   # which has negatives
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "theta",
       which = c(1, -2),
       times = 10
@@ -107,8 +133,8 @@ test_that("posterior methods throw errors when they should",{
   
   # times is too long
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "theta",
       which = c(1),
       times = 10:11
@@ -118,8 +144,8 @@ test_that("posterior methods throw errors when they should",{
   
   # times is not numeric
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "theta",
       which = c(1),
       times = "10:11"
@@ -129,8 +155,8 @@ test_that("posterior methods throw errors when they should",{
   
   # times is negative
   expect_error(
-    g <- generate(
-      x = p,
+    g <- posterior(
+      x = lda,
       matrix = "theta",
       which = c(1),
       times = -10

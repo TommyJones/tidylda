@@ -3,19 +3,14 @@
 \name{posterior}
 \alias{posterior}
 \alias{posterior.tidylda}
-\alias{generate.tidylda_posterior}
 \title{Draw from the marginal posteriors of a tidylda topic model}
 \usage{
 posterior(x, ...)
 
-\method{posterior}{tidylda}(x, ...)
-
-\method{generate}{tidylda_posterior}(x, matrix, which, times, ...)
+\method{posterior}{tidylda}(x, matrix, which, times, ...)
 }
 \arguments{
-\item{x}{For \code{posterior}, an object of class
-\code{tidylda}. For \code{generate}, an object of class
-\code{tidylda_posterior} obtained by a call to \code{posterior}.}
+\item{x}{An object of class \code{tidylda}.}
 
 \item{...}{Other arguments, currently not used.}
 
@@ -24,36 +19,21 @@ matrix to draw posterior samples.}
 
 \item{which}{Row index of \code{theta}, for document, or \code{beta}, for
 topic, from which to draw samples. \code{which} may also be a vector of
-indices.}
+indices to sample from multiple documents or topics simultaneously.}
 
-\item{times}{Integer number of samples to draw.}
+\item{times}{Integer, number of samples to draw.}
 }
 \value{
-\code{posterior} returns an object of class \code{tidylda_posterior}.
-
-\code{generate} returns a tibble with one row per parameter per sample.
+\code{posterior} returns a tibble with one row per parameter per sample.
 
 Returns a data frame where each row is a single sample from the posterior. 
 Each column is the distribution over a single parameter. The variable \code{var}
 is a facet for subsetting by document (for theta) or topic (for beta).
 }
 \description{
-These functions are used to sample from the marginal posteriors
-  of a \code{tidylda} topic model. This is useful for quantifying uncertainty
-  around the parameters of \code{beta} or \code{theta}.
-}
-\details{
-To sample from the marginal posteriors of a model, you must first make a call
-to \code{posterior} and then a call to \code{generate}.
-
-\code{posterior} takes an object of class \code{tidylda} and constructs an
-object of class \code{tidylda_posterior} which contains two matrices. The rows
-of these matrices are Dirichlet parameters used to sample from the marginal
-posteriors of \code{theta} and \code{beta}.
-
-\code{generate} takes an object of class \code{tidylda_posterior} and samples
-from the marginal posterior of the parameters specified by the \code{matrix}
-argument.
+Sample from the marginal posteriors of a \code{tidylda} topic
+  model. This is useful for quantifying uncertainty around the parameters of
+  \code{beta} or \code{theta}.
 }
 \examples{
 \donttest{
@@ -68,22 +48,19 @@ m <- tidylda(
   iterations = 200, burnin = 175
 )
 
-# construct a posterior object
-p <- posterior(m)
-
 # sample from the marginal posterior corresponding to topic 1
-t1 <- generate(
-  x = p,
+t1 <- posterior(
+  x = m,
   matrix = "beta",
   which = 1,
   times = 100  
 )
 
-# sample from the marginal posterior corresponding to document 5
-d5 <- generate(
-  x = p,
+# sample from the marginal posterior corresponding to documents 5 and 6
+d5 <- posterior(
+  x = m,
   matrix = "theta",
-  which = 5,
+  which = c(5, 6),
   times = 100
 )
 }

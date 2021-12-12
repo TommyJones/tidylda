@@ -44,10 +44,6 @@ generics::tidy
 #' @export
 generics::refit
 
-#' @importFrom generics generate
-#' @export
-generics::generate
-
 #' Abstracts and metadata from NIH research grants awarded in 2014
 #' @name nih
 #' @aliases nih_sample

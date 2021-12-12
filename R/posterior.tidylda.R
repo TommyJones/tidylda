@@ -133,6 +133,31 @@ posterior.tidylda <- function(
   }
   
   # sample
+  result <- generate_sample(
+    dir_par = dir_par,
+    matrix = matrix,
+    times = times
+  )
+  
+  result
+}
+
+#' Generate a sample of LDA posteriors
+#' @keywords internal
+#' @description
+#'   Helper function called by both posterior.tidylda and predict.tidylda to
+#'   generate samples from the posterior.
+#' @param dir_par matrix of Dirichlet hyperparameters, one column per
+#' @param matrix character of "theta" or "beta", indicating which posterior
+#'   matrix \code{dir_par}'s columns are from.
+#' @param times Integer, number of samples to draw.
+#' @return Returns a tibble with one row per parameter per sample.
+generate_sample <- function(
+  dir_par,
+  matrix,
+  times
+) {
+  
   result <- lapply(
     X = as.data.frame(dir_par),
     FUN = function(y) {
@@ -161,7 +186,7 @@ posterior.tidylda <- function(
   
   # prepare and return result so it's tidy
   for (j in seq_along(result)) {
-    result[[j]]$idx2 <- colnames(dir_par)[which[j]]
+    result[[j]]$idx2 <- colnames(dir_par)[j]
   }
   
   result <- do.call(rbind, result)

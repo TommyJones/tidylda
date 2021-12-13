@@ -23,6 +23,7 @@ Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](ht
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/tommyjones/tidylda/workflows/R-CMD-check/badge.svg)](https://github.com/tommyjones/tidylda/actions)
+[![Codecov test coverage](https://codecov.io/gh/tommyjones/tidylda/branch/main/graph/badge.svg)](https://codecov.io/gh/tommyjones/tidylda?branch=main)
 <!-- badges: end -->
 
 
@@ -184,7 +185,7 @@ augment_predict <-
 
 # reformat for easy plotting
 augment_predict <- 
-  as_tibble(t(augment_predict[, -1]))
+  as_tibble(t(augment_predict[, -c(1,2)]), .name_repair = "minimal")
 
 colnames(augment_predict) <- unique(tidy_docs$document)
 

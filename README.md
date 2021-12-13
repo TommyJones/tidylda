@@ -12,6 +12,8 @@ Status](https://img.shields.io/codecov/c/github/tommyjones/tidylda/main.svg)](ht
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/tommyjones/tidylda/workflows/R-CMD-check/badge.svg)](https://github.com/tommyjones/tidylda/actions)
+[![Codecov test
+coverage](https://codecov.io/gh/tommyjones/tidylda/branch/main/graph/badge.svg)](https://codecov.io/gh/tommyjones/tidylda?branch=main)
 <!-- badges: end -->
 
 Latent Dirichlet Allocation Using ‘tidyverse’ Conventions
@@ -70,7 +72,7 @@ library(tidytext)
 library(tidyverse)
 #> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
 #> ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-#> ✓ tibble  3.1.5     ✓ dplyr   1.0.7
+#> ✓ tibble  3.1.6     ✓ dplyr   1.0.7
 #> ✓ tidyr   1.1.4     ✓ stringr 1.4.0
 #> ✓ readr   2.0.1     ✓ forcats 0.5.1
 #> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
@@ -251,21 +253,21 @@ tidy_lambda
 #> # … with 15,230 more rows
 # append observation-level data
 augmented_docs <- augment(lda, data = tidy_docs)
-
+#> Joining, by = c("document", "term", "n")
 augmented_docs
-#> # A tibble: 4,566 × 3
-#>    document term         topic
-#>    <chr>    <chr>        <int>
-#>  1 8574224  adolescence      6
-#>  2 8574224  age              6
-#>  3 8574224  application      6
-#>  4 8574224  depressive       6
-#>  5 8574224  disorder         6
-#>  6 8574224  emotionality     6
-#>  7 8574224  information      7
-#>  8 8574224  mdd              6
-#>  9 8574224  onset            6
-#> 10 8574224  onset mdd        6
+#> # A tibble: 4,566 × 4
+#>    document term            n topic
+#>    <chr>    <chr>       <int> <int>
+#>  1 8574224  adolescence     1     6
+#>  2 8646901  adolescence     1     6
+#>  3 8689019  adolescence     1     6
+#>  4 8705323  adolescence     1     6
+#>  5 8574224  age             1     6
+#>  6 8705323  age             1     6
+#>  7 8757072  age             1     6
+#>  8 8823186  age             1     6
+#>  9 8574224  application     1     6
+#> 10 8605875  application     1     6
 #> # … with 4,556 more rows
 ### predictions on held out data ---
 # two methods: gibbs is cleaner and more techically correct in the bayesian sense
@@ -295,14 +297,12 @@ augment_predict <-
   group_by(document) %>% 
   select(-c(document, term)) %>% 
   summarise_all(function(x) sum(x, na.rm = T))
+#> Joining, by = c("document", "term", "n")
 #> Adding missing grouping variables: `document`
 # reformat for easy plotting
 augment_predict <- 
-  as_tibble(t(augment_predict[, -1]))
-#> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
-#> Using compatibility `.name_repair`.
-#> This warning is displayed once every 8 hours.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
+  as_tibble(t(augment_predict[, -c(1,2)]), .name_repair = "minimal")
+
 colnames(augment_predict) <- unique(tidy_docs$document)
 
 augment_predict$topic <- 1:nrow(augment_predict) %>% as.factor()

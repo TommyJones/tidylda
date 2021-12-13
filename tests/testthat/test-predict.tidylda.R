@@ -89,7 +89,59 @@ test_that("can make predictions without error", {
   )  
   
   expect_true(inherits(p, "matrix"))
+  
+  # single row class with dot
+  p <- predict(
+    object = lda,
+    new_data = d2[1, ],
+    type = "class",
+    method = "dot"
+  )
+  
+  expect_equal(length(p), 1)
+  
+  expect_true(inherits(p, "integer"))
+  
+  # multi row class with dot
+  p <- predict(
+    object = lda,
+    new_data = d2,
+    type = "class",
+    method = "dot"
+  )
+  
+  expect_equal(length(p), nrow(d2))
+  
+  expect_true(inherits(p, "integer"))
+  
+  # single row distribution with gibbs
+  p <- predict(
+    object = lda, 
+    new_data = d2[1, ],
+    type = "distribution",
+    method = "gibbs", 
+    iterations = 20, 
+    burnin = 10,
+    times = 10,
+    threads = 1,
+    verbose = FALSE
+  )  
+  
+  expect_true(inherits(p, "tbl"))
+  
+  # multi row distribution with dot
+  p <- predict(
+    object = lda,
+    new_data = d2,
+    type = "distribution",
+    method = "dot",
+    times = 10
+  )
+  expect_true(inherits(p, "tbl"))
+  
 })
+
+
 
 test_that("malformed args in predict throw errors", {
   
@@ -142,5 +194,42 @@ test_that("malformed args in predict throw errors", {
   expect_error(
     predict(object = lda, new_data = nd, method = "dot", no_common_tokens = "WRONG!")
   )
+  
+  # type misspecified
+  expect_error(
+    predict(object = lda, new_data = d2, type = "blah", method = "dot")
+  )
+  
+  # times misspecified while type = "distribution"
+  expect_error(
+    predict(
+      object = lda, 
+      new_data = d2, 
+      type = "distribution", 
+      method = "dot",
+      times = NA
+    )
+  )
+  
+  expect_error(
+    predict(
+      object = lda, 
+      new_data = d2, 
+      type = "distribution", 
+      method = "dot",
+      times = "yeet"
+    )
+  )
+  
+  expect_error(
+    predict(
+      object = lda, 
+      new_data = d2, 
+      type = "distribution", 
+      method = "dot",
+      times = 0
+    )
+  )
+  
 })
 

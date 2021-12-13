@@ -7,10 +7,12 @@
 \method{predict}{tidylda}(
   object,
   new_data,
+  type = c("prob", "class", "distribution"),
   method = c("gibbs", "dot"),
   iterations = NULL,
   burnin = -1,
   no_common_tokens = c("default", "zero", "uniform"),
+  times = 100,
   threads = 1,
   verbose = TRUE,
   ...
@@ -20,6 +22,8 @@
 \item{object}{a fitted object of class \code{tidylda}}
 
 \item{new_data}{a DTM or TCM of class \code{dgCMatrix} or a numeric vector}
+
+\item{type}{one of "prob", "class", or "distribution". Defaults to "prob".}
 
 \item{method}{one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 and \code{iterations} must be specified.}
@@ -36,7 +40,11 @@ Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.}
 in common with the model. Options are "\code{default}", "\code{zero}",
 or "\code{uniform}". See 'details', below for explanation of behavior.}
 
-\item{threads}{Number of parallel threads, defaults to 1.}
+\item{times}{Integer, number of samples to draw if \code{type = "distribution"}.
+Ignored if \code{type} is "class" or "prob". Defaults to 100.}
+
+\item{threads}{Number of parallel threads, defaults to 1. Note: currently
+ignored; only single-threaded prediction is implemented.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.}
@@ -44,7 +52,12 @@ Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.}
 \item{...}{Additional arguments, currently unused}
 }
 \value{
-a "theta" matrix with one row per document and one column per topic
+\code{type} gives different outputs depending on whether the user selects
+  "prob", "class", or "distribution". If "prob", the default, returns a
+  a "theta" matrix with one row per document and one column per topic. If
+  "class", returns a vector with the topic index of the most likely topic in
+  each document. If "distribution", returns a tibble with one row per
+  parameter per sample. Number of samples is set by the \code{times} argument.
 }
 \description{
 Obtains predictions of topics for new documents from a fitted LDA model
@@ -86,10 +99,25 @@ p1 <- predict(m, nih_sample_dtm[21:100, ],
   iterations = 200, burnin = 175
 )
 
-# predict on held-out documents using the dot product method
+# predict on held-out documents using the dot product
 p2 <- predict(m, nih_sample_dtm[21:100, ], method = "dot")
 
 # compare the methods
 barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
+
+# predict classes on held out documents
+p3 <- predict(m, nih_sample_dtm[21:100, ],
+  method = "gibbs",
+  type = "class",
+  iterations = 100, burnin = 75
+)
+
+# predict distribution on held out documents
+p4 <- predict(m, nih_sample_dtm[21:100, ],
+  method = "gibbs",
+  type = "distribution",
+  iterations = 100, burnin = 75,
+  times = 10
+)
 }
 }

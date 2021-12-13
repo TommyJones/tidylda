@@ -3,6 +3,7 @@
 #' @description Obtains predictions of topics for new documents from a fitted LDA model
 #' @param object a fitted object of class \code{tidylda}
 #' @param new_data a DTM or TCM of class \code{dgCMatrix} or a numeric vector
+#' @param type one of "prob", "class", or "distribution". Defaults to "prob".
 #' @param method one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
 #'        and \code{iterations} must be specified.
 #' @param iterations If \code{method = "gibbs"}, an integer number of iterations
@@ -14,12 +15,20 @@
 #' @param no_common_tokens behavior when encountering documents that have no tokens
 #'        in common with the model. Options are "\code{default}", "\code{zero}",
 #'        or "\code{uniform}". See 'details', below for explanation of behavior. 
-#' @param threads Number of parallel threads, defaults to 1.
+#' @param times Integer, number of samples to draw if \code{type = "distribution"}.
+#'   Ignored if \code{type} is "class" or "prob". Defaults to 100.
+#' @param threads Number of parallel threads, defaults to 1. Note: currently
+#'   ignored; only single-threaded prediction is implemented.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
-#' @return a "theta" matrix with one row per document and one column per topic
-#' @details 
+#' @return \code{type} gives different outputs depending on whether the user selects
+#'   "prob", "class", or "distribution". If "prob", the default, returns a
+#'   a "theta" matrix with one row per document and one column per topic. If
+#'   "class", returns a vector with the topic index of the most likely topic in
+#'   each document. If "distribution", returns a tibble with one row per
+#'   parameter per sample. Number of samples is set by the \code{times} argument.
+#' @details
 #'   If \code{predict.tidylda} encounters documents that have no tokens in common
 #'   with the model in \code{object} it will engage in one of three behaviors based
 #'   on the setting of \code{no_common_tokens}.
@@ -55,26 +64,63 @@
 #'   iterations = 200, burnin = 175
 #' )
 #'
-#' # predict on held-out documents using the dot product method
+#' # predict on held-out documents using the dot product
 #' p2 <- predict(m, nih_sample_dtm[21:100, ], method = "dot")
 #'
 #' # compare the methods
 #' barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
+#' 
+#' # predict classes on held out documents
+#' p3 <- predict(m, nih_sample_dtm[21:100, ],
+#'   method = "gibbs",
+#'   type = "class",
+#'   iterations = 100, burnin = 75
+#' )
+#' 
+#' # predict distribution on held out documents
+#' p4 <- predict(m, nih_sample_dtm[21:100, ],
+#'   method = "gibbs",
+#'   type = "distribution",
+#'   iterations = 100, burnin = 75,
+#'   times = 10
+#' )
 #' }
 #' @export
 predict.tidylda <- function(
   object, 
   new_data, 
+  type = c("prob", "class", "distribution"),
   method = c("gibbs", "dot"),
   iterations = NULL, 
   burnin = -1, 
   no_common_tokens = c("default", "zero", "uniform"),
+  times = 100,
   threads = 1,
   verbose = TRUE,
   ...
 ){
   
   ### Check inputs ----
+  if (! type[1] %in% c("prob", "class", "distribution")) {
+    stop("type must be one of 'prob', 'class', or 'distribution'. I see type = ", type[1])
+  }
+  
+  if (type[1] == "distribution") {
+    if (is.na(times[1]) | is.infinite(times[1])) {
+      stop("times must be a number 1 or greater. I see times = ", times)
+    }
+    
+    if (! is.numeric(times[1])) {
+      stop("times must be a number 1 or greater. I see times = ", times)
+    }
+    
+    if (times[1] < 1) {
+      stop("times must be a number 1 or greater. I see times = ", times)
+    }
+    
+    times <- round(times[1])
+  }
+  
   if (method[1] == "gibbs") {
     if (is.null(iterations)) {
       stop("when using method 'gibbs' iterations must be specified.")
@@ -241,8 +287,25 @@ predict.tidylda <- function(
     )
   }
 
+  # If type is "class" or "distribution", format further
+  if (type[1] == "class") {
+    
+    result <- apply(result, 1, function(x) which.max(x)[1])
+    
+  } else if (type[1] == "distribution") {
+    
+    dir_par <- result * (Matrix::rowSums(dtm_new_data) + sum(object$alpha))
+    
+    dir_par <- t(dir_par)
+    
+    result <- generate_sample(
+      dir_par = dir_par,
+      matrix = "theta",
+      times = times
+    )
+    
+  }
+  
   # return result
-
-
   result
 }

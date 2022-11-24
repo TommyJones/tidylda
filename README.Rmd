@@ -106,7 +106,6 @@ d1 <- d1[, colSums(d1) > 0]
 d2 <- d2[, colSums(d2) > 0]
 
 ### fit an intial model and inspect it ----
-
 set.seed(123)
 
 lda <- tidylda(
@@ -155,7 +154,7 @@ augmented_docs <- augment(lda, data = tidy_docs)
 augmented_docs
 
 ### predictions on held out data ---
-# two methods: gibbs is cleaner and more techically correct in the bayesian sense
+# two methods: gibbs is cleaner and more technically correct in the bayesian sense
 p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
 
 # dot is faster, less prone to error (e.g. underflow), noisier, and frequentist

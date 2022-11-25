@@ -1,3 +1,8 @@
+# necessary to pass R CMD check with tidy select
+utils::globalVariables(c("topic", "lambda", "idx1"))
+
+
+
 #' Glance method for \code{tidylda} objects
 #' @description
 #'   \code{glance} constructs a single-row summary "glance" of a \code{tidylda}

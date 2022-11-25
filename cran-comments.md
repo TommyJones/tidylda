@@ -1,13 +1,13 @@
-## Patch release version 0.0.2
-This version is a patch. It includes some bug fixes, improvements to documentation,
-improvements to the user experience, and removes any dependencies to the textmineR
-package. (A later version of textmineR will wrap tidylda. Better to have
-dependencies going in only one direction.)
+## Patch release version 0.0.3
+This version is a patch. In this version I have
+
+* Updated internal function `convert_dtm` to not use functions deprecated as of
+  Matrix 1.4-2
+* Updates for compatibility with R CMD check and tidy select variables
 
 ## Test environments
-* local macOS install: release
 * macOS (on GitHub actions): release
-* ubuntu 20.04 (on GitHub actions): release
+* ubuntu 20.04 (on GitHub actions): release, devel, and oldrel
 * win-builder: release, devel, and oldrel
 
 ## R CMD check results

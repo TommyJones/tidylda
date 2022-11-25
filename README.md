@@ -11,6 +11,7 @@ buildstatus](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidyl
 coverage](https://codecov.io/gh/tommyjones/tidylda/branch/main/graph/badge.svg)](https://codecov.io/gh/tommyjones/tidylda/branch/main)
 [![Lifecycle:experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/tommyjones/tidylda/workflows/R-CMD-check/badge.svg)](https://github.com/tommyjones/tidylda/actions)
+[![R-CMD-check](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Latent Dirichlet Allocation Using ‘tidyverse’ Conventions
@@ -68,10 +69,10 @@ unseen documents, and update the model with those new documents.
 library(tidytext)
 library(tidyverse)
 #> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
-#> ✔ ggplot2 3.3.6      ✔ purrr   0.3.5 
+#> ✔ ggplot2 3.4.0      ✔ purrr   0.3.5 
 #> ✔ tibble  3.1.8      ✔ dplyr   1.0.10
-#> ✔ tidyr   1.2.0      ✔ stringr 1.4.1 
-#> ✔ readr   2.1.2      ✔ forcats 0.5.1 
+#> ✔ tidyr   1.2.1      ✔ stringr 1.4.1 
+#> ✔ readr   2.1.3      ✔ forcats 0.5.2 
 #> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 #> ✖ dplyr::filter() masks stats::filter()
 #> ✖ dplyr::lag()    masks stats::lag()
@@ -143,6 +144,7 @@ lda <- tidylda(
 # there are actual test stats for this, but should look like "yes"
 qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line") + 
     ggtitle("Checking model convergence")
+#> Warning: `qplot()` was deprecated in ggplot2 3.4.0.
 ```
 
 <img src="man/figures/README-example-1.png" width="100%" />

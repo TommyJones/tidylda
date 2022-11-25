@@ -1,5 +1,8 @@
 # tidylda 0.0.3
 
+* Updated internal function `convert_dtm` to not use functions deprecated as of
+  Matrix 1.4-2
+
 # tidylda 0.0.2
 
 * Fixed error encountered with call to `tidylda` with large data sets.

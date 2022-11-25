@@ -37,10 +37,10 @@ Tidy the result of a \code{tidylda} topic model
 }
 \section{Functions}{
 \itemize{
-\item \code{tidy.matrix}: Tidy an individual matrix.
+\item \code{tidy(matrix)}: Tidy an individual matrix.
 Useful for predictions and called from tidy.tidylda
-}}
 
+}}
 \note{
 If \code{log = TRUE} then "log_" will be appended to the name of the third
   column of the resulting table. e.g "\code{beta}" becomes "\code{log_beta}".

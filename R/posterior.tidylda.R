@@ -175,7 +175,7 @@ generate_sample <- function(
       
       out <- tidyr::pivot_longer(
         out,
-        -.data$idx1,
+        -idx1,
         names_to = "sample"
       )
       

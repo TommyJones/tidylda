@@ -269,8 +269,8 @@ augment.tidylda <- function(
   
   tidy_lambda <- tidyr::pivot_wider(
     tidy_lambda, 
-    names_from = .data$topic, 
-    values_from = .data$lambda
+    names_from = topic, 
+    values_from = lambda
   )
 
   result <- dplyr::right_join(

@@ -5,6 +5,7 @@
 #define RCPP_tidylda_RCPPEXPORTS_H_GEN_
 
 #include <RcppArmadillo.h>
+#include <RcppThread.h>
 #include <Rcpp.h>
 
 namespace tidylda {

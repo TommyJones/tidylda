@@ -3,6 +3,7 @@
 
 #include "../inst/include/tidylda.h"
 #include <RcppArmadillo.h>
+#include <RcppThread.h>
 #include <Rcpp.h>
 #include <string>
 #include <set>

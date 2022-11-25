@@ -53,6 +53,7 @@ Suggests:
     quanteda,
     testthat,
     tm,
+    slam,
     spelling,
     covr
 LinkingTo: 

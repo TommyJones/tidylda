@@ -25,3 +25,6 @@
 
 ^vignettes$
 ^codecov\.yml$
+
+^man/*.icloud$
+

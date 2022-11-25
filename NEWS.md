@@ -2,7 +2,7 @@
 
 * Updated internal function `convert_dtm` to not use functions deprecated as of
   Matrix 1.4-2
-* Updates for compatability with R CMD check and tidy select variables
+* Updates for compatibility with R CMD check and tidy select variables
 
 # tidylda 0.0.2
 

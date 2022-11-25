@@ -1,6 +1,7 @@
 AppVeyor
 Blei
 CMD
+Codecov
 Cv
 DTM
 ExPORTER
@@ -19,6 +20,7 @@ al
 arbylon
 arma
 bool
+buildstatus
 burnin
 dgCMatrix
 doi

@@ -55,7 +55,8 @@ Suggests:
     tm,
     slam,
     spelling,
-    covr
+    covr,
+    rmarkdown
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
@@ -66,3 +67,4 @@ RoxygenNote: 7.2.2
 Language: en-US
 SystemRequirements: C++11
 LazyData: true
+VignetteBuilder: knitr

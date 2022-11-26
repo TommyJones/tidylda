@@ -1,0 +1,53 @@
+---
+title: "Introduction to tidylda"
+author: "Tommy Jones"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Note: for code examples, see README.md
+
+
+# Introduction to the `tidylda` package
+
+`tidylda` implements  Latent Dirichlet Allocation using style conventions from the [tidyverse](https://style.tidyverse.org/) and [tidymodels](https://tidymodels.github.io/model-implementation-principles/). `tidylda`'s Gibbs sampler is written in C++ for performance and offers several novel features. It also has methods for sampling from the posterior of a trained model, for more traditional Bayesian analyses.
+
+_tidylda_'s Gibbs sampler has several unique features, described below.
+
+**Non-uniform initialization:** Most LDA Gibbs samplers initialize by assigning words to topics and topics to documents (i.e., construct the $\boldsymbol{Cd}$ and $\boldsymbol{Cv}$ matrices) by sampling from a uniform distribution. This ensures initialization without incorporating any prior information. _tidylda_ incorporates the priors in its initialization. It begins by drawing $P(\text{topic}|\text{document})$ and $P(\text{word}|\text{topic})$ from Dirichlet distributions with parameters $\boldsymbol\alpha$ and $\boldsymbol\eta$, respectively. Then _tidylda_ uses the above probabilities to construct $P(\text{topic}|\text{word}, \text{document})$ and makes a single run of the Gibbs sampler to initialize $\boldsymbol{Cd}$ and $\boldsymbol{Cv}$. This non-uniform initialization powers transfer learning with LDA (tLDA), described elsewhere, by starting a Gibbs run near where the previous run left off. For initial models, it uses the user's prior information to tune where sampling starts.
+
+**Flexible priors:** _tidylda_ has multiple options for setting LDA priors. Users may set scalar values for $\boldsymbol\alpha$ and $\boldsymbol\eta$ to construct symmetric priors. Users may also choose to construct vector priors for both $\boldsymbol\alpha$ and $\boldsymbol\eta$ for a full specification of LDA. Additionally, _tidylda_ allows users to set a matrix prior for $\boldsymbol\eta$, enabled by its implementation of tLDA. This lets users to set priors over word-topic relationships informed by expert input. The best practices for encoding expert input in this manner are not yet well studied. Nevertheless, this capability makes _tidylda_ unique among LDA implementations. 
+
+**Burn in iterations and posterior averaging:** Most LDA Gibbs samplers construct posterior estimates of $\boldsymbol\Theta$ and $\boldsymbol{B}$ from $\boldsymbol{Cd}$ and $\boldsymbol{Cv}$'s values of the final iteration of sampling, effectively using a single sample. This is inconsistent with best practices from Bayesian statistics, which is to average over many samples from a stable posterior. _tidylda_ enables averaging across multiple samples of the posterior with the `burnin` argument. When `burnin` is set to a positive integer, _tidylda_ averages the posterior across all iterations larger than `burnin`. For example, if `iterations` is 200 and `burnin` is 150, _tidylda_ will return a posterior estimate that is an average of the last 50 sampling iterations. This ensures that posterior estimates are more likely to be representative than any single sample.
+
+**Transfer learning with tLDA:** Finally, _tidylda_'s Gibbs sampler enables transfer learning with tLDA. The full specification of tLDA and details on its implementation in _tidylda_ are described briefly in the tLDA vignette and more thoroughly in forthcoming research.
+
+### Tidy Methods
+
+_tidylda_'s construction follows _Conventions of R Modeling Packages_ [@tidymodelsbook]. In particular, it contains methods for `print`, `summary`, `glance`, `tidy`, and `augment`, consistent with other "tidy" packages. These methods are briefly described below.
+
+* `print`, `summary`, and `glance` return various summaries of the contents of a `tidylda` object, into which an LDA model trained with _tidylda_ is stored.
+* `tidy` returns the contents of $\boldsymbol\Theta$, $\boldsymbol{B}$, or $\boldsymbol\Lambda$ (stored as `theta`, `beta`, and `lambda` respectively), as specified by the user, formatted as a tidy `tibble`, instead of a numeric matrix.
+* `augment` appends model outputs to observational-level data. Taking the cue from [_tidytext_](https://github.com/juliasilge/tidytext), "observational-level" data is one row per word per document. Therefore, the key statistic used by `augment` is $P(\text{topic}|\text{word}, \text{document})$. _tidylda_ calculates this as $\boldsymbol\Lambda \times P(\text{word}|\text{document})$, where $P(\text{word}|\text{document}_d) = \frac{\boldsymbol{x}_d}{\sum_{v=1}^V x_{d,v}}$. 
+
+### Other Noteable Features
+
+_tidylda_ has three evaluation metrics for topic models, two goodness-of-fit measures---$R^2$ as implemented from [_mvrsquared_](https://cran.r-project.org/package=mvrsquared) and the log likelihood of the model given the data---and one coherence measure---probabilistic coherence. A flag set during model fitting with `calc_r2 = TRUE`[^calcr2] will return a model with an $R^2$ statistic. Similarly, the log likelihood of the model, given the data, is calculated at each Gibbs iteration if the user selects `calc_likelihood = TRUE` during model fitting. 
+
+The coherence measure is called probabilistic coherence. (See vignette on probabilistic coherence.) Probabilistic coherence is bound between -1 and 1. Values near zero indicate that the top words in a topic are statistically independent from each other. Positive values indicate that the top words in a topic are positively correlated in a statistically-dependent manner. Negative values indicate that the words in a topic are negatively correlated with each other in a statistically-dependent manner. (In practice, negative values tend to be very near zero.)
+
+[^calcr2]: Users can calculate $R^2$ after a model is fit by using the _mvrsquared_ package or calling `tidylda:::calc_lda_rsquared`. `calc_lda_rsquared` is an internal function to _tidylda_, requiring the package name followed by three colons, as is R's standard.
+
+_tidylda_ enables traditional Bayesian uncertainty quantification by sampling from the posterior. The posterior distribution for $\boldsymbol\theta_d$ is $\text{Dirichlet}(\boldsymbol{Cd}_d + \boldsymbol\alpha)$ and the posterior distribution for $\boldsymbol\beta_k$ is $\text{Dirichlet}(\boldsymbol{Cv}_k + \boldsymbol\eta)$ (or $\text{Dirichlet}(\boldsymbol{Cv}_k + \boldsymbol\eta_k)$ for tLDA). _tidylda_ enables a `posterior` method for `tidylda` objects, allowing users to sample from the posterior to quantify uncertainty for estimates of estimated parameters.
+
+_tidylda_ uses one of two calculations for predicting topic distributions (i.e., $\hat{\boldsymbol\theta}_d$) for new documents. The first, and default, is to run the Gibbs sampler, constructing a new $\boldsymbol{Cd}$ for the new documents but without updating topic-word distributions in $\boldsymbol{B}$. The second uses a dot product as described in Appendix 1. _tidylda_ acually uses the dot product prediction combined with the _non-uniform initialization_---described above---to initialize $\boldsymbol{Cd}$ when predicting using the Gibbs sampler.
+
+## Discussion
+
+While many other topic modeling packages exist, _tidylda_ is very user friendly and brings novel features. Its user friendliness comes from compatibility with the tidyverse. And _tidylda_ includes tLDA and other methods contained in the previous chapters of this dissertation. It also has methods for sampling from the posterior of a trained model, for more traditional Bayesian analyses. _tidylda_'s Gibbs sampler is written in C++ for performance.
+
+

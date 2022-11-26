@@ -1,0 +1,156 @@
+---
+title: "Transfer Learning with LDA (tLDA)"
+author: "Tommy Jones"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Fine Tuning Latent Dirichlet Allocation for Transfer Learning {#transfer}
+As stated in Section 1, statistical properties of language make the fine tuning paradigm of transfer learning attractive for analyses of corpora. The pervasiveness of power laws in language---the most famous example of which is Zipf's law---mean that we can expect just about any corpus of language to not contain information relevant to the analysis. (i.e., Linguistic information necessary for understanding the corpus of study would be contained in a super set of language around---but not contained in---said corpus.) 
+
+Intuitively, when people learn a new subject from by reading, they do it in a way that on its surface appears consistent with fine tuning transfer learning. Humans have general competence in a language before consulting a corpus to learn a new subject. This person then reads the corpus, learns about the subject, and in the process updates and expands their knowledge of the anguage. Also, LDA has attractive properties as a model for statistical analyses of corpora. Its very nature allows us to use probability theory to guide model specification and quantify uncertainty around claims made with the model. 
+
+This chapter introduces _tLDA_, short for transfer-LDA. tLDA enables use cases for fine-tuning from a base model with a single incremental update (i.e., "fine tuning") or with many incremental updates---e.g., on-line learning, possibly in a time-series context---using Latent Dirichlet Allocation. tLDA uses collapsed Gibbs sampling but its methods should extend to other MCMC methods. tLDA is available for the R language for statistical computing in the _tidylda_ package.
+
+## Contribution
+tLDA is a model for updating topics in an existing model with new data, enabling incremental updates and time-series use cases. tLDA has three characteristics differentiating it from previous work:
+
+1. Flexibility - Most prior work can only address use cases from one of the above categories. In theory, tLDA can address all three. However, exploring use of tLDA to encode expert input into the $\boldsymbol\eta$ prior is left to future work.
+2. Tunability - tLDA introduces only a single new tuning parameter, $a$. Its use is intuitive, balancing the ratio of tokens in $\boldsymbol{X}^{(t)}$ to the base model's data, $\boldsymbol{X}^{(t-1)}$. 
+3. Analytical - tLDA allows data sets and model updates to be chained together preserving the Markov property, enabling analytical study through incremental updates.
+
+## tLDA
+
+### The Model
+
+Formally, tLDA is
+
+\begin{align}
+z_{d_{n}}|\boldsymbol\theta_d &\sim 
+\text{Categorical}(\boldsymbol\theta_d)\\
+w_{d_{n}}|z_{k},\boldsymbol\beta_k^{(t)} &\sim
+\text{Categorical}(\boldsymbol\beta_k^{(t)}) \\
+\boldsymbol\theta_d &\sim
+\text{Dirichlet}(\boldsymbol\alpha_d)\\
+\boldsymbol\beta_k^{(t)} &\sim
+\text{Dirichlet}(\omega_k^{(t)} \cdot \mathbb{E}\left[\boldsymbol\beta_k^{(t-1)}\right])
+\end{align}
+
+The above indicates that tLDA places a matrix prior for words over topics where $\eta_{k, v}^{(t)} = \omega_{k}^{(t)} \cdot \mathbb{E}\left[\beta_{k,v}^{(t-1)}\right] = \omega_{k}^{(t)} \cdot \frac{Cv_{k,v}^{(t-1)} + \eta_{k,v}^{(t-1)}}{\sum_{v=1}^V Cv_{k,v}^{(t-1)}}$. Because the posterior at time $t$ depends only on data at time $t$ and the state of the model at time $t-1$, tLDA models retain the Markov property.
+
+#### Selecting the prior weight
+Each $\omega_k^{(t)}$ tunes the relative weight between the base model (as prior) and new data in the posterior for each topic. This specification introduces $K$ new tuning parameters and setting $\omega_k^{(t)}$ directly is possible but not intuitive. However, after introducing a new parameter, we can algebraically show that the $K$ tuning parameters collapse into a single parameter with several intuitive critical values. This tuning parameter, $a^{(t)}$, is related to each $\omega_k^{(t)}$ as follows:
+
+\begin{align}
+\omega_k^{(t)} &=
+a^{(t)} \cdot \sum_{v = 1}^V Cv_{k,v}^{(t-1)} + \eta_{k,v}^{(t-1)}
+\end{align}
+
+See below for the full derivation of the relationship between $a^{(t)}$ and $\omega_k^{(t)}$.
+
+When $a^{(t)} = 1$, fine tuning is equivalent to adding the data in $\boldsymbol{X}^{(t)}$ to $\boldsymbol{X}^{(t-1)}$. In other words, each word occurrence in $\boldsymbol{X}^{(t)}$ carries the same weight in the posterior as each word occurrence in $\boldsymbol{X}^{(t-1)}$. If $\boldsymbol{X}^{(t)}$ has more data than $\boldsymbol{X}^{(t-1)}$, then it will carry more weight overall. If it has less, it will carry less.
+
+When $a^{(t)} < 1$, then the posterior has recency bias. Each word occurrence in $\boldsymbol{X}^{(t)}$ carries more weight than each word occurrence in $\boldsymbol{X}^{(t-1)}$. When When $a^{(t)} > 1$, then the posterior has precedent bias. Each word occurrence in $\boldsymbol{X}^{(t)}$ carries less weight than each word occurrence in $\boldsymbol{X}^{(t-1)}$.
+
+Another pair of critical values are $a^{(t)} = \frac{N^{(t)}}{N^{(t-1)}}$ and $a^{(t)} = \frac{N^{(t)}}{N^{(t-1)} +\sum_{d,v} \eta_{d,v}}$, where $N^{(\cdot)} = \sum_{d,v} X^{(\cdot)}_{d,v}$. These put the total number of word occurrences in $\boldsymbol{X}^{(t)}$ and $\boldsymbol{X}^{(t-1)}$ on equal footing excluding and including $\boldsymbol\eta^{(t-1)}$, respectively. These values may be useful when comparing topical differences between a baseline group in $\boldsymbol{X}^{(t-1)}$ and "treatment" group in $\boldsymbol{X}^{(t)}$, though this use case is left to future work.
+
+### The _tidylda_ Implementation of tLDA
+_tidylda_ implements an algorithm for tLDA in 6 steps.
+
+1. Construct $\boldsymbol\eta^{(t)}$
+2. Predict $\hat{\boldsymbol\Theta}^{(t)}$ using topics from $\hat{\boldsymbol{B}}^{(t-1)}$
+3. Align vocabulary
+4. Add new topics
+5. Initialize $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$
+6. Begin Gibbs sampling with $P(z = k) = \frac{Cv_{k, n} + \eta_{k,n}}{\sum_{v=1}^V Cv_{k, v} + \eta_{k,v}} \cdot \frac{Cd_{d, k} + \alpha_k}{\left(\sum_{k=1}^K Cd_{d, k} + \alpha_k\right) - 1}$
+
+Step 1 uses the relationship above. Step 2 uses a standard prediction method for LDA models. _tidylda_ uses a dot-product prediction for speed. MCMC prediction would work as well.
+
+Any real-world application of tLDA presents several practical issues which are addressed in steps 3 - 5, described in more detail below. These issues include: the vocabularies in $\boldsymbol{X}^{(t-1)}$ and $\boldsymbol{X}^{(t)}$ will not be identical; users may wish to add topics, expecting $\boldsymbol{X}^{(t)}$ to contain topics not in $\boldsymbol{X}^{(t-1)}$; and $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$ should be initialized proportional to $\boldsymbol{Cd}^{(t-1)}$ and $\boldsymbol{Cv}^{(t-1)}$, respectively.
+
+#### Aligning Vocabulary
+_tidylda_ implements an algorithm to fold in new words. This method slightly modifies the posterior probabilities in $\boldsymbol{B}^{(t-1)}$ and adds a non-zero prior by modifying $\boldsymbol\eta^{(t)}$. It involves three steps. First, append columns to $\boldsymbol{B}^{(t-1)}$ and $\boldsymbol\eta^{(t)}$ that correspond to out-of-vocabulary words. Next, set the new entries for these new words to some small value, $\epsilon > 0$ in both $\boldsymbol{B}^{(t-1)}$ and $\boldsymbol\eta^{(t)}$. Finally, re-normalize the rows of $\boldsymbol{B}^{(t-1)}$ so that they sum to one. For computational reasons, $\epsilon$ must be greater than zero. Specifically, the _tidylda_ implementation chooses $\epsilon$ to the lowest decile of all values in $\boldsymbol{B}^{(t-1)}$ or $\boldsymbol\eta^{(t)}$, respectively. This choice is somewhat arbitrary. $\epsilon$ should be small and the lowest decile of a power law seems sufficiently small. 
+
+#### Adding New Topics
+tLDA employs a similar method to add new, randomly initialized, topics if desired. This is achieved by appending rows to both $\boldsymbol\eta^{(t)}$ and $\boldsymbol{B}^{(t)}$, adding entries to $\boldsymbol\alpha$, and adding columns to $\boldsymbol\Theta^{(t)}$, obtained in step two above. The tLDA implementation in _tidylda_ sets the rows of $\boldsymbol\eta^{(t)}$ equal to the column means across previous topics. Then new rows of $\boldsymbol{B}^{(t)}$ are the new rows of $\boldsymbol\eta^{(t)}$ but normalized to sum to one. This effectively sets the prior for new topics equal to the average of the weighted posteriors of pre-existing topics.
+
+The choice of setting the prior to new topics as the average of pre-existing topics is admittedly subjective. A uniform prior over words is unrealistic, being inconsistent with Zipf's law. The average over existing topics is only one viable choice. Another choice might be to choose the shape of new $\boldsymbol\eta_k$ from an estimated Zipf's coefficient of $\boldsymbol{X}^{(t)}$ and choose the magnitude by another means. I leave this exploration for future research.
+
+New entries to $\boldsymbol\alpha$ are initialized to be the median value of the pre-existing topics in $\boldsymbol\alpha$. Similarly, columns are appended to $\boldsymbol\Theta^{(t)}$. Entries for new topics are taken to be the median value for pre-existing topics on a per-document basis. This effectively places a uniform prior for new topics. This choice is also subjective. Other heuristic choices may be made, but it is not obvious that they would be any better or worse choices. I also leave this to be explored in future research.
+
+#### Initializing $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$
+Like most other LDA implementations, _tidylda_'s tLDA initializes tokens for $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$ with a single Gibbs iteration. However, instead of sampling from a uniform random for this initial step, a topic for the $n$-th word of the $d$-th document is drawn from the following:
+
+\begin{align}
+P(z_{d_{n}} = k) &= \hat{\boldsymbol\beta}_{k,n}^{(t)} \cdot \hat{\boldsymbol\theta}_{d,k}^{(t)}
+\end{align}
+
+After a single iteration, the number of times each topic was sampled at each document and word occurrence is counted to produce $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$. After initialization where topic-word distributions are fixed, MCMC sampling then continues in a standard fashion, recalculating $\boldsymbol{Cd}^{(t)}$ and $\boldsymbol{Cv}^{(t)}$ (and therefore $P(z_{d_{n}} = k)$) at each step.
+
+# Partitioning the Posterior to Collapse $K$ Weights ($\omega_k$) Into One, $a$
+
+The posterior distribution of topic $k$ is
+
+\begin{align}
+  \boldsymbol\beta_k &\sim 
+    \text{Dirichlet}(\boldsymbol{Cv}_k + \boldsymbol\eta_k)
+\end{align}
+
+For two arbitrary sets of documents, we can break up the posterior parameter.
+
+\begin{align}
+  \boldsymbol\beta_k &\sim 
+    \text{Dirichlet}(\boldsymbol{Cv}_k^{(1)} + \boldsymbol{Cv}_k^{(2)} + \boldsymbol\eta_k)
+\end{align}
+
+This has two implications:
+
+1. We can quantify how much a set of documents contributes to the posterior topics. This may allow us to quantify biases in our topic models. (This is left for future research.)
+2. We can interpret the weight parameter, $\omega_k$ for transfer learning as the weight that documents from the base model affect the posterior of the fine-tuned model.
+
+Changing notation, for (2) we have
+
+\begin{align}
+  \boldsymbol\beta_k &\sim 
+    \text{Dirichlet}(\boldsymbol{Cv}_k^{(t)} + \boldsymbol\eta_k^{(t)})\\
+  &\sim
+    \text{Dirichlet}(\boldsymbol{Cv}_k^{(t)} + 
+      \boldsymbol{Cv}_k^{(t-1)} + \boldsymbol\eta_k^{(t-1)})
+\end{align}
+
+Substituting in the definition from tLDA, we have
+
+\begin{align}
+  \boldsymbol\eta_k^{(t)} &= 
+    \boldsymbol{Cv}_k^{(t-1)} + \boldsymbol\eta_k^{(t-1)}\\
+    &= 
+    \omega_k^{(t)} \cdot \mathbb{E}\left[\boldsymbol\beta_k^{(t-1)}\right]
+\end{align}
+
+Solving for $\omega_k^{(t)}$ in $\boldsymbol{Cv}_k^{(t-1)} + \boldsymbol\eta_k^{(t-1)} = \omega_k^{(t)} \cdot \mathbb{E}\left[\boldsymbol\beta_k^{(t-1)}\right]$ gives us
+
+\begin{align}
+  \omega_k^{*(t)} &=
+    \sum_{v=1}^V\left(Cv_{k,v}^{(t-1)} + \eta_{k,v}^{(t-1)} \right)
+\end{align}
+
+Where $\omega_k^{*(t)}$ is a critical value such that fine tuning is just like adding data to the base model. In other words each token from the base model, $\boldsymbol{X}^{(t-1)}$, has the same weight as each token from $\boldsymbol{X}^{(t)}$. This gives us an intuitive means to tune the weight of the base model when fine tuning and collapses $K$ tuning parameters into one. Specifically:
+
+\begin{align}
+  \omega_k^{(t)} 
+    &= a^{(t)} \cdot \omega_k^{*(t)}\\
+    &= a^{(t)} \cdot \sum_{v=1}^V\left(Cv_{k,v}^{(t-1)} + \eta_{k,v}^{(t-1)} \right)
+\end{align}
+
+and 
+
+\begin{align}
+  \boldsymbol\eta_k^{(t)}
+    &= a^{(t)} \cdot 
+      \sum_{v=1}^V\left(Cv_{k,v}^{(t-1)} + \eta_{k,v}^{(t-1)} \right) \cdot
+      \mathbb{E}\left[\boldsymbol\beta_k^{(t-1)}\right]
+\end{align}

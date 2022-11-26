@@ -8,3 +8,5 @@ src/*.dll
 _notes.md
 *.icloud
 inst/doc
+/doc/
+/Meta/

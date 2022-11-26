@@ -27,3 +27,5 @@
 
 ^man/*.icloud$
 
+^doc$
+^Meta$

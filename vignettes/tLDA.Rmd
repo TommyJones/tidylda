@@ -2,7 +2,11 @@
 title: "Transfer Learning with LDA (tLDA)"
 author: "Tommy Jones"
 date: "`r Sys.Date()`"
-output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transfer Learning with LDA (tLDA)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}---
 ---
 
 ```{r setup, include=FALSE}

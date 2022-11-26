@@ -23,7 +23,6 @@
 
 ^data/nih.rda
 
-^vignettes$
 ^codecov\.yml$
 
 ^man/*.icloud$

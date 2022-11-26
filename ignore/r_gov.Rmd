@@ -1,0 +1,333 @@
+---
+title: "R | Gov 2021"
+author: "Tommy Jones"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+library(tidytext)
+library(tidyverse)
+library(tidylda)
+library(Matrix)
+
+library(gutenbergr)
+
+
+```
+
+## Format data
+```{r load-data}
+
+# Download war of the worlds
+book <- 
+  gutenberg_works(title == "The War of the Worlds") %>%
+  gutenberg_download(meta_fields = "title")
+
+book
+
+# divide the book by paragraph and chapter
+break_indicator <- numeric(nrow(book)) 
+
+for (j in 2:length(break_indicator)) {
+  if (book$text[j] == "" & book$text[j] == book$text[j - 1]) {
+    break_indicator[j] <- 1
+  }
+}
+
+book <- 
+  book %>%
+  filter(break_indicator != 1) %>%# remove extra blank lines
+  mutate(
+    paragraph = cumsum(text == ""),
+    chapter = cumsum(str_detect(text, "^[IVX]+\\.$"))
+  )
+
+book
+
+# create a tidy tibble 
+tidy_book <- 
+  book %>%
+  filter(chapter > 0) %>%
+  unnest_tokens(word, text)
+
+tidy_book
+
+word_counts_by_chapter <- 
+  tidy_book %>%
+  anti_join(stop_words) %>%
+  count(chapter, word, sort = TRUE)
+
+word_counts_by_chapter %>%
+  arrange(desc(n))
+
+```
+
+
+```{r make-dtm-fun}
+
+make_dtm <- function(tidy_docs) {
+  
+  tidy_docs %>%
+    anti_join(stop_words) %>%
+    count(paragraph, word) %>%
+    cast_sparse(paragraph, word, n)
+  
+}
+
+```
+
+
+## Build model on 1/2 of book and summarize
+
+```{r dtm-half-1}
+
+dtm_1 <-
+  tidy_book %>%
+  filter(chapter < 14) %>%
+  make_dtm()
+
+dim(dtm_1)
+
+```
+
+```{r model-half-1}
+
+model_1 <- 
+  tidylda(
+    data = dtm_1,
+    k = 27,
+    iterations = 200,
+    burnin = 150,
+    calc_r2 = TRUE
+  )
+
+model_1
+
+
+View(model_1$summary)
+```
+
+```{r tidy-beta1}
+# tidy beta, P(token | topic)
+tidy_beta_1 <- tidy(model_1, "beta")
+
+tidy_beta_1
+
+top_terms_1 <-
+  tidy_beta_1 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms_1 %>%
+  mutate(token = reorder_within(token, beta, topic)) %>%
+  ggplot(aes(beta, token, fill = factor(topic))) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+
+```
+
+
+```{r tidy-theta}
+
+tidy_theta_1 <- tidy(model_1, "theta")
+
+tidy_theta_1
+
+tidy_theta_1 %>%
+  filter(topic == 10) %>%
+  ggplot(aes(x = as.numeric(document), y = theta)) +
+  geom_line()
+
+
+```
+
+
+## Predict on 2nd 1/2 of book and compare
+```{r predict}
+
+dtm_2 <-
+  tidy_book %>%
+  filter(chapter >= 14) %>%
+  make_dtm()
+
+
+dim(dtm_2)
+
+p <- 
+  predict(
+    object = model_1,
+    new_data = dtm_2,
+    method = "gibbs",
+    iterations = 200,
+    burnin = 150
+  )
+
+tidy_p <- 
+  p %>%
+  tidy("theta")
+
+tidy_p
+
+tidy_p %>%
+  filter(topic == 10) %>%
+  ggplot(aes(x = as.numeric(document), y = theta)) +
+  geom_line() 
+
+
+
+```
+
+```{r compare-1}
+
+prev1 <- 
+  (model_1$theta * rowSums(dtm_1)) %>%
+  tidy("theta") %>%
+  group_by(topic) %>%
+  summarise(prevalence = sum(theta)) %>%
+  ungroup() %>%
+  mutate(prevalence = prevalence / sum(prevalence) * 100)
+
+prev1 %>%
+  arrange(desc(prevalence))
+
+prev2 <-
+  (p * rowSums(dtm_2)) %>%
+  tidy("theta") %>%
+  group_by(topic) %>%
+  summarise(prevalence = sum(theta)) %>%
+  ungroup() %>%
+  mutate(prevalence = prevalence / sum(prevalence) * 100)
+
+prev2 %>%
+  arrange(desc(prevalence))
+
+# plot a comparison 
+prev1 %>%
+    mutate(model = 1) %>%
+    bind_rows(prev2 %>% mutate(model = 2)) %>%
+    ggplot(aes(x = topic, y = prevalence, fill = factor(model))) +
+    geom_bar(position="dodge", stat="identity")
+
+```
+
+
+
+## Fine tune on 2nd 1/2 of book and compare
+
+```{r}
+model_2 <-
+  refit(
+    object = model_1,
+    new_data = dtm_2,
+    iterations = 200,
+    burnin = 150,
+    calc_r2 = TRUE
+  )
+
+model_2
+
+
+# compare prevalence
+prev2_2 <- 
+  (model_2$theta * rowSums(dtm_2)) %>%
+  tidy("theta") %>%
+  group_by(topic) %>%
+  summarise(prevalence = sum(theta)) %>%
+  ungroup() %>%
+  mutate(prevalence = prevalence / sum(prevalence) * 100)
+
+prev1 %>%
+    mutate(model = 1) %>%
+    bind_rows(prev2_2 %>% mutate(model = 2)) %>%
+    ggplot(aes(x = topic, y = prevalence, fill = factor(model))) +
+    geom_bar(position="dodge", stat="identity")
+
+# which topics changed the most?
+topic_changes <-
+  tidy_beta_1 %>%
+  mutate(beta_1 = beta) %>%
+  select(-beta) %>%
+  full_join(
+    tidy(model_2, "beta") %>%
+      mutate(beta_2 = beta) %>%
+      select(-beta)
+  ) %>%
+  mutate(beta_1 = replace_na(beta_1, 0), beta_2 = replace_na(beta_2, 0)) %>%
+  mutate(diff = beta_2 - beta_1)
+
+total_topic_changes <-
+  topic_changes %>%
+  group_by(topic) %>%
+  summarise(total_change = sum(abs(diff))) %>%
+  ungroup() %>%
+  arrange(desc(total_change)) 
+
+total_topic_changes %>%
+  ggplot(aes(x = reorder(factor(topic), -total_change), y = total_change, 
+             fill = total_change)) + 
+  geom_col(show.legend = FALSE) 
+
+```
+
+
+
+## Time series of topics by chapter
+
+```{r time-series}
+
+dtm_list <- 
+  map(1:max(tidy_book$chapter), function(x) {
+    tidy_book %>%
+      filter(chapter >= 14) %>%
+      make_dtm()
+  })
+
+model_list <- vector(mode = "list", length = length(dtm_list))
+
+model_list[[1]] <- tidylda(
+  data = dtm_list[[1]],
+  k = 4,
+  iterations = 200,
+  burnin = 150,
+  calc_r2 = TRUE
+)
+
+model_list[[1]]$summary$chapter <- 1
+
+for (j in 2:length(model_list)) {
+  model_list[[j]] <-
+    refit(
+      object = model_list[[j - 1]],
+      new_data = dtm_list[[j]],
+      additional_k = 1,
+      iterations = 200,
+      burnin = 150,
+      calc_r2 = TRUE
+    )
+  
+  model_list[[j]]$summary$chapter <- j
+}
+
+summary_by_time <- 
+  model_list %>%
+  map(function(x) x$summary) %>%
+  bind_rows()
+
+summary_by_time %>%
+  ggplot(aes(x = chapter, y = prevalence, colour = factor(topic))) +
+  geom_line(show.legend = FALSE)
+  
+summary_by_time %>%
+  ggplot(aes(x = chapter, y = coherence, colour = factor(topic))) +
+  geom_line(show.legend = FALSE)
+```
+

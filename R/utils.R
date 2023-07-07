@@ -430,11 +430,17 @@ initialize_topic_counts <- function(
   
   # get Cd itself
   # (note to future Tommy: consider a scalable version of this using future_map)
-  Cd_start <- recover_counts_from_probs(
-    prob_matrix = theta_initial,
-    prior_matrix = alph,
-    total_vector = Matrix::rowSums(dtm)
-  )
+  
+  # BELOW COMMENTED OUT BECAUSE recover_counts_from_probs RETURNS WRONG COUNTS
+  # HACK IS TO JUST DO THIS PROPORTIONAL TO theta
+  
+  # Cd_start <- recover_counts_from_probs(
+  #   prob_matrix = theta_initial,
+  #   prior_matrix = alph,
+  #   total_vector = Matrix::rowSums(dtm)
+  # )
+  
+  Cd_start <- theta_initial * rowSums(dtm)
   
   # Initialize objects with that single Gibbs iteration mentioned above
   # executed in parallel with RcppThread

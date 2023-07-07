@@ -282,6 +282,11 @@ tidylda_bridge <- function(
     threads = threads
   )
 
+  ### return data if desired ----
+  if (return_data) {
+    result$data <- dtm
+  }
+  
   ### return the result ----
   result
 }

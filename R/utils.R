@@ -440,7 +440,7 @@ initialize_topic_counts <- function(
   #   total_vector = Matrix::rowSums(dtm)
   # )
   
-  Cd_start <- theta_initial * rowSums(dtm)
+  Cd_start <- theta_initial * Matrix::rowSums(dtm)
   
   # Initialize objects with that single Gibbs iteration mentioned above
   # executed in parallel with RcppThread

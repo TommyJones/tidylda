@@ -38,7 +38,7 @@ _tidylda_'s construction follows _Conventions of R Modeling Packages_ [@tidymode
 * `tidy` returns the contents of $\boldsymbol\Theta$, $\boldsymbol{B}$, or $\boldsymbol\Lambda$ (stored as `theta`, `beta`, and `lambda` respectively), as specified by the user, formatted as a tidy `tibble`, instead of a numeric matrix.
 * `augment` appends model outputs to observational-level data. Taking the cue from [_tidytext_](https://github.com/juliasilge/tidytext), "observational-level" data is one row per word per document. Therefore, the key statistic used by `augment` is $P(\text{topic}|\text{word}, \text{document})$. _tidylda_ calculates this as $\boldsymbol\Lambda \times P(\text{word}|\text{document})$, where $P(\text{word}|\text{document}_d) = \frac{\boldsymbol{x}_d}{\sum_{v=1}^V x_{d,v}}$. 
 
-### Other Noteable Features
+### Other Notable Features
 
 _tidylda_ has three evaluation metrics for topic models, two goodness-of-fit measures---$R^2$ as implemented from [_mvrsquared_](https://cran.r-project.org/package=mvrsquared) and the log likelihood of the model given the data---and one coherence measure---probabilistic coherence. A flag set during model fitting with `calc_r2 = TRUE`[^calcr2] will return a model with an $R^2$ statistic. Similarly, the log likelihood of the model, given the data, is calculated at each Gibbs iteration if the user selects `calc_likelihood = TRUE` during model fitting. 
 
@@ -48,7 +48,7 @@ The coherence measure is called probabilistic coherence. (See vignette on probab
 
 _tidylda_ enables traditional Bayesian uncertainty quantification by sampling from the posterior. The posterior distribution for $\boldsymbol\theta_d$ is $\text{Dirichlet}(\boldsymbol{Cd}_d + \boldsymbol\alpha)$ and the posterior distribution for $\boldsymbol\beta_k$ is $\text{Dirichlet}(\boldsymbol{Cv}_k + \boldsymbol\eta)$ (or $\text{Dirichlet}(\boldsymbol{Cv}_k + \boldsymbol\eta_k)$ for tLDA). _tidylda_ enables a `posterior` method for `tidylda` objects, allowing users to sample from the posterior to quantify uncertainty for estimates of estimated parameters.
 
-_tidylda_ uses one of two calculations for predicting topic distributions (i.e., $\hat{\boldsymbol\theta}_d$) for new documents. The first, and default, is to run the Gibbs sampler, constructing a new $\boldsymbol{Cd}$ for the new documents but without updating topic-word distributions in $\boldsymbol{B}$. The second uses a dot product as described in Appendix 1. _tidylda_ acually uses the dot product prediction combined with the _non-uniform initialization_---described above---to initialize $\boldsymbol{Cd}$ when predicting using the Gibbs sampler.
+_tidylda_ uses one of two calculations for predicting topic distributions (i.e., $\hat{\boldsymbol\theta}_d$) for new documents. The first, and default, is to run the Gibbs sampler, constructing a new $\boldsymbol{Cd}$ for the new documents but without updating topic-word distributions in $\boldsymbol{B}$. The second uses a dot product as described in Appendix 1. _tidylda_ actually uses the dot product prediction combined with the _non-uniform initialization_---described above---to initialize $\boldsymbol{Cd}$ when predicting using the Gibbs sampler.
 
 ## Discussion
 

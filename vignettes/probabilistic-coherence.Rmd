@@ -13,9 +13,9 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Coherence measures seek to emulate human judgement quantifiably. They tend to rely on the degree to which words co-occur together. Yet, words may co-occur in ways that are unhelpful. For example, consider the words "the" and "this". They co-occur very frequently in English-language documents. Yet these words are statistically independent. Knowing the relative frequency of the word "the" in a document does not give you any additional information on the relative frequency of the word "this" in a document. 
+Coherence measures seek to emulate human judgment. They tend to rely on the degree to which words co-occur together. Yet, words may co-occur in ways that are unhelpful. For example, consider the words "the" and "this". They co-occur very frequently in English-language documents. Yet these words are statistically independent. Knowing the relative frequency of the word "the" in a document does not give you any additional information on the relative frequency of the word "this" in a document. 
 
-Probabilistic coherence uses the concepts of co-occurrence and statistical independence to rank topics. Note that probabilistic coherence has not yet been rigorously evaluated to assess its correlation to human judgement. Anecdotally, those that have used it tend to find it helpful. Probabilistic coherence is included in both the _textmineR_ and _tidylda_ packages in the R language.
+Probabilistic coherence uses the concepts of co-occurrence and statistical independence to rank topics. Note that probabilistic coherence has not yet been rigorously evaluated to assess its correlation to human judgment. Anecdotally, those that have used it tend to find it helpful. Probabilistic coherence is included in both the _textmineR_ and _tidylda_ packages in the R language.
 
 Probabilistic coherence averages differences in conditional probabilities across the top $M$ most-probable words in a topic. Let $x_{i, k}$ correspond the $i$-th most probable word in topic $k$, such that $x_{1,k}$ is the most probable word, $x_{2,k}$ is the second most probable and so on. Further, let 
 
@@ -27,7 +27,7 @@ Probabilistic coherence averages differences in conditional probabilities across
     \end{cases}
 \end{align}
 
-Then probablistic coherence for the top $M$ terms in topic $k$ is calculated as follows:
+Then probabalistic coherence for the top $M$ terms in topic $k$ is calculated as follows:
 
 \begin{align}
   C(k,M) &= \frac{1}{\sum_{j = 1}^{M - 1} M - j} 
@@ -41,4 +41,4 @@ This brings us to interpretation:
 
 1. If $P(x_{j,k} = 1 | x_{i,k} = 1) - P(x_{j,k} = 1)$ is zero, then $P(x_{j,k} = 1 | x_{i,k} = 1) = P(x_{j,k} = 1)$, the definition of statistical independence.
 2. If $P(x_{j,k} = 1 | x_{i,k} = 1) > P(x_{j,k} = 1)$, then word $j$ is more present than average in contexts also containing word $i$.
-3. If $P(x_{j,k} = 1 | x_{i,k} = 1) < P(x_{j,k} = 1)$, then word $j$ is less present than average in conexts that contain word $i$. LDA is unlikely to find strong negative co-occurrences. In practice, negative values tend to be near zero.
+3. If $P(x_{j,k} = 1 | x_{i,k} = 1) < P(x_{j,k} = 1)$, then word $j$ is less present than average in contexts that contain word $i$. LDA is unlikely to find strong negative co-occurrences. In practice, negative values tend to be near zero.

@@ -68,7 +68,9 @@ remotes::install_github("tommyjones/tidylda")
 
 ```{r example}
 library(tidytext)
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 library(tidylda)
 library(Matrix)
 
@@ -77,17 +79,17 @@ library(Matrix)
 docs <- nih_sample 
 
 # tokenize using tidytext's unnest_tokens
-tidy_docs <- docs %>% 
-  select(APPLICATION_ID, ABSTRACT_TEXT) %>% 
+tidy_docs <- docs |> 
+  select(APPLICATION_ID, ABSTRACT_TEXT) |> 
   unnest_tokens(output = word, 
                 input = ABSTRACT_TEXT,
                 stopwords = stop_words$word,
                 token = "ngrams",
-                n_min = 1, n = 2) %>% 
-  count(APPLICATION_ID, word) %>% 
+                n_min = 1, n = 2) |> 
+  count(APPLICATION_ID, word) |> 
   filter(n>1) #Filtering for words/bigrams per document, rather than per corpus
 
-tidy_docs <- tidy_docs %>% # filter words that are just numbers
+tidy_docs <- tidy_docs |> # filter words that are just numbers
   filter(! stringr::str_detect(tidy_docs$word, "^[0-9]+$"))
 
 # append observation level data 
@@ -96,7 +98,7 @@ colnames(tidy_docs)[1:2] <- c("document", "term")
 
 # turn a tidy tbl into a sparse dgCMatrix 
 # note tidylda has support for several document term matrix formats
-d <- tidy_docs %>% 
+d <- tidy_docs |> 
   cast_sparse(document, term, n)
 
 # let's split the documents into two groups to demonstrate predictions and updates
@@ -166,8 +168,8 @@ p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
 p_dot <- predict(lda, new_data = d2[1, ], method = "dot")
 
 # pull both together into a plot to compare
-tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
-  pivot_longer(cols = gibbs:dot, names_to = "type") %>%
+tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) |>
+  pivot_longer(cols = gibbs:dot, names_to = "type") |>
   ggplot() + 
   geom_bar(mapping = aes(x = topic, y = value, group = type, fill = type), 
            stat = "identity", position="dodge") +
@@ -178,9 +180,9 @@ tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
 # Aggregating over terms results in a distribution of topics over documents
 # roughly equivalent to using the "dot" method of predictions.
 augment_predict <- 
-  augment(lda, tidy_docs, "prob") %>%
-  group_by(document) %>% 
-  select(-c(document, term)) %>% 
+  augment(lda, tidy_docs, "prob") |>
+  group_by(document) |> 
+  select(-c(document, term)) |> 
   summarise_all(function(x) sum(x, na.rm = T))
 
 # reformat for easy plotting
@@ -189,18 +191,18 @@ augment_predict <-
 
 colnames(augment_predict) <- unique(tidy_docs$document)
 
-augment_predict$topic <- 1:nrow(augment_predict) %>% as.factor()
+augment_predict$topic <- 1:nrow(augment_predict) |> as.factor()
 
 compare_mat <- 
-  augment_predict %>%
+  augment_predict |>
   select(
     topic,
     augment = matches(rownames(d2)[1])
-  ) %>%
+  ) |>
   mutate(
     augment = augment / sum(augment), # normalize to sum to 1
     dot = p_dot[1, ]
-  ) %>%
+  ) |>
   pivot_longer(cols = c(augment, dot))
 
 ggplot(compare_mat) + 

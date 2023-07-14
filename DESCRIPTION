@@ -48,6 +48,7 @@ Imports:
     tidyr,
     tidytext
 Suggests:
+    ggplot2,
     knitr,
     parallel,
     quanteda,

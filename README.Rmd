@@ -63,7 +63,9 @@ This package is still in its early stages of development. However, some basic fu
 
 ```{r example}
 library(tidytext)
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 library(tidylda)
 library(Matrix)
 

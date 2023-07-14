@@ -10,7 +10,6 @@ buildstatus](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidyl
 [![Codecov test
 coverage](https://codecov.io/gh/tommyjones/tidylda/branch/main/graph/badge.svg)](https://codecov.io/gh/tommyjones/tidylda/branch/main)
 [![Lifecycle:experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://github.com/tommyjones/tidylda/workflows/R-CMD-check/badge.svg)](https://github.com/tommyjones/tidylda/actions)
 [![R-CMD-check](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 

@@ -98,5 +98,5 @@ fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterat
 
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
-    .Call('_tidylda_RcppExport_registerCCallable', PACKAGE = 'tidylda')
+    .Call(`_tidylda_RcppExport_registerCCallable`)
 })

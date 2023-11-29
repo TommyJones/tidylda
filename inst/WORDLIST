@@ -13,6 +13,7 @@ NumericMatrix
 NumericVector
 README
 Rcpp
+RcppExports
 Silge
 TCM
 Tunability
@@ -28,6 +29,7 @@ buildstatus
 burnin
 calcr
 cdot
+cpp
 decile
 dgCMatrix
 doi

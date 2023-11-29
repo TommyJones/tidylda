@@ -6,7 +6,7 @@ This version is a patch. In this version I have
 
 ## Test environments
 * macOS (on GitHub actions): release
-* ubuntu 22.04.2 (on GitHub actions): release, devel, and oldrel
+* ubuntu 22.04.3 (on GitHub actions): release, devel, and oldrel
 * win-builder: release, devel, and oldrel
 
 ## R CMD check results

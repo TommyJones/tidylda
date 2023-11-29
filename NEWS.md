@@ -1,3 +1,7 @@
+# tidylda 0.0.4
+* Fixed an issue flagged by CRAN related to RcppExports.cpp.
+    See [here](https://github.com/RcppCore/Rcpp/issues/1287) for more info.
+
 # tidylda 0.0.3
 
 * Added "class" and "distribution" options for `predict.tidylda` outputs

@@ -909,9 +909,9 @@ calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
 #' @return Returns an object of class \code{numeric} corresponding to the 
 #' probabilistic coherence of the input topic(s).
 #' @details 
-#'   For each pair of words {a, b} in the top M words in a topic, probabilistic
-#'   coherence calculates P(b|a) - P(b), where {a} is more probable than {b} in
-#'   the topic. For example, suppose the top 4 words in a topic are {a, b, c, d}.
+#'   For each pair of words \{a, b\} in the top M words in a topic, probabilistic
+#'   coherence calculates P(b|a) - P(b), where \{a\} is more probable than \{b\} in
+#'   the topic. For example, suppose the top 4 words in a topic are \{a, b, c, d\}.
 #'   Then, we calculate 1. P(a|b) - P(b), P(a|c) - P(c), P(a|d) - P(d)
 #'   2. P(b|c) - P(c), P(b|d) - P(d)
 #'   3. P(c|d) - P(d)

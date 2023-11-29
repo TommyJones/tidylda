@@ -30,9 +30,9 @@ Calculates the probabilistic coherence of a topic or topics.
 This approximates semantic coherence or human understandability of a topic.
 }
 \details{
-For each pair of words {a, b} in the top M words in a topic, probabilistic
-  coherence calculates P(b|a) - P(b), where {a} is more probable than {b} in
-  the topic. For example, suppose the top 4 words in a topic are {a, b, c, d}.
+For each pair of words \{a, b\} in the top M words in a topic, probabilistic
+  coherence calculates P(b|a) - P(b), where \{a\} is more probable than \{b\} in
+  the topic. For example, suppose the top 4 words in a topic are \{a, b, c, d\}.
   Then, we calculate 1. P(a|b) - P(b), P(a|c) - P(c), P(a|d) - P(d)
   2. P(b|c) - P(c), P(b|d) - P(d)
   3. P(c|d) - P(d)

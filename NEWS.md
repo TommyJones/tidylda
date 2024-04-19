@@ -1,3 +1,7 @@
+# tidylda 0.0.5
+* Fixed "Packages in Suggests should be used conditionally" issue flagged by CRAN
+    Used `testthat::skip_if_not_installed('tm')` in offending test.
+
 # tidylda 0.0.4
 * Fixed an issue flagged by CRAN related to RcppExports.cpp.
     See [here](https://github.com/RcppCore/Rcpp/issues/1287) for more info.

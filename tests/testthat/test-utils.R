@@ -12,35 +12,41 @@ tidy_docs <- unnest_tokens(
 
 tidy_docs$count <- 1
 
-triplet_dtm <- cast_dtm(tidy_docs,
-                        document = "APPLICATION_ID",
-                        term = "word",
-                        value = "count"
-)
 
-q_dfm <- cast_dfm(tidy_docs,
-                  document = "APPLICATION_ID",
-                  term = "word",
-                  value = "count"
-)
-
-sparse_mat <- cast_sparse(tidy_docs,
-                       row = "APPLICATION_ID",
-                       column = "word",
-                       value = "count"
-)
-
-mat <- as.matrix(q_dfm)
-
-vec <- mat[1, ]
-
-vec_nonames <- vec
-
-names(vec_nonames) <- NULL
 
 ### tests for convert_dtm ----
 
 test_that("convert_dtm can handle various inputs", {
+  
+  skip_if_not_installed("tm")
+  
+  triplet_dtm <- cast_dtm(tidy_docs,
+                          document = "APPLICATION_ID",
+                          term = "word",
+                          value = "count"
+  )
+  
+  q_dfm <- cast_dfm(tidy_docs,
+                    document = "APPLICATION_ID",
+                    term = "word",
+                    value = "count"
+  )
+  
+  
+  
+  sparse_mat <- cast_sparse(tidy_docs,
+                            row = "APPLICATION_ID",
+                            column = "word",
+                            value = "count"
+  )
+  
+  mat <- as.matrix(q_dfm)
+  
+  vec <- mat[1, ]
+  
+  vec_nonames <- vec
+  
+  names(vec_nonames) <- NULL
   
   # simple triplet
   d <- convert_dtm(triplet_dtm)
@@ -155,6 +161,14 @@ test_that("format_alpha also chokes on bad inputs", {
 })
 
 test_that("tidy_dgcmatrix works as expected",{
+  
+  skip_if_not_installed("tm")
+  
+  triplet_dtm <- cast_dtm(tidy_docs,
+                          document = "APPLICATION_ID",
+                          term = "word",
+                          value = "count"
+  )
   
   d <- convert_dtm(triplet_dtm)
   

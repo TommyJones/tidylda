@@ -1,8 +1,8 @@
-## Patch release version 0.0.4
+## Patch release version 0.0.5
 This version is a patch. In this version I have
 
-* Fixed an issue flagged by CRAN related to RcppExports.cpp.
-    See [here](https://github.com/RcppCore/Rcpp/issues/1287) for more info.
+* Fixed "Packages in Suggests should be used conditionally" issue flagged by CRAN
+    Used `testthat::skip_if_not_installed('tm')` in offending test.
 
 ## Test environments
 * macOS (on GitHub actions): release

@@ -1,4 +1,4 @@
-## Patch release version 0.0.5
+## Resubmission version 0.0.5
 Resubmission to fix one other instance of an invalid URL. All is good now.
 Sorry for missing it the first time.
 

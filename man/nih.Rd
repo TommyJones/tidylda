@@ -14,7 +14,7 @@ of abstracts from 100 randomly-sampled grants.
 }
 \source{
 National Institutes of Health ExPORTER
-\url{https://exporter.nih.gov/ExPORTER_Catalog.aspx}
+\url{https://reporter.nih.gov/exporter}
 }
 \usage{
 data("nih_sample")
@@ -22,7 +22,6 @@ data("nih_sample")
 \description{
 This dataset holds information on research grants awarded by the National
 Institutes of Health (NIH) in 2014. The data set was downloaded in
-approximately January of 2015 from
-\url{https://reporter.nih.gov/exporter}. It includes both
-'projects' and 'abstracts' files.
+approximately January of 2015. It includes both 'projects' and 'abstracts' 
+files.
 }

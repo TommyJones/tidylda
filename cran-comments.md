@@ -1,4 +1,7 @@
 ## Patch release version 0.0.5
+Resubmission to fix one other instance of an invalid URL. All is good now.
+Sorry for missing it the first time.
+
 This version is a patch. In this version I have
 
 * Fixed "Packages in Suggests should be used conditionally" issue flagged by CRAN

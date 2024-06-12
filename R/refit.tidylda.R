@@ -69,9 +69,6 @@
 #'   the same value for their prior.) New entries to \code{eta} have a shape 
 #'   from the average of all previous topics in \code{eta} and scaled by
 #'   \code{additional_eta_sum}.
-#' @note
-#'  Updates are, as of this writing, are almost-surely useful but their behaviors
-#'  have not been optimized or well-studied. Caveat emptor!
 #' @export
 #' @examples
 #' \donttest{

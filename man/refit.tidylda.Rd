@@ -111,10 +111,6 @@ Update an LDA model using collapsed Gibbs sampling.
   from the average of all previous topics in \code{eta} and scaled by
   \code{additional_eta_sum}.
 }
-\note{
-Updates are, as of this writing, are almost-surely useful but their behaviors
- have not been optimized or well-studied. Caveat emptor!
-}
 \examples{
 \donttest{
 # load a document term matrix

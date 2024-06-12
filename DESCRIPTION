@@ -1,7 +1,7 @@
 Type: Package
 Package: tidylda
 Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
-Version: 0.0.5
+Version: 0.0.6.999
 Authors@R: 
     c(
     person(given = "Tommy",

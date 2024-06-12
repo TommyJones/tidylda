@@ -29,7 +29,7 @@ Description: Implements an algorithm for Latent Dirichlet
     Fitting is done via collapsed Gibbs sampling.
     Also implements several novel features for LDA such as guided models and
     transfer learning.
-License: MIT + file LICENSE
+License: MIT + file LICENSE.md
 URL: https://github.com/TommyJones/tidylda/
 BugReports: https://github.com/TommyJones/tidylda/issues
 Depends: R (>= 3.5.0)

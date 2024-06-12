@@ -11,6 +11,7 @@
 ^R/_*$
 
 ^appveyor\.yml$
+^LICENSE\.md$
 ^README\.Rmd$
 
 ^src/benchmarking$

@@ -1,3 +1,7 @@
+# tidylda 0.0.6
+* Lifecycle is now stable. Removed references to experimental lifecycle.
+
+
 # tidylda 0.0.5
 * Fixed "Packages in Suggests should be used conditionally" issue flagged by CRAN
     Used `testthat::skip_if_not_installed('tm')` in offending test.

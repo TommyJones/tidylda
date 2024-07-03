@@ -21,7 +21,7 @@ affiliations:
 ---
 
 # Summary
-_tidylda_ is a package for a topic model, Latent Dirichlet Allocation or LDA [@blei2002lda], that is natively compatible with the _tidyverse_ [@tidyverse]. _tidylda_'s Gibbs sampler is written in C++ for performance and offers several novel features. It also has methods for sampling from the posterior of a trained model, for more traditional Bayesian analyses.
+_tidylda_ is a package for a topic model, Latent Dirichlet Allocation or LDA [@blei2002lda], that is natively compatible with the _tidyverse_ [@tidyverse]. _tidylda_'s Gibbs sampler is written in C++ for performance and offers several novel features, such as transfer learning for LDA using the tLDA model. It also has methods for sampling from the posterior of a trained model, for more traditional Bayesian analyses.
 
 _tidylda_ takes its syntactic cues from an ecosystem of R packages known as _the tidyverse_. The tidyverse's goal is to "facilitate a conversation between a human and computer about data" [@tidyverse]. Packages in---and adjacent to---the tidyverse share a common design philosophy and syntax based on "tidy data" principles [@wickham2014tidy]. Tidy data has each variable in a column, each observation in a row, and each observational unit in a table. Extensions include the _broom_ package [@broom] for "tidying" up outputs from statistical models and the in-development _tidymodels_ ecosystem [@tidymodels] which extends the tidyverse philosophy to statistical modeling and machine learning workflows. 
 

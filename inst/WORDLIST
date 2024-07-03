@@ -5,6 +5,7 @@ Codecov
 Cv
 DTM
 ExPORTER
+Github
 IntegerMatrix
 IntegerVector
 Lifecycle
@@ -29,6 +30,7 @@ buildstatus
 burnin
 calcr
 cdot
+changelog
 cpp
 decile
 dgCMatrix
@@ -41,6 +43,7 @@ gmail
 http
 jones
 joss
+lifecycle
 malformatted
 mathbb
 md

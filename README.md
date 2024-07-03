@@ -45,6 +45,8 @@ install.packages("remotes")
 remotes::install_github("tommyjones/tidylda")
 ```
 
+For a list of dependencies see the DESCRIPTION file.
+
 # Getting started
 
 This package is still in its early stages of development. However, some

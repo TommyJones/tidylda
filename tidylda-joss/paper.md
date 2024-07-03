@@ -111,6 +111,11 @@ _tidylda_ enables traditional Bayesian uncertainty quantification by sampling fr
 
 _tidylda_ uses one of two calculations for predicting topic distributions (i.e., $\hat{\boldsymbol\theta}_d$) for new documents. The first, and default, is to run the Gibbs sampler, constructing a new $\boldsymbol{Cd}$ for the new documents but without updating topic-word distributions in $\boldsymbol{B}$. The second uses a dot product, $\boldsymbol{X}^{(new)} \cdot \boldsymbol\Lambda'$, where the rows of $\boldsymbol{X}^{(new)}$ are normalized to sum to $1$. _tidylda_ actually uses the dot product prediction combined with the _non-uniform initialization_---described above---to initialize $\boldsymbol{Cd}$ when predicting using the Gibbs sampler.
 
+## Other details
+You can install the development version of _tidylda_ from GitHub [here](https://github.com/tommyjones/tidylda) or the CRAN release [here](https://CRAN.R-project.org/package=tidylda). Instructions for both are in the _tidylda_ repository's [README file](https://github.com/TommyJones/tidylda/blob/main/README.md).
+
+_tidylda_'s repository and CRAN release contain several vignettes on usage and background. Most of the vignette content is included in this paper. One exception is the coherence calculation used in _tidylda_. The PDF version of that vignette is available on CRAN [here](https://cran.r-project.org/web/packages/tidylda/vignettes/probabilistic-coherence.html).
+
 # Acknowledgements
 Many people over the years have supported the development of _tidylda_. But most notably are
 

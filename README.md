@@ -6,10 +6,10 @@
 <!-- badges: start -->
 
 [![AppVeyor
-buildstatus](https://ci.appveyor.com/api/projects/status/github/TommyJones/tidylda?branch=main&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
+buildstatus](https://ci.appveyor.com/api/projects/status/GitHub/TommyJones/tidylda?branch=main&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
 [![Codecov test
 coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tommyjones/tidylda/branch/main)
-[![R-CMD-check](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
@@ -18,7 +18,7 @@ Latent Dirichlet Allocation Using ‘tidyverse’ Conventions
 
 `tidylda` implements an algorithm for Latent Dirichlet Allocation using
 style conventions from the [tidyverse](https://style.tidyverse.org/) and
-[tidymodels](https://tidymodels.github.io/model-implementation-principles/).
+[tidymodels](https://tidymodels.GitHub.io/model-implementation-principles/).
 
 In addition this implementation of LDA allows you to:
 
@@ -37,12 +37,12 @@ install("tidylda")
 ```
 
 You can install the development version from
-[GitHub](https://github.com/) with:
+[GitHub](https://GitHub.com/) with:
 
 ``` r
 install.packages("remotes")
 
-remotes::install_github("tommyjones/tidylda")
+remotes::install_GitHub("tommyjones/tidylda")
 ```
 
 For a list of dependencies see the DESCRIPTION file.
@@ -440,17 +440,30 @@ print(lda)
 ```
 
 There are several vignettes available in
-[/vignettes](https://github.com/TommyJones/tidylda/tree/main/vignettes).
+[/vignettes](https://GitHub.com/TommyJones/tidylda/tree/main/vignettes).
 They can be compiled using `knitr` or you can view [PDF versions on
 CRAN](https://CRAN.R-project.org/package=tidylda).
 
 See NEWS.md for a changelog, including changes from the CRAN release to
-the development version on Github.
+the development version on GitHub.
 
 See the “Issues” tab on GitHub to see planned features as well as bug
 fixes.
+
+# Contributions
+
+If you would like to contribute to this package, please start by opening
+an issue on GitHub. Direct contributions via merge requests are
+discouraged unless invited to do so.
 
 If you have any suggestions for additional functionality, changes to
 functionality, changes to arguments or other aspects of the API please
 let me know by opening an issue on GitHub or sending me an email:
 jones.thos.w at gmail.com.
+
+## Code of Conduct
+
+Please note that the tidylda project is released with a [Contributor
+Code of
+Conduct](https://contributor-covenant.org/version/2/1/CODE_OF_CONDUCT.html).
+By contributing to this project, you agree to abide by its terms.

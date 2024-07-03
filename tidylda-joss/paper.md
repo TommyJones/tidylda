@@ -62,7 +62,7 @@ where random variables $w_{d_{n}}$ and $z_{d_{n}}$ represent the word and topic 
 
 Posterior estimates of $\boldsymbol\Theta$ and $\boldsymbol{B}$ along with the data, $\boldsymbol{X}$, allow for the calculation of $\boldsymbol\Lambda$. Where $\beta_{k,v}$ is $P(\text{word}_v | \text{topic}_k)$, $\lambda_{k, v}$ is $P(\text{topic}_k | \text{word}_v)$. 
 
-One of the common ways of estimating LDA is through collapsed Gibbs sampling. In the background, the sampler tracks the number of times topics are sampled with two matrices: $\boldsymbol{Cd}$ and $\boldsymbol{Cv}$. The former's row/column entries, $d,k$, are the number of times topic $k$ was sampled in document $d$. The latter's row/column entries, $k,v$ are the number of times topic $k$ was sampled for word $v$.
+One of the common ways of estimating LDA is through collapsed Gibbs sampling. Gibbs sampling is a markov chain monte carlo method for estimating parameters of a probability distribution where a closed form solution does not exist or is computationally intractable. In the background, the sampler tracks the number of times topics are sampled with two matrices: $\boldsymbol{Cd}$ and $\boldsymbol{Cv}$. The former's row/column entries, $d,k$, are the number of times topic $k$ was sampled in document $d$. The latter's row/column entries, $k,v$ are the number of times topic $k$ was sampled for word $v$.
 
 ## Transfer LDA (tLDA)
 

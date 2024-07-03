@@ -37,6 +37,13 @@ In addition this implementation of LDA allows you to:
 
 ## Installation
 
+You can install the latest CRAN release with:
+
+``` r
+install("tidylda")
+```
+
+
 You can install the development version from [GitHub](https://github.com/) with:
 
 ``` r

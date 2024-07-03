@@ -439,6 +439,11 @@ print(lda)
 #> # ℹ 5 more rows
 ```
 
+There are several vignettes available in
+[/vignettes](https://github.com/TommyJones/tidylda/tree/main/vignettes).
+They can be compiled using `knitr` or you can view [PDF versions on
+CRAN](https://CRAN.R-project.org/package=tidylda).
+
 See NEWS.md for a changelog, including changes from the CRAN release to
 the development version on Github.
 

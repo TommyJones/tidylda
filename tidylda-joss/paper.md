@@ -23,6 +23,11 @@ affiliations:
 # Summary
 _tidylda_ is a package for a topic model, Latent Dirichlet Allocation or LDA [@blei2002lda], that is natively compatible with the _tidyverse_ [@tidyverse]. _tidylda_'s Gibbs sampler is written in C++ for performance and offers several novel features, such as transfer learning for LDA using the tLDA model. It also has methods for sampling from the posterior of a trained model, for more traditional Bayesian analyses.
 
+
+
+# Statement of Need
+Packages that implement topic models in R and other languages are plentiful. Why do we need another? _tidylda_'s native compatibility with the _tidyverse_ makes it significantly more user friendly than other topic modeling packages. It also enables more traditional Bayesian analyses such as the ability to set more flexible priors, burn-in iterations, averaging over segments of the Gibbs sample chain, and sampling from the posterior that other packages lack. Finally, _tidylda_ implements a transfer learning algorithm developed in [@jones2023latent], unavailable in any other package and described in more detail in the following section.
+
 ## The "tidyverse" family of packages for R
 _tidylda_ takes its syntactic cues from an ecosystem of R packages known as _the tidyverse_. The tidyverse's goal is to "facilitate a conversation between a human and computer about data" [@tidyverse]. Packages in---and adjacent to---the tidyverse share a common design philosophy and syntax based on "tidy data" principles [@wickham2014tidy]. Tidy data has each variable in a column, each observation in a row, and each observational unit in a table. Extensions include the _broom_ package [@broom] for "tidying" up outputs from statistical models and the in-development _tidymodels_ ecosystem [@tidymodels] which extends the tidyverse philosophy to statistical modeling and machine learning workflows. 
 
@@ -41,8 +46,6 @@ The _text2vec_ package [@text2vec] is a framework for very fast text pre-process
 
 The _STM_ package [@roberts2019stm] implements VEM algorithms for structural topic models [@roberts2013stm] and correlated topic models [@blei2007ctm]. _STM_ is well-supported with interfaces in _tidytext_. It offers unique capabilities for model initialization somewhat analogous to transfer learning. Models may be initialized at random or from an LDA model that has run for a few iterations. _STM_ does not offer this as a fully-fledged "transfer learning" paradigm. Instead it is a flag the user sets at run time. _STM_ then produces the LDA model to hand off to the STM model internally. STM has several unique methods for setting priors but the documentation makes it appear that they are all symmetric.
 
-# Statement of Need
-Packages that implement topic models in R and other languages are plentiful. Why do we need another? _tidylda_'s native compatibility with the _tidyverse_ makes it significantly more user friendly than other topic modeling packages. It also enables more traditional Bayesian analyses such as the ability to set more flexible priors, burn-in iterations, averaging over segments of the Gibbs sample chain, and sampling from the posterior that other packages lack. Finally, _tidylda_ implements a transfer learning algorithm developed in [@jones2023latent], unavailable in any other package and described in more detail in the following section.
 
 # Latent Dirichlet Allocation and Notation
 LDA is a Bayesian latent variable model for text [@blei2002lda]. It decomposes a data set of word counts, $\boldsymbol{X}$, whose row/column entries, $d,v$, represent the number of times word $v$ is found in document $d$, into two matrices: $\boldsymbol\Theta$ and $\boldsymbol{B}$. The former gives a distribution of (latent) topics over documents and the latter gives a distribution of words over topics. Formally, LDA is

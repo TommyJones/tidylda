@@ -52,6 +52,8 @@ install.packages("remotes")
 remotes::install_github("tommyjones/tidylda")
 ```
 
+
+
 # Getting started
 
 This package is still in its early stages of development. However, some basic functionality is below. Here, we will use the `tidytext` package to create a document term matrix, fit a topic model, predict topics of unseen documents, and update the model with those new documents.
@@ -239,7 +241,7 @@ print(lda2)
 print(lda)
 ```
 
-I plan to have more analyses and a fuller accounting of the options of the various functions when I write the vignettes.
+See NEWS.md for a changelog, including changes from the CRAN release to the development version on Github.
 
 See the "Issues" tab on GitHub to see planned features as well as bug fixes.
 

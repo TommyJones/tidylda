@@ -437,8 +437,8 @@ print(lda)
 #> # ℹ 5 more rows
 ```
 
-I plan to have more analyses and a fuller accounting of the options of
-the various functions when I write the vignettes.
+See NEWS.md for a changelog, including changes from the CRAN release to
+the development version on Github.
 
 See the “Issues” tab on GitHub to see planned features as well as bug
 fixes.

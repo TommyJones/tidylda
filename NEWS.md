@@ -1,5 +1,6 @@
 # tidylda 0.0.6
 * Lifecycle is now stable. Removed references to experimental lifecycle.
+* Minor updates to README and vignettes
 
 
 # tidylda 0.0.5

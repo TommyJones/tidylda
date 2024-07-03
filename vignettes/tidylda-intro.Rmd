@@ -238,9 +238,3 @@ print(lda2)
 print(lda)
 ```
 
-I plan to have more analyses and a fuller accounting of the options of the various functions when I write the vignettes.
-
-See the "Issues" tab on GitHub to see planned features as well as bug fixes.
-
-If you have any suggestions for additional functionality, changes to functionality, changes to arguments or other aspects of the API please let me know by opening an issue on GitHub or sending me an email: jones.thos.w at gmail.com.
-

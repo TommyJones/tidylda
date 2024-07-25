@@ -5,8 +5,7 @@
 
 <!-- badges: start -->
 
-[![AppVeyor
-buildstatus](https://ci.appveyor.com/api/projects/status/GitHub/TommyJones/tidylda?branch=main&svg=true)](https://ci.appveyor.com/project/TommyJones/tidylda)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06800/status.svg)](https://doi.org/10.21105/joss.06800)
 [![Codecov test
 coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tommyjones/tidylda/branch/main)
 [![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)

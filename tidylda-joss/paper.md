@@ -12,7 +12,6 @@ output: pdf_document
 authors:
 - name: Tommy Jones
   orcid: "0000-0001-6457-2452"
-  equal-contrib: yes
   affiliation: 1
 bibliography: paper.bib
 affiliations:
@@ -36,7 +35,7 @@ Silge and Robinson articulated a "tidy data" framework for text analyses---the _
 ## Topic modeling software in R
 R has many packages for topic modeling; none are natively "tidy" though some have wrapper functions available in _tidytext_ that produce tidy outputs. In almost all cases these models support only scalar, or "symmetric", priors for topics over documents. 
 
-The _textmineR_ package [@textminer] is _tidylda_'s predecessor, supporting vector, or "asymmetric"," priors. It supports fitting several topic models, not just LDA. But _textmineR_ does not support transfer learning nor is it consistent with the _tidyverse_ principles. 
+The _textmineR_ package [@textminer] is _tidylda_'s predecessor, supporting vector, or "asymmetric", priors. It supports fitting several topic models, not just LDA. But _textmineR_ does not support transfer learning nor is it consistent with the _tidyverse_ principles. 
 
 The _topicmodels_ package [@topicmodelspackage] supports fitting models for LDA and correlated topic models [@blei2007ctm] with both a collapsed Gibbs sampler and variational expectation maximization (VEM). When using VEM, $\boldsymbol\alpha$ may be treated as a free parameter and estimated during fitting. It only allows users to set symmetric priors. It is designed to be interoperable with the _tm_ package [@tmjss], the oldest framework for text analysis in R. _tidytext_ provides "tidier" functions to make the _topicmodels_ package interoperable with other frameworks, such as _quanteda_ [@quanteda], _text2vec_ [@text2vec], and more. 
 
@@ -111,7 +110,7 @@ _tidylda_ enables traditional Bayesian uncertainty quantification by sampling fr
 
 _tidylda_ uses one of two calculations for predicting topic distributions (i.e., $\hat{\boldsymbol\theta}_d$) for new documents. The first, and default, is to run the Gibbs sampler, constructing a new $\boldsymbol{Cd}$ for the new documents but without updating topic-word distributions in $\boldsymbol{B}$. The second uses a dot product, $\boldsymbol{X}^{(new)} \cdot \boldsymbol\Lambda'$, where the rows of $\boldsymbol{X}^{(new)}$ are normalized to sum to $1$. _tidylda_ actually uses the dot product prediction combined with the _non-uniform initialization_---described above---to initialize $\boldsymbol{Cd}$ when predicting using the Gibbs sampler.
 
-## Other details
+## Other Details
 You can install the development version of _tidylda_ from GitHub [here](https://github.com/tommyjones/tidylda) or the CRAN release [here](https://CRAN.R-project.org/package=tidylda). Instructions for both are in the _tidylda_ repository's [README file](https://github.com/TommyJones/tidylda/blob/main/README.md).
 
 _tidylda_'s repository and CRAN release contain several vignettes on usage and background. Most of the vignette content is included in this paper. One exception is the coherence calculation used in _tidylda_. The PDF version of that vignette is available on CRAN [here](https://cran.r-project.org/web/packages/tidylda/vignettes/probabilistic-coherence.html).

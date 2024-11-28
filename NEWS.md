@@ -1,3 +1,6 @@
+# tidylda 0.0.7
+* Additional checks added to refit.tidylda()
+
 # tidylda 0.0.6
 * Lifecycle is now stable. Removed references to experimental lifecycle.
 * Minor updates to README and vignettes

@@ -113,20 +113,20 @@
 #' )
 #' }
 refit.tidylda <- function(
-  object, 
-  new_data, 
-  iterations = NULL, 
-  burnin = -1,
-  prior_weight = 1,
-  additional_k = 0, 
-  additional_eta_sum = 250,
-  optimize_alpha = FALSE, 
-  calc_likelihood = FALSE,
-  calc_r2 = FALSE, 
-  return_data = FALSE,
-  threads = 1,
-  verbose = TRUE,
-  ...
+    object, 
+    new_data, 
+    iterations = NULL, 
+    burnin = -1,
+    prior_weight = 1,
+    additional_k = 0, 
+    additional_eta_sum = 250,
+    optimize_alpha = FALSE, 
+    calc_likelihood = FALSE,
+    calc_r2 = FALSE, 
+    return_data = FALSE,
+    threads = 1,
+    verbose = TRUE,
+    ...
 ) {
   
   # first, get the call for reproducibility
@@ -161,6 +161,9 @@ refit.tidylda <- function(
   # is k formatted correctly?
   if (!is.numeric(additional_k)) {
     stop("additional_k must be an integer >= 0")
+  } else if (length(additional_k) > 1) {
+    warning("length(additional_k) > 1, only the first element will be used.")
+    additional_k <- additional_k[1]
   } else if (additional_k < 0) {
     stop("additional_k must be an integer >= 0")
   }
@@ -262,14 +265,14 @@ refit.tidylda <- function(
   
   dtm <- cbind(dtm, m_add_to_dtm)
   
-
+  
   # uniform prior over new words
   eta$eta <- cbind(eta$eta, m_add_to_model + stats::quantile(eta$eta, 0.1))
-
+  
   eta$eta <- eta$eta[, colnames(dtm)]
-
+  
   beta_initial <- cbind(beta_initial, m_add_to_model + stats::quantile(beta_initial, 0.1))
-
+  
   beta_initial <- beta_initial[, colnames(dtm)] / rowSums(beta_initial[, colnames(dtm)])
   
   

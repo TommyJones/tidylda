@@ -54,7 +54,7 @@ arma::uword lsamp_one(const arma::vec &lpvec) {
   arma::vec lqvec = log_accu_exp(arma::vec(arma::sort(lpvec, "descend")));
   
   // sample log(unif(0,sum(exp(pvec))))
-  double u = arma::conv_to<double>::from(lqvec.tail(1L));
+  double u = arma::as_scalar(lqvec.tail(1L));
   u -= R::rexp(1.0);
   
   // sample integer
@@ -83,7 +83,7 @@ arma::uword samp_one(const arma::vec &pvec) {
   arma::vec qvec = arma::cumsum(arma::sort(pvec, "descend"));
   
   // draw randomly from (0,s)
-  double u = arma::conv_to<double>::from(qvec.tail(1L));
+  double u = arma::as_scalar(qvec.tail(1L));
   u *= arma::randu(); 
   
   // find interval into which u falls

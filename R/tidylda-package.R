@@ -5,9 +5,8 @@
 #'   Also implements several novel features for LDA such as guided models and
 #'   transfer learning.
 #' @name tidylda-package
-#' @docType package
 #' @keywords internal
-NULL
+"_PACKAGE"
 
 # .onAttach <- function(libname, pkgname) {
 #   packageStartupMessage("tidylda is under active development. The API and behavior may change.")

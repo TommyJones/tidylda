@@ -64,7 +64,7 @@ LinkingTo:
     RcppProgress,
     RcppThread
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Language: en-US
 LazyData: true
 VignetteBuilder: knitr

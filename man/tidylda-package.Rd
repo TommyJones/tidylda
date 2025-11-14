@@ -10,4 +10,22 @@ Implements an algorithm for Latent Dirichlet Allocation (LDA)
   Also implements several novel features for LDA such as guided models and
   transfer learning.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/TommyJones/tidylda/}
+  \item Report bugs at \url{https://github.com/TommyJones/tidylda/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Tommy Jones \email{jones.thos.w@gmail.com} (\href{https://orcid.org/0000-0001-6457-2452}{ORCID})
+
+Other contributors:
+\itemize{
+  \item Brendan Knapp \email{brendan.g.knapp@gmail.com} (\href{https://orcid.org/0000-0003-3284-4972}{ORCID}) [contributor]
+  \item Barum Park \email{baruuum@gmail.com} [contributor]
+}
+
+}
 \keyword{internal}

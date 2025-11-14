@@ -1,5 +1,7 @@
 # tidylda 0.0.7
-* Additional checks added to refit.tidylda()
+* Added additional checks to refit.tidylda()
+* Fixed WARNINGS related to using a deprecated function from the C++ Armadillo
+    library, as noted by CRAN checks on tidylda's page
 
 # tidylda 0.0.6
 * Lifecycle is now stable. Removed references to experimental lifecycle.

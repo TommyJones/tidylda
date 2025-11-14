@@ -20,6 +20,7 @@ knitr::opts_chunk$set(
 [![Codecov test coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tommyjones/tidylda/branch/main)
 [![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
+[![Codecov test coverage](https://codecov.io/gh/TommyJones/tidylda/graph/badge.svg)](https://app.codecov.io/gh/TommyJones/tidylda)
 <!-- badges: end -->
 
 

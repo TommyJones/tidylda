@@ -11,6 +11,8 @@ coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)]
 [![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
+[![Codecov test
+coverage](https://codecov.io/gh/TommyJones/tidylda/graph/badge.svg)](https://app.codecov.io/gh/TommyJones/tidylda)
 <!-- badges: end -->
 
 Latent Dirichlet Allocation Using ‘tidyverse’ Conventions
@@ -82,7 +84,6 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(tidylda)
-#> tidylda is under active development. The API and behavior may change.
 library(Matrix)
 #> 
 #> Attaching package: 'Matrix'
@@ -236,13 +237,13 @@ tidy_beta
 #> # A tibble: 15,240 × 3
 #>    topic token             beta
 #>    <dbl> <chr>            <dbl>
-#>  1     1 adolescence  0.0025   
+#>  1     1 adolescence  0.00250  
 #>  2     1 age          0.0000648
 #>  3     1 application  0.0000648
 #>  4     1 depressive   0.0000648
 #>  5     1 disorder     0.0000648
 #>  6     1 emotionality 0.0000648
-#>  7     1 information  0.0025   
+#>  7     1 information  0.00250  
 #>  8     1 mdd          0.0000648
 #>  9     1 onset        0.0000648
 #> 10     1 onset mdd    0.0000648
@@ -383,27 +384,27 @@ print(lda2)
 #> refit.tidylda(object = lda, new_data = d, iterations = 200, burnin = 175, 
 #>     calc_likelihood = TRUE, calc_r2 = TRUE)
 #> 
-#> The model's R-squared is  0.1389 
+#> The model's R-squared is  0.1398 
 #> The  5  most prevalent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     5       14.5    0.107  research, program, cancer, health, disparities, ...
-#> 2     3       12.6    0.141  cell, cells, lung, sleep, specific, ...            
-#> 3     1       11.9    0.0616 effects, muscle, wall, v4, signaling, ...          
-#> 4    10       10.4    0.0499 risk, brain, factors, sud, plasticity, ...         
-#> 5     2       10.2    0.0305 research, center, microbiome, core, hiv, ...       
+#> 1     5      16.0     0.108  research, program, health, cancer, disparities, ...
+#> 2     3      12.7     0.141  cell, cells, lung, sleep, specific, ...            
+#> 3     1      12.1     0.0616 effects, muscle, wall, v4, signaling, ...          
+#> 4    10      10.4     0.0499 risk, brain, factors, sud, plasticity, ...         
+#> 5     7       9.84    0.138  cancer, tumor, clinical, cells, imaging, ...       
 #> # ℹ 5 more rows
 #> 
 #> The  5  most coherent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     8       7.34     0.326 cmybp, function, mitochondrial, injury, fragment, …
-#> 2     9       7.55     0.187 core, data, ppg, studies, imaging, ...             
-#> 3     7       9.9      0.159 cancer, tumor, clinical, imaging, cells, ...       
-#> 4     3      12.6      0.141 cell, cells, lung, sleep, specific, ...            
-#> 5     5      14.5      0.107 research, program, cancer, health, disparities, ...
+#> 1     8       7.36     0.326 cmybp, function, mitochondrial, injury, fragment, …
+#> 2     6       9.8      0.148 diabetes, cells, numeracy, health, redox, ...      
+#> 3     3      12.7      0.141 cell, cells, lung, sleep, specific, ...            
+#> 4     7       9.84     0.138 cancer, tumor, clinical, cells, imaging, ...       
+#> 5     5      16.0      0.108 research, program, health, cancer, disparities, ...
 #> # ℹ 5 more rows
 
 

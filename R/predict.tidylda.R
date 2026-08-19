@@ -212,7 +212,7 @@ predict.tidylda <- function(
           for (bad in bad_docs) {
             warning(
               "Document ", bad, " has no tokens in common with the model. ",
-              "Setting predictions to 0 for all documents. To change this behavior ",
+              "Setting predictions to 0 for all topics. To change this behavior ",
               "or silence this warning, change the value of 'no_common_tokens' in ",
               "the call to predict.tidylda."
             )
@@ -221,7 +221,7 @@ predict.tidylda <- function(
           for (bad in bad_docs) {
             message(
               "Document ", bad, " has no tokens in common with the model. ",
-              "Setting predictions to 0 for all documents."
+              "Setting predictions to 0 for all topics."
             )
           }
         } 

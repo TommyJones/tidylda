@@ -17,9 +17,10 @@ tidy_docs$count <- 1
 ### tests for convert_dtm ----
 
 test_that("convert_dtm can handle various inputs", {
-  
+
   skip_if_not_installed("tm")
-  
+  skip_if_not_installed("quanteda")
+
   triplet_dtm <- cast_dtm(tidy_docs,
                           document = "APPLICATION_ID",
                           term = "word",

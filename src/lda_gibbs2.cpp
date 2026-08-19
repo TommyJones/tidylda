@@ -548,8 +548,6 @@ Rcpp::List fit_lda_c(
       // get beta probability matrix @ this iteration
       std::vector<std::vector<double>> beta_prob(Nk);
       
-      double denom(0.0);
-      
       double lp_eta(0.0); // log probability of eta prior
       
       for (auto k = 0; k < Nk; k++) {
@@ -559,6 +557,9 @@ Rcpp::List fit_lda_c(
         beta_prob[k] = tmp;
         
         // get the denominator
+        // note: must be declared here so that it resets for each topic
+        double denom(0.0);
+
         for (auto v = 0; v < Nv; v++) {
           denom += Cv[k][v] + eta[k][v];
         }

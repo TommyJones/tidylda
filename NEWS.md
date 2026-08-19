@@ -1,3 +1,19 @@
+# tidylda 0.0.8
+* Fixed a miscalculation in the log likelihood reported by `tidylda()` and
+    `refit.tidylda()`. A normalizing denominator was accumulated across topics
+    instead of being reset for each topic, so the topic-word probabilities used
+    in the calculation were incorrectly scaled. Note that this changes the log
+    likelihood values reported for a given model relative to previous versions.
+    Model fitting itself is unaffected.
+* Removed a hardcoded number of topics in an internal call from `tidylda()` to
+    `initialize_topic_counts()`. The value was unused, so model results are
+    unaffected.
+* Fixed an internal call in `predict.tidylda()` that passed an argument
+    positionally into the wrong parameter of `new_tidylda()`. The argument was
+    unused on the prediction path, so predictions are unaffected.
+* Tests using the 'quanteda' package are now skipped when it is not installed,
+    consistent with its status as a suggested package.
+
 # tidylda 0.0.7
 * Added additional checks to refit.tidylda()
 * Fixed WARNINGS related to using a deprecated function from the C++ Armadillo

@@ -237,8 +237,8 @@ tidylda_bridge <- function(
 
   # initialize counts
   counts <- initialize_topic_counts(
-    dtm = dtm, 
-    k = 10,
+    dtm = dtm,
+    k = k,
     alpha = alpha$alpha, 
     eta = eta$eta,
     threads = threads

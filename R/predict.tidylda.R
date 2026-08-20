@@ -281,9 +281,9 @@ predict.tidylda <- function(
     result <- new_tidylda(
       lda = lda, 
       dtm = dtm_new_data,
-      burnin = burnin, 
-      is_prediction = TRUE, 
-      threads
+      burnin = burnin,
+      is_prediction = TRUE,
+      threads = threads
     )
   }
 

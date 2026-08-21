@@ -469,9 +469,45 @@ So the model object's `Cv` is **topic-major ($K \times V$)**, and when
 `burnin > -1` it holds *fractional* post-burnin means, which `rdirichlet`
 accepts.
 
-**Implication:** the engine works internally in word-major ($V \times K$) but
-must transpose $C^v$ on output. One transpose at the end of the run — cheap, but
-easy to forget, and it would silently corrupt `posterior()` rather than error.
+**Decision (D17): do not transpose. Change the contract instead.** The engine
+exports $C^d$ and $C^v$ as **sparse** matrices in its own orientation —
+$C^d$ as $D \times K$, $C^v$ as $V \times K$ — and the R consumers are rewritten
+to match. `dgCMatrix` is compressed-sparse-column, so this stores each word's
+topic counts contiguously, exactly as the word pass holds them.
+
+Deferred to **Phase 6**. It touches the R surface, not the sampler, and doing it
+before the engine stabilises would churn code twice. Until then the engine can
+transpose on output as a stopgap.
+
+### Consumers that must change
+
+| Site | Current | Under $V \times K$ |
+|---|---|---|
+| `refit.tidylda.R:223` | `rowSums(object$counts$Cv)` | `colSums(...)` |
+| `posterior.tidylda.R:122` | `x$counts$Cv[which, ]` | `x$counts$Cv[, which]`, and the trailing `t()` drops out |
+| `posterior.tidylda.R:100` | `x$counts$Cd[which, ]` | unchanged — $C^d$ is already $D \times K$ |
+| `utils.R:642-646` | `beta <- lda$Cv + lda$eta` | needs `t()` on one operand; `beta` stays $K \times V$ for the public API |
+
+`refit.tidylda.R:223` is the one to be careful with: that `rowSums` produces
+$\omega_k^{*(t)}$, so an un-migrated call silently yields a wrong-length vector
+or wrong per-topic weights on the **tLDA critical path**, which is the whole
+point of the package.
+
+### Three caveats that bound the benefit
+
+1. **Post-burnin means are much denser than any single iteration.** With
+   `burnin > -1` the exported matrix is `Cv_mean`, whose $(v,k)$ entry is nonzero
+   if topic $k$ was sampled for word $v$ in *any* post-burnin iteration. Sparsity
+   erodes as the averaging window grows. The win is real but smaller than the
+   single-iteration count matrix would suggest.
+2. **Adding the prior densifies immediately.** $\boldsymbol\eta > 0$ everywhere,
+   so $C^v + \boldsymbol\eta$ is dense no matter how sparse $C^v$ is. This is a
+   *storage* win for the returned object, not a compute win for anything that
+   forms a posterior.
+3. **`generate_sample()` will need coercion.** It calls
+   `as.data.frame(dir_par)` (`posterior.tidylda.R:162`) and iterates columns; a
+   `dgCMatrix` needs `as.matrix()` first. Harmless given caveat 2 — the operand
+   is dense by then anyway.
 
 ---
 
@@ -695,7 +731,8 @@ New engine responsibilities:
 4. a `freeze_topics` specialization for prediction;
 5. per-pass post-burnin count accumulation (section 6.4);
 6. log-likelihood computation, evaluated at intervals — *not* thinned (section 7);
-7. transpose $C^v$ to topic-major on output.
+7. export $C^d$ and $C^v$ (see §6.7) — transposing $C^v$ to topic-major as a
+   stopgap until Phase 6 replaces the contract with sparse $V \times K$ (D17).
 
 ## MH steps
 

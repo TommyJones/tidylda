@@ -109,7 +109,7 @@ Settled. See §1 rule 3 before changing any of these.
 | D14 | Benchmark for **equivalence**, not model quality: $R^2$ and mean probabilistic coherence, paired across multiple seeds, no held-out data | The question is whether MH matches Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R/C++ round trip and the 16-bytes-per-token marshalling | §11 |
-| D17 | Transpose $C^v$ to topic-major on output | The engine works word-major internally, but `posterior.tidylda()` indexes `counts$Cv` by topic. Cheap, but forgetting it corrupts `posterior()` silently rather than erroring | §6.7 |
+| D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Deferred to Phase 6**, after the engine works | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
 | D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps × 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
 | D20 | Scalar fast path for $\boldsymbol\eta$ — **deferred to Phase 4**, not Phase 2 | A memory win in the common non-transfer case, but it is an optimization, not a correctness requirement, and Phase 2 has enough moving parts. `format_eta()` keeps materializing $K \times V$ until then | §5.5 |
@@ -120,7 +120,7 @@ Settled. See §1 rule 3 before changing any of these.
 
 | Invariant | Enforced by / at risk in |
 |---|---|
-| `counts$Cd` and `counts$Cv` are usable as Dirichlet parameters, indexed by document and **topic** respectively, and may hold fractional post-burnin means | `posterior.tidylda.R:100-133` |
+| `counts$Cd` and `counts$Cv` remain usable as Dirichlet parameters and may hold fractional post-burnin means. **Orientation changes in Phase 6** (D17): until then $C^v$ is $K \times V$ dense; after, $V \times K$ sparse. Whichever holds, `refit.tidylda.R:223`, `posterior.tidylda.R:100`/`:122` and `utils.R:642-646` must agree with it | `posterior.tidylda.R:100-133`, `refit.tidylda.R:223` |
 | `set.seed()` reproducibility, including under parallelism — a CRAN requirement | D12, D13 |
 | Public API unchanged: `tidylda()`, `refit()`, `predict()`, `posterior()`, `tidy`/`augment`/`glance` | all of `R/` |
 | `refit`'s R-side vocabulary alignment and topic addition stay in R, untouched | `refit.tidylda.R:249-329` |
@@ -139,7 +139,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA) | Parity preserved when a transferred prior is in play; `refit()` path exercised |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
-| **6** | Documentation, NEWS, CRAN preparation | `devtools::check()` clean; the expiring comments in §7 rewritten; `man/` regenerated |
+| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; the expiring comments in §7 rewritten; `man/` regenerated |
 
 **Why this order.** The two historically risky things — statistical correctness
 of the modified sampler, and parallel correctness — are isolated into separate

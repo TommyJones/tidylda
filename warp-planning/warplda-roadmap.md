@@ -139,7 +139,16 @@ Settled. See §1 rule 3 before changing any of these.
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA) | Parity preserved when a transferred prior is in play; `refit()` path exercised |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
-| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; the expiring comments in §7 rewritten; `man/` regenerated |
+| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
+| **7** | *Unscheduled.* Memory surgery for large corpora — see §6.3 | A separate project, after the engine lands |
+
+**Documentation gap to close in Phase 6.** `counts` is a real slot on the
+`tidylda` object but `new_tidylda()`'s `@return` never mentions it — it documents
+`beta`, `theta`, `lambda`, `alpha`, `eta`, `summary`, `call`, `log_likelihood`
+and `r2`, and stops. That is a documentation bug, not a deliberate signal that
+the slot is private, and it should be fixed. Do it **after** D17 settles the
+orientation, so the documentation describes the final sparse $V \times K$ form
+rather than the interim one.
 
 **Why this order.** The two historically risky things — statistical correctness
 of the modified sampler, and parallel correctness — are isolated into separate
@@ -252,6 +261,50 @@ deliverable.*
 | small | — | 50 | — | — | — | — |
 | medium | — | 10 | — | — | — | — |
 | medium | — | 50 | — | — | — | — |
+
+### 6.3 Phase 7 sketch — memory surgery for large corpora
+
+**Unscheduled, and deliberately separate.** Recorded here so the reasoning is not
+lost, not because it is next.
+
+**Why it exists.** The point of this project is not only speed; it is to make
+models on much larger corpora feasible. warpLDA addresses the *time* cost. It
+does not address the fact that a fitted `tidylda` object is
+$O(KV + DK)$ dense, and the $DK$ term grows with the corpus:
+
+| Slot | Size | $K{=}500$, $V{=}10^5$, $D{=}10^4$ | same, $D{=}10^6$ |
+|---|---|---|---|
+| `beta`, `lambda`, `eta`, `counts$Cv` | $8KV$ each | 400 MB each | 400 MB each |
+| `theta`, `counts$Cd` | $8DK$ each | 40 MB each | **4 GB each** |
+
+D17 is a constant-factor improvement against this — it sparsifies two of the six
+slots. It does not change the asymptotics, because `beta`, `lambda` and `theta`
+stay dense.
+
+**The design.** Store only what cannot be recomputed: the sparse counts, dense
+$\boldsymbol\eta$, and $\boldsymbol\alpha$. Drop `beta`, `theta` and `lambda`
+as stored matrices and derive them on demand:
+
+$$\beta \propto C^v + \boldsymbol\eta, \qquad \theta \propto C^d + \boldsymbol\alpha, \qquad \lambda \text{ from Bayes' rule}$$
+
+That removes the dense $DK$ term entirely — the term that grows with corpus
+size — leaving $O(\text{nnz}(C^d) + \text{nnz}(C^v) + KV)$.
+
+**Why it is a separate project.** It is breaking, and broadly so. `beta`,
+`theta` and `lambda` are read by `summarize_topics()`, `print()`, `glance()`,
+`tidy()`, `augment()`, `predict(method = "dot")` (via `lambda`), and
+`refit()` (via `beta`, when constructing $\boldsymbol\eta^{(t)}$). Every one of
+those becomes a computation rather than a lookup.
+
+**One design question worth holding onto.** An S3 `$.tidylda` method or an active
+binding could compute these on access and preserve `model$beta` syntax, making
+the change non-breaking at the call site. The cost is that a user writing
+`model$beta` inside a loop silently pays a full recomputation each time, which
+argues for memoisation, which reintroduces the memory. Not resolved; just worth
+not rediscovering from scratch.
+
+**Prerequisites.** D17 (sparse counts) and D20 (scalar $\boldsymbol\eta$ fast
+path) both point this direction and should land first.
 
 ---
 

@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # warpLDA Project Roadmap
 
 **Branch:** `warp` · **Companion document:**
@@ -103,7 +108,7 @@ Settled. See §1 rule 3 before changing any of these.
 | D13 | Expand seeds through `splitmix64`, or use a counter-based generator (Threefry/Philox, e.g. `sitmo`) | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong | §8.3 |
 | D14 | Benchmark for **equivalence**, not model quality: $R^2$ and mean probabilistic coherence, paired across multiple seeds, no held-out data | The question is whether MH matches Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
-| D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R↔C++ round trip and the 16-bytes-per-token marshalling | §11 |
+| D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R/C++ round trip and the 16-bytes-per-token marshalling | §11 |
 | D17 | Transpose $C^v$ to topic-major on output | The engine works word-major internally, but `posterior.tidylda()` indexes `counts$Cv` by topic. Cheap, but forgetting it corrupts `posterior()` silently rather than erroring | §6.7 |
 | D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps × 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
@@ -128,9 +133,9 @@ Settled. See §1 rule 3 before changing any of these.
 
 | Phase | Deliverable | Exit criterion |
 |---|---|---|
-| **0** | Defect fixes on `main` | ✅ **Done — `5abaa96`** |
+| **0** | Defect fixes on `main` | **Done — `5abaa96`** |
 | **1** | Statistical benchmarking harness | Produces stable baseline distributions of $R^2$ and mean coherence for the current sampler, across multiple seeds and at least two corpora/$K$ settings |
-| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`) and D19 (α alias table). **Known breakage to fix here:** `tests/testthat/test-tidylda-fit-methods.R:41` asserts `nrow(log_likelihood) == tail(iteration,1)+1`, which a non-unit likelihood interval (D11) invalidates | Matches CGS on the harness. Any deviation here is unambiguously an implementation bug, not a tLDA subtlety |
+| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`) and D19 ($\alpha$ alias table). **Known breakage to fix here:** `tests/testthat/test-tidylda-fit-methods.R:41` asserts `nrow(log_likelihood) == tail(iteration,1)+1`, which a non-unit likelihood interval (D11) invalidates | Matches CGS on the harness. Any deviation here is unambiguously an implementation bug, not a tLDA subtlety |
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA) | Parity preserved when a transferred prior is in play; `refit()` path exercised |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
@@ -322,9 +327,9 @@ release prep. NEWS already carries a `0.0.8` section from Phase 0.
 
 | Path | Role |
 |---|---|
-| `src/lda_gibbs2.cpp` | `create_lexicon()` (DTM → token chain + informed init) and `fit_lda_c()` (the sampler). Both subsumed by the new engine (D16) |
+| `src/lda_gibbs2.cpp` | `create_lexicon()` (DTM to token chain, plus informed init) and `fit_lda_c()` (the sampler). Both subsumed by the new engine (D16) |
 | `src/sample.h` | `sample_one()`, `log_sample_one()` — already RNG-agnostic, taking the variate as an argument. This is what makes D12 implementable without touching sampling logic |
-| `src/matrix_conversions.h` | `mat_to_vec()` / `vec_to_mat()`; note `vec_to_mat` maps outer index → column |
+| `src/matrix_conversions.h` | `mat_to_vec()` / `vec_to_mat()`; note `vec_to_mat` maps outer index to column |
 | `src/parallel_gibbs_utils.h` | Batching helpers from the abandoned parallel attempt. Dead; goes away |
 
 **The R surface (mostly unchanged).**

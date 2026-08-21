@@ -1,3 +1,7 @@
 # Rendered output of the design notes; the .md source is the tracked original
 *.pdf
 *.html
+
+# Per-fit benchmark scratch. Each fit writes one file here so a run is
+# crash-resumable; the tracked artifact is the assembled baseline-*.rds.
+benchmarks/results/

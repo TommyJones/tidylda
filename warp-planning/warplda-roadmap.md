@@ -42,13 +42,34 @@ repository root.
 | **Last updated** | 2026-08-21 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 1 — benchmarking harness |
-| **Last completed** | Phase 0: four defect fixes on `main`, pushed and merged. Design notes and this roadmap written. |
+| **Current phase** | Phase 2 — warpLDA engine, single-threaded, scalar prior |
+| **Last completed** | **Phase 1: benchmarking harness built and Gibbs baseline established.** 240 fits, all ok, persisted to `warp-planning/benchmarks/baseline-5abaa96.rds`. Results in §6.2. |
 | **In flight** | Nothing. |
 
-**Next action:** Build the statistical benchmarking harness to the specification
-in §6.1, and run it against the *current* Gibbs sampler to establish and persist
-the baseline distributions.
+**Next action:** Begin Phase 2 — port warpLDA single-threaded with a **scalar**
+prior, including D18 (`mh_steps`) and D19 ($\alpha$ alias table). Validate with
+`Rscript warp-planning/benchmarks/run-benchmark.R --engine=warp` followed by
+`compare.R baseline-5abaa96.rds run-warp.rds`.
+
+**What Phase 1 settled, beyond the baseline itself:**
+
+- **D14 revised** — paired TOST replaced by an unpaired one-sided
+  non-inferiority test. Reasoning recorded in D14 and §6.1; the short version is
+  that pairing does not survive Phase 4's fused initialization, and only one
+  direction of difference is a merge blocker.
+- **Seed counts are now asymmetric** — 100 at $K=10$, 20 at $K=50$ — because
+  coherence is underpowered at low $K$ against a relative margin. §6.1 grid note.
+- **200/50 validated**; no change needed. §6.1.
+- **Likelihood interval default of 10 is supported** by the Gibbs curves. §7 q2.
+- **$K=10$, not $K=50$, is where a worse sampler hides.** Counterintuitive
+  relative to the grid's original rationale; see the callout in §6.1.
+
+**Two things Phase 2 must do that are easy to forget:**
+
+1. `tests/testthat/test-tidylda-fit-methods.R:41` asserts
+   `nrow(log_likelihood) == tail(iteration, 1) + 1`, which a non-unit likelihood
+   interval (D11) invalidates. Update it alongside.
+2. The warp arm costs ~9 core-hours to benchmark. Budget it.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -106,7 +127,7 @@ Settled. See §1 rule 3 before changing any of these.
 | D11 | Likelihood evaluated every $n$-th iteration, parameterized. **The scheme is settled; the default value is not** — see §7 open question 2 | The likelihood is $O(\text{nnz}\cdot K + VK)$ and would otherwise dominate an $O(VK+N)$ sampler by ~$K$. **This is not thinning** — the chain advances every iteration and every post-burnin iteration still contributes to the count sums. Only a read-only diagnostic runs less often | §7 |
 | D12 | RNG seeded **per work item**, not per thread: `seed = f(master, iteration, pass, index)` | Gives reproducibility *independent of thread count*, not merely at a fixed count. Removes a confound from benchmarking and needs no caveat for CRAN. Master seed drawn from R's stream on the main thread so `set.seed()` governs | §8.2 |
 | D13 | Expand seeds through `splitmix64`, or use a counter-based generator (Threefry/Philox, e.g. `sitmo`) | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong | §8.3 |
-| D14 | Benchmark for **equivalence**, not model quality: $R^2$ and mean probabilistic coherence, paired across multiple seeds, no held-out data | The question is whether MH matches Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
+| D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R/C++ round trip and the 16-bytes-per-token marshalling | §11 |
 | D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Deferred to Phase 6**, after the engine works | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
@@ -162,9 +183,9 @@ Concrete enough to start from cold. This defines the comparison every later
 phase is measured against, so the details are binding, not suggestions.
 
 **Scope of Phase 1 specifically.** The warpLDA engine does not exist yet, so
-Phase 1 runs the **Gibbs half only — 80 fits**. The 160-fit grid below describes
-the full paired comparison that Phases 2, 3 and 5 execute against this stored
-baseline.
+Phase 1 ran the **Gibbs arm only — 240 fits** (per-$K$ seed counts, see the grid
+note below). Phases 2, 3 and 5 run the same 240-fit grid for the warp engine and
+compare it against this stored baseline.
 
 **Files.** All under `warp-planning/benchmarks/` — tracked, and excluded from the
 build by the `^warp-planning$` entry in `.Rbuildignore`. Not part of the package
@@ -172,29 +193,40 @@ and not run by `testthat`.
 
 | File | Role |
 |---|---|
-| `build-corpora.R` | Builds and persists both DTMs. Run once |
-| `run-benchmark.R` | Runs the grid for one sampler, writes an `.rds` |
-| `compare.R` | Loads two `.rds` files, runs TOST, reports pass/fail |
-| `data/` | Persisted DTMs |
+| `bench-lib.R` | Shared helpers, sourced by the three scripts below. No side effects |
+| `build-corpora.R` | Builds and persists both DTMs. Run once; refuses to overwrite without `--force` |
+| `run-benchmark.R` | Runs the grid for one sampler, writes an `.rds`. Parallel across fits, resumable |
+| `compare.R` | Loads two `.rds` files, runs the gate, reports pass/fail. `--self-test` validates the gate itself |
+| `data/` | Persisted DTMs and a corpus manifest |
+| `results/<engine>/` | One `.rds` per fit. Scratch — `.gitignore`d; the assembled `baseline-*.rds` is the artifact |
+
+`bench-lib.R` is a deliberate addition to the three files originally specified
+here, so that the schema of a result file is defined and consumed in one place
+and `compare.R` does not duplicate the runner's knowledge of it.
 
 **Corpora.** Two, at deliberately different scales:
 
 | Name | Source | Size |
 |---|---|---|
 | `small` | `nih_sample_dtm` (ships with the package) | 100 docs |
-| `medium` | fixed 1,000-doc sample of `nih` | 1,000 docs |
+| `medium` | fixed 1,000-row sample of `nih` | 997 docs (see below) |
 
 `nih` is a 68,508 × 44 data frame in `data/nih.rda`, present in the repo but
 `.Rbuildignore`d (`^data/nih.rda`), so it is available for benchmarking and
 never shipped. Relevant columns are `APPLICATION_ID` and `ABSTRACT_TEXT`. Build
-the DTM with `tidytext::unnest_tokens()` + `cast_sparse()`, following
-`tests/testthat/test-utils.R:7-11`.
+the DTM with `tidytext::unnest_tokens()` + `cast_sparse()`. The `unnest_tokens`
+call at `tests/testthat/test-utils.R:7-11` is the pattern to follow; note that
+block casts with `cast_dtm` on `nih_sample`, so only the tokenization transfers.
 
-> **The 1,000-document sample is drawn once and persisted**, never resampled.
-> Use `set.seed(8675309)`, `dplyr::slice_sample(n = 1000)`, and write the
-> resulting DTM to `warp-planning/benchmarks/data/nih-1000.rds`. If a later
-> session resamples, its numbers are not comparable to this baseline and Phase 1
-> has to be redone.
+**The medium corpus is 997 documents, not 1,000** — three sampled abstracts
+contribute no tokens and drop out at cast time.
+
+> **The sample is drawn once and persisted**, never resampled. `set.seed(8675309)`,
+> `dplyr::slice_sample(n = 1000)`, written to
+> `warp-planning/benchmarks/data/nih-1000.rds`. If a later session resamples, its
+> numbers are not comparable to this baseline and Phase 1 has to be redone.
+> `build-corpora.R` refuses to overwrite an existing DTM without `--force` for
+> exactly this reason.
 
 **Vocabulary pruning** (fixes $V$, which the whole $O(VK)$ question depends on):
 remove `tidytext::stop_words`, then drop terms appearing in fewer than 5
@@ -212,26 +244,69 @@ not comparable across different iteration counts:
 | `eta` | 0.05 (package default) |
 | `calc_likelihood` | `TRUE` |
 
-200/50 is the maintainer's standard setting for Gibbs on this package. Validate
-it in Phase 1 by inspecting the likelihood curves; if they have not plateaued by
-200, raise both numbers and rerun the baseline — before Phase 2 depends on it.
+200/50 is the maintainer's standard setting for Gibbs on this package.
+**Validated in Phase 1 and kept.** Averaged across seeds within each cell, the
+fraction of total log-likelihood gain realized by iteration 50 is 0.89–0.94, by
+100 is 0.97–0.98, and by 150 is 0.99; the final 25 iterations move the
+likelihood by under 1% of total gain in every cell. `burnin = 50` already sits
+at 89–94% of the gain, so the post-burnin averaging window draws from a chain
+that has substantially converged.
 
-**Grid.** $K \in \{10, 50\}$, 20 seeds per cell. Two $K$ values probe whether
-parity degrades as topic count grows, which is where the $O(VK)$ term and MH
-mixing under sharp priors would both first show up.
+**Grid.** $K \in \{10, 50\}$. Two $K$ values probe whether parity degrades as
+topic count grows, which is where the $O(VK)$ term and MH mixing under sharp
+priors would both first show up.
+
+**Seeds per cell: 100 at $K=10$, 20 at $K=50$.** Calibrated from the Phase 1
+baseline, not guessed — see §6.2. The original uniform 20 leaves coherence
+underpowered at $K=10$ in both corpora (48 and 71 seeds required), while $R^2$
+would be satisfied by 3 seeds anywhere. Per the margin note below, seeds were
+added rather than the margin widened.
+
+> **The statistical risk and the computational risk sit at opposite ends of the
+> $K$ range, and this is worth holding onto.** The grid was designed expecting
+> trouble at high $K$ — that is where $O(VK)$ and sharp-prior mixing bite. But
+> between-seed spread in coherence roughly *doubles* going from $K=50$ to
+> $K=10$ (CV 0.046/0.048 against 0.096/0.117), on both corpora, so it tracks
+> topic count rather than corpus size. Misspecified $K$ is the high-variance
+> regime, and since the margin is *relative* while the $K=10$ coherence mean is
+> also lower, the margin shrinks at exactly the $K$ where the noise grows —
+> a double penalty. **$K=10$ is therefore where a subtly-worse sampler is
+> hardest to detect**, which is an argument for powering that cell properly, not
+> for dropping it.
 
 **Metrics.** `calc_lda_r2()`, and the mean of `calc_prob_coherence()` across all
 topics — a single number per fit. Both from `R/utils.R`.
 
-**Pass/fail — the merge gate for Phases 2, 3 and 5.** Paired per-seed
-differences $d_i = \text{warp}_i - \text{gibbs}_i$, with a **TOST equivalence
-test** at $\alpha = 0.05$ and a margin of **5% of the Gibbs baseline mean**,
-applied to each metric separately:
+**Pass/fail — the merge gate for Phases 2, 3 and 5.** A **one-sided
+non-inferiority test** (Welch, unpaired) per cell and per metric, at
+$\alpha = 0.05$ with margin $\delta = 0.05\,\overline{\text{gibbs}}$:
 
-$$\text{PASS} \iff \text{both one-sided tests reject } H_0: |\bar d| \ge 0.05\,\overline{\text{gibbs}}$$
+$$\text{PASS} \iff \text{reject } H_0:\ \mu_{\text{warp}} - \mu_{\text{gibbs}} \le -\delta$$
 
-TOST rather than a plain paired t-test because the claim is *equivalence*; a
-t-test that fails to reject means only that the study was underpowered.
+Rejecting says warpLDA is not worse than Gibbs by more than the margin.
+
+*Revised 2026-08-21 from the original paired TOST. Recorded per §1 rule 3.*
+Three reasons, in order of weight:
+
+1. **Pairing does not survive the phase plan.** Seed $i$ pairs the two engines
+   only while they share an initialization path. That holds in Phases 2 and 3,
+   but **Phase 4 fuses initialization into the engine** (D16), changing RNG
+   consumption, after which seed $i$ no longer produces a common starting state.
+   A paired test would silently degrade into two independent samples analyzed as
+   paired — still valid, but less powerful, exactly when a power drop would be
+   misread as a sampler regression. An unpaired test means the same thing in
+   every phase.
+2. **Only one direction is a failure.** warpLDA scoring *better* than Gibbs is
+   not a reason to block a merge, so the upper bound has no business in the gate.
+3. **The margin is what makes the claim testable.** A test of
+   $H_0: \mu_{\text{warp}} - \mu_{\text{gibbs}} \le 0$ — "reject that MH is worse"
+   — is a *superiority* test: a correct port has a true difference near zero and
+   would fail it roughly 95% of the time. Non-inferiority against a margin is the
+   formulation that means what it sounds like it means.
+
+The upper side is still computed and **reported as a diagnostic**: a warp engine
+that scores implausibly better than Gibbs is more likely one that is not really
+sampling than a free win.
 
 Two notes on the margin, both deliberate:
 
@@ -241,26 +316,68 @@ Two notes on the margin, both deliberate:
   coherence comes out near zero, treat that as a broken baseline — not a margin
   problem — and stop. If **warpLDA** lands near zero, the gate has correctly
   caught a loud failure.
-- *Power.* Whether 20 seeds resolves a 5% margin is empirical and Phase 1 will
-  reveal it. If the baseline spread makes the margin unreachable, **add seeds
-  rather than widen the margin**, and record the change here.
+- *Power.* **Resolved by Phase 1.** 20 seeds does not resolve a 5% margin for
+  coherence at $K=10$; seeds were added, not the margin widened. The per-cell
+  numbers are in §6.2 and the resulting seed counts are above.
+
+**One diagnostic the gate does not cover.** It compares means. A sampler that
+mixes worse can match on the mean while being more seed-dependent, and that is
+most likely at misspecified $K$, where between-seed spread is already largest.
+`compare.R` therefore reports `sd_ratio` alongside each verdict and flags
+anything above 1.5. It is not a pass/fail criterion — it is where to look first
+if something downstream seems off.
 
 **Persistence.** Write to
 `warp-planning/benchmarks/baseline-5abaa96.rds`, named for the commit that
 produced it, and fill in the table below so later phases can compare without
 re-running and without trusting that a re-run reproduces.
 
+The file stores more than the two metrics, because §6.1 asks for more than the
+two metrics: **per-fit likelihood curves** (without which the 200/50 validation
+below cannot be done), per-fit wall-clock, the corpus manifest, the
+hyperparameters, `sessionInfo()`, and the actual git HEAD. `5abaa96` names the
+last commit that touched the sampler; HEAD has since moved on with docs-only
+commits, so the two are recorded separately.
+
 ### 6.2 Phase 1 baseline results
 
-*Populate when Phase 1 completes. Until then this table is the outstanding
-deliverable.*
+**Complete.** Gibbs sampler at `5abaa96`, produced on branch `warp` at
+`dadf2cd`. Persisted to `warp-planning/benchmarks/baseline-5abaa96.rds`.
+240 fits, all `status = ok`.
 
-| Corpus | $V$ | $K$ | mean $R^2$ (sd) | mean coherence (sd) | $R^2$ margin | coherence margin |
+Corpora after pruning (stop words removed, then terms in fewer than 5 documents
+dropped):
+
+| Corpus | $D$ | $V$ | $N$ | nnz |
+|---|---|---|---|---|
+| small | 100 | 687 | 10,935 | 6,997 |
+| medium | 997 | 4,443 | 181,758 | 119,120 |
+
+Metrics, with the 5% margin and the minimum detectable difference at the seed
+count actually used. **mdd < margin in every cell — the gate can resolve the
+margin everywhere.**
+
+| Corpus | $K$ | $n$ | mean $R^2$ (sd) | mean coherence (sd) | $R^2$ margin / mdd | coherence margin / mdd |
 |---|---|---|---|---|---|---|
-| small | — | 10 | — | — | — | — |
-| small | — | 50 | — | — | — | — |
-| medium | — | 10 | — | — | — | — |
-| medium | — | 50 | — | — | — | — |
+| small | 10 | 100 | 0.2189 (0.0056) | 0.1217 (0.0129) | 0.01095 / 0.00198 | 0.00609 / 0.00456 |
+| small | 50 | 20 | 0.5096 (0.0078) | 0.1637 (0.0078) | 0.02548 / 0.00630 | 0.00819 / 0.00629 |
+| medium | 10 | 100 | 0.1000 (0.0020) | 0.1119 (0.0098) | 0.00500 / 0.00071 | 0.00560 / 0.00345 |
+| medium | 50 | 20 | 0.2056 (0.0026) | 0.1267 (0.0059) | 0.01028 / 0.00209 | 0.00633 / 0.00472 |
+
+**Coherence is the binding metric.** Its mdd/margin ratio runs 0.62–0.77 against
+$R^2$'s 0.14–0.25, so $R^2$ has power to spare everywhere (3 seeds would satisfy
+it) while coherence sets the seed count. This is why the seed counts are
+asymmetric — see the grid note in §6.1.
+
+**The near-zero-coherence guard did not fire.** The lowest cell mean is 0.112,
+and the smallest single-fit value across all 240 fits is well clear of zero.
+There is no degenerate cell; in particular small/$K{=}50$, the cell most at risk
+on a 100-document corpus, has the *highest* mean coherence of the four (0.1637).
+
+**Timing**, single-threaded per fit, 20 fits in parallel: median 8.5 s
+(small/$K{=}10$), 45.8 s (small/$K{=}50$), 143.9 s (medium/$K{=}10$), 781.8 s
+(medium/$K{=}50$). The full 240-fit baseline is 8.7 core-hours, about 27 minutes
+of wall clock at 20 workers. Phase 2 must budget the same again for the warp arm.
 
 ### 6.3 Phase 7 sketch — memory surgery for large corpora
 
@@ -314,8 +431,14 @@ path) both point this direction and should land first.
    but how documents and words divide across threads is not — including whether
    the two passes should partition differently, and how the shared $C_k$ vector
    is updated without contention. Phase 5.
-2. **Likelihood evaluation interval.** Default of 10 proposed; the right value
-   depends on how noisy the curve looks in practice. Phase 1 or 2.
+2. **Likelihood evaluation interval.** Default of 10 proposed. **Phase 1
+   evidence supports it**; confirm against the warpLDA curve in Phase 2 before
+   fixing the default. Essentially all readable structure is in the first ~50
+   iterations (89–94% of total gain). Past iteration 150 the curve is
+   noise-dominated: iteration-to-iteration movement is comparable to the
+   remaining drift, with drift/jitter ratios of 1.6–7.1. Sampling every 10th
+   iteration loses no real structure and yields a *cleaner* curve than every
+   iteration does.
 3. **Two expiring doc comments**, both user-facing via `man/tidylda.Rd`, both
    Phase 6:
    - `R/tidylda-fit-methods.R:58-66` claims the log likelihood returns "positive

@@ -32,16 +32,13 @@
 //        -- evaluated in the WORD pass, where C_word[w] and (from Phase 3) the
 //           eta column for w are both already in cache.
 //
-// A NOTE ON eta_bar, AND A BUG IN THE REFERENCE. eta_bar is
-// sum_v eta[k][v] -- a sum over the VOCABULARY, so V*eta under a scalar prior.
-// text2vec's LDA.hpp:65 sets beta_bar = n_topic*beta, i.e. K*beta, which is
-// dimensionally wrong: alpha_bar is a sum over topics but beta_bar is a sum over
-// words. On this package's medium benchmark corpus (V = 4443, eta = 0.05) the
-// correct value is 222.15 against the reference's 2.5 at K = 50. Since eta_bar
-// only ever appears added to C_k, that difference substantially changes how far
-// the acceptance ratio is shrunk toward 1. Porting it faithfully would give a
-// perfectly valid MCMC chain converging to the wrong posterior. tidylda's own
-// collapsed Gibbs sampler has this right (lda_gibbs2.cpp:333).
+// THE TWO PRIOR SUMS ARE OVER DIFFERENT INDICES. alpha_bar is a sum over topics,
+// sum_k alpha_k, so K*alpha under a symmetric prior. eta_bar is a sum over the
+// VOCABULARY, sum_v eta_{kv}, so V*eta. They are easy to conflate and the second
+// one is load-bearing: eta_bar appears only as an addition to C_k, so getting it
+// wrong leaves a perfectly well-behaved MCMC chain that converges to a different
+// posterior. Under Phase 3's matrix prior eta_bar becomes a K-vector; it is a
+// scalar here only because the prior is.
 
 #include <RcppArmadillo.h>
 #include <progress.hpp>
@@ -122,14 +119,13 @@ Rcpp::List fit_lda_warp(
   const double eta = eta_in;
   double alpha_bar = 0.0;
   for (std::size_t k = 0; k < K; k++) alpha_bar += alpha[k];
-  // Sum over the VOCABULARY. See the header note on the reference's beta_bar.
+  // Sum over the VOCABULARY, not over topics. See the header note.
   const double eta_bar = static_cast<double>(V) * eta;
 
-  // D19: alias table over alpha for the doc-proposal's prior branch. The
-  // reference draws that branch uniformly (LDA.hpp:191), which is proportional
-  // to alpha_k only when alpha is symmetric; tidylda permits a vector, so a
-  // uniform draw would sample from the wrong prior while running perfectly.
-  // Built once, since D7 removed optimize_alpha and alpha is now fixed.
+  // D19: alias table over alpha for the doc-proposal's prior branch. That
+  // branch must draw proportional to alpha_k, which a uniform draw achieves only
+  // when alpha is symmetric -- and tidylda permits a vector. Built once, since
+  // D7 removed optimize_alpha and alpha is fixed for the run.
   AliasTable alpha_alias;
   alpha_alias.setup(alpha);
 
@@ -201,13 +197,11 @@ Rcpp::List fit_lda_warp(
               ((Ck[k] + eta_bar) / (Ck[kp] + eta_bar));
 
           if (rng.unif() < accept) {
-            // The reference updates C_all here but NOT C_doc (LDA.hpp:168-178),
-            // while its word pass does maintain C_word (:116-117). It never
-            // reads C_doc again, so the omission is harmless there. We export
-            // C_doc and accumulate it below, so without these two lines the
-            // matrix would stop matching old_z the moment anything is accepted
-            // -- a silent bias in the posterior mean, exactly the kind D10
-            // assumes away.
+            // C_doc must be maintained here, not just rebuilt in step 0: it is
+            // accumulated into Cd_sum below and exported, so it has to keep
+            // matching old_z through the whole accept loop. Dropping these two
+            // lines biases the posterior mean without changing anything the
+            // sampler itself reads.
             Cd_d[kp]++;
             Cd_d[k]--;
 

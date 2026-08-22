@@ -16,11 +16,10 @@
 //   z_[i*stride]         old_z, the token's current topic
 //   z_[i*stride + 1 + m] proposal m, pending resolution by the other pass
 //
-// At the default mh_steps = 1 this is exactly the reference's
-// Z{uint16 old_z, uint16 new_z} -- 4 bytes per token, both fields on one cache
-// line -- and D18's "mh_steps * 2 bytes per token above the default" falls out
-// of the stride. Interleaving rather than using parallel arrays matters most in
-// the word pass, where access is scattered and a split layout would cost two
+// At the default mh_steps = 1 that is 4 bytes per token with both fields on one
+// cache line, and D18's "mh_steps * 2 bytes per token above the default" falls
+// out of the stride. Interleaving rather than using parallel arrays matters most
+// in the word pass, where access is scattered and a split layout would cost two
 // cache misses per token instead of one.
 //
 // TOKENS ARE SORTED BY WORD WITHIN EACH DOCUMENT. Three things fall out:
@@ -90,11 +89,10 @@ public:
         word_of_[at] = static_cast<word_t>(docs[d][src]);
         // Initialize every pending proposal to old_z. An acceptance ratio is a
         // valid MH step only if the proposal came from the matching proposal
-        // distribution; at iteration 1 no pass has run, so anything else here
-        // would be resolved as a proposal it never was. Equal values make the
-        // first resolve a no-op via the skip in the accept loops. The reference
-        // fills new_z uniformly at random (LDA.hpp:77), which is harmless under
-        // its uniform init but would partly discard our informed one.
+        // distribution, and at iteration 1 no pass has run to produce one --- so
+        // any other value here gets resolved as a proposal it never was, partly
+        // discarding the informed initialization (D8). Equal values make the
+        // first resolve a no-op via the skip in the accept loops.
         const topic_t k = static_cast<topic_t>(zd[d][src]);
         for (std::size_t m = 0; m < stride_; m++) z_[at * stride_ + m] = k;
         at++;

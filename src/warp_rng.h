@@ -20,13 +20,12 @@
 // sees. "Phase 5 at threads = 1 reproduces Phase 2 bit for bit" is then a real
 // regression check that separates a threading bug from an RNG-change bug.
 //
-// WHY NOT xorshift FROM NEARBY SEEDS (D13). xorshift-family generators --
-// including the XOR128PLUS in the text2vec reference's qrand.hpp -- produce
-// CORRELATED streams from nearby seeds. Seeding thousands of per-document
-// streams with consecutive integers would quietly bias the sampler in a way
-// that looks like nothing at all until the benchmarks come back subtly wrong.
-// splitmix64 is the standard companion for exactly this: it avalanches a
-// counter into a well-separated 64-bit state.
+// WHY THE SEEDS ARE HASHED (D13). xorshift-family generators produce CORRELATED
+// streams from nearby seeds, so seeding thousands of per-document streams with
+// consecutive integers would quietly bias the sampler in a way that looks like
+// nothing at all until the benchmarks come back subtly wrong. splitmix64 is the
+// standard companion for exactly this: it avalanches a counter into a
+// well-separated 64-bit state.
 
 #pragma once
 

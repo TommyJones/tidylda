@@ -11,12 +11,11 @@
 // instead of requiring discipline at every call site -- the table has no
 // generator to misuse.
 //
-// ALLOCATION. setup() reuses the object's buffers, so a single AliasTable
-// hoisted out of the per-word loop costs zero allocations per word. The
-// reference constructs a fresh AliasUrn and grows a fresh vector<double> with
-// push_back for every word of every iteration (LDA.hpp:132-136), which is
-// V * iterations heap allocations; design notes section 4.3 identifies that as
-// its real inefficiency, ahead of the dense O(K) loop itself.
+// ALLOCATION. setup() reuses the object's buffers, so one AliasTable hoisted
+// out of the per-word loop costs zero allocations per word. Constructing a table
+// per word instead would be V * iterations heap allocations -- design notes
+// section 4.3 identifies allocation frequency, not the dense O(K) loop, as the
+// thing to watch in this pass.
 
 #pragma once
 

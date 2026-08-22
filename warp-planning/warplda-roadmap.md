@@ -43,7 +43,7 @@ repository root.
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
 | **Current phase** | Phase 3 — matrix $\boldsymbol\eta$ (tLDA) and `freeze_topics` |
-| **Last completed** | **Phase 2: warpLDA engine built, single-threaded, scalar prior. Gate PASSES all eight cell × metric combinations.** Results, timings and three reference defects in §6.3. |
+| **Last completed** | **Phase 2: warpLDA engine built, single-threaded, scalar prior. Gate PASSES all eight cell × metric combinations.** Results, timings and two reference defects in §6.3. |
 | **In flight** | Nothing. |
 
 **Next action:** Phase 3 — generalize the engine to a matrix $\boldsymbol\eta$
@@ -126,7 +126,7 @@ Settled. See §1 rule 3 before changing any of these.
 | # | Decision | Rationale | Notes § |
 |---|---|---|---|
 | D1 | Work on branch `warp`, not a fork | Simpler; same repo | — |
-| D2 | Port from text2vec `src/mcemlda/` (MIT licensed) as reference | Compact, faithful warpLDA; confirms the derivation line by line. **But do not port it blindly** — three defects found in Phase 2, listed in §6.3 | §1 |
+| D2 | Port from text2vec `src/mcemlda/` (MIT licensed) as reference | Compact, faithful warpLDA; confirms the derivation line by line. **But do not port it blindly** — two defects found in Phase 2, listed in §6.3 | §1 |
 | D3 | Store $\boldsymbol\eta$ **dense**, no sparse representation | $\hat\beta^{(t-1)}$ is dense at $t=1$, so tLDA has no sparsity to exploit at any $t$ | §5.2 |
 | D4 | Store $\boldsymbol\eta$ **column-major ($V \times K$)** | The word pass needs $\boldsymbol\eta_{\cdot v}$ contiguous beside $C^v_{\cdot v}$; this is the transpose of tidylda's current $K \times V$ | §3.4 |
 | D5 | $\boldsymbol\eta$ as `float`, promoted to `double` for computation | Halves the largest allocation; keeps precision drift out of MH accept decisions | §5.4 |
@@ -167,7 +167,7 @@ Settled. See §1 rule 3 before changing any of these.
 |---|---|---|
 | **0** | Defect fixes on `main` | **Done — `5abaa96`** |
 | **1** | Statistical benchmarking harness | Produces stable baseline distributions of $R^2$ and mean coherence for the current sampler, across multiple seeds and at least two corpora/$K$ settings |
-| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`), D19 ($\alpha$ alias table) and — moved forward — D12/D13 (RNG) | **Done.** Matches CGS on the harness at a converged iteration count. Results and the three reference defects in §6.3 |
+| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`), D19 ($\alpha$ alias table) and — moved forward — D12/D13 (RNG) | **Done.** Matches CGS on the harness at a converged iteration count. Results and the two reference defects in §6.3 |
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA); **plus D9's `freeze_topics` specialization**, which `predict()` needs. Remove the two Phase 2 skips in `test-refit.tidylda.R` and `test-tidylda-fit-methods.R`, and point `refit()`/`predict()` at the new engine | Parity preserved when a transferred prior is in play; `refit()` and `predict()` paths exercised; whole public API on the new engine |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
@@ -461,7 +461,7 @@ gap is far larger (9× to 43×, growing in $K$ exactly as $O(NK)$ against
 $O(VK+N)$ predicts); most of it is spent buying convergence back. Parallelism in
 Phase 5 multiplies this further.
 
-#### Three defects in the reference implementation
+#### Two defects in the reference implementation
 
 D2 says to port from text2vec. It should not be ported blindly.
 
@@ -478,13 +478,20 @@ tidylda's own Gibbs sampler has this right (`lda_gibbs2.cpp:333`).
 
 **(b) The doc pass never maintains `C_doc`.** See the D10 caveat.
 
-**(c) `C_local` is written but never sized.** `init()` (`LDA.hpp:69-90`) resizes
-`C_doc`, `C_word`, `C_all` and `C_local_diff` but not `C_local`, which is then
-written at `:125-126` and read at `:203`. Out-of-bounds write. The design notes
-suspected this; it is real. Neither `C_local` nor `C_local_diff` is needed here
-— both serve text2vec's distributed bookkeeping.
+**Not a defect, contrary to an earlier draft of this section:** `C_local` is
+written at `LDA.hpp:125-126` and read at `:203` without `init()` ever resizing
+it, which looks like an out-of-bounds write. The design notes raised exactly
+this and offered two readings — sized elsewhere, or latent UB. It is the first:
+`warplda.cpp:32` does `C_local.resize(n_topic, 0)`. Checking only the header is
+what makes it look like a bug.
 
-A fourth item is not a defect in the reference but a trap when adapting it:
+`C_local` and `C_local_diff` are still irrelevant to us. They hold a per-shard
+view of the topic totals maintained alongside the global `C_all`, which
+text2vec's distributed MCEM driver reads out and resets between rounds
+(`warplda.cpp:126`, `:139-140`). Single-process, with our own likelihood,
+neither has a job here — dead weight to skip, not a bug to avoid.
+
+A third item is not a defect in the reference but a trap when adapting it:
 `init()` fills `new_z` with a uniform random topic (`:77`). An acceptance ratio
 is a valid MH step only if the proposal came from the matching proposal
 distribution, and at iteration 1 no pass has run. Under warpLDA's own uniform

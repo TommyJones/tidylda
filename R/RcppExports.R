@@ -106,16 +106,19 @@ fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterat
 #' @param Cv_in IntegerMatrix, topics by words
 #' @param Ck_in Vector of token counts per topic
 #' @param alpha_in Vector of prior parameters for topics over documents
-#' @param eta_in Scalar prior parameter for words over topics
+#' @param eta_in NumericMatrix, topics by words. Prior for words over topics
 #' @param iterations int number of sampling iterations
 #' @param burnin int number of burn in iterations, -1 to disable averaging
 #' @param calc_likelihood bool, calculate log likelihood?
 #' @param likelihood_every int, evaluate the likelihood every n-th iteration
 #' @param mh_steps int, Metropolis-Hastings proposals per token per pass
+#' @param freeze_topics bool, hold topics fixed for prediction?
+#' @param Beta_in NumericMatrix, topics by words. The fitted beta, used only
+#'   when \code{freeze_topics = TRUE}
 #' @param verbose bool, show a progress bar?
 #' @return Returns a list with the same names as \code{fit_lda_c}.
-fit_lda_warp <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, likelihood_every = 10L, mh_steps = 1L, verbose = TRUE) {
-    .Call(`_tidylda_fit_lda_warp`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, likelihood_every, mh_steps, verbose)
+fit_lda_warp <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics = FALSE, likelihood_every = 10L, mh_steps = 1L, verbose = TRUE) {
+    .Call(`_tidylda_fit_lda_warp`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, verbose)
 }
 
 # Register entry points for exported C++ functions

@@ -207,18 +207,6 @@ tidylda_bridge <- function(
 
   eta <- format_eta(eta = eta, k = k, Nv = ncol(dtm))
 
-  # The warpLDA engine is scalar-eta only until Phase 3 generalizes it to the
-  # tLDA matrix prior. Fail loudly rather than silently ignoring the structure
-  # the user asked for.
-  if (eta$eta_class != "scalar") {
-    stop(
-      "The warpLDA engine currently supports only a scalar eta; got '",
-      eta$eta_class, "'.\n",
-      "  Vector and matrix eta (including transfer learning via refit()) are\n",
-      "  restored in Phase 3 of the warpLDA port."
-    )
-  }
-
   if (!is.numeric(likelihood_every) || length(likelihood_every) != 1 ||
       likelihood_every < 1) {
     stop("likelihood_every must be a single integer >= 1")
@@ -298,9 +286,6 @@ tidylda_bridge <- function(
   )
 
   ### run the C++ sampler ----
-  # Phase 2 of the warpLDA project: tidylda() fits with the warpLDA engine.
-  # refit() and predict() still call fit_lda_c(), which they must until the
-  # engine handles a matrix eta (Phase 3) and freeze_topics (Phase 3, D9).
   lda <- fit_lda_warp(
     Docs = counts$Docs,
     Zd_in = counts$Zd,
@@ -308,10 +293,12 @@ tidylda_bridge <- function(
     Cv_in = counts$Cv,
     Ck_in = counts$Ck,
     alpha_in = alpha$alpha,
-    eta_in = eta$eta[1, 1], # scalar; guarded above
+    eta_in = eta$eta,
     iterations = iterations,
     burnin = burnin,
     calc_likelihood = calc_likelihood,
+    Beta_in = counts$Cv, # ignored: freeze_topics = FALSE for initial fitting
+    freeze_topics = FALSE,
     likelihood_every = as.integer(likelihood_every),
     mh_steps = as.integer(mh_steps),
     verbose = verbose

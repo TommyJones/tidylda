@@ -103,11 +103,6 @@ test_that("can fit lda models without error", {
   expect_length(lda$alpha, 4)
 
   # vector priors
-  #
-  # The Phase 2 warpLDA engine is scalar-eta only. Phase 3 generalizes it to the
-  # tLDA matrix prior and MUST remove this skip -- see roadmap section 6.
-  skip("vector eta: unsupported by the warpLDA engine until Phase 3")
-
   lda <- tidylda(
     data = d1,
     k = 4,

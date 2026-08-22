@@ -15,6 +15,8 @@ fit_lda_warp(
   iterations,
   burnin,
   calc_likelihood,
+  Beta_in,
+  freeze_topics = FALSE,
   likelihood_every = 10L,
   mh_steps = 1L,
   verbose = TRUE
@@ -33,13 +35,18 @@ fit_lda_warp(
 
 \item{alpha_in}{Vector of prior parameters for topics over documents}
 
-\item{eta_in}{Scalar prior parameter for words over topics}
+\item{eta_in}{NumericMatrix, topics by words. Prior for words over topics}
 
 \item{iterations}{int number of sampling iterations}
 
 \item{burnin}{int number of burn in iterations, -1 to disable averaging}
 
 \item{calc_likelihood}{bool, calculate log likelihood?}
+
+\item{Beta_in}{NumericMatrix, topics by words. The fitted beta, used only
+when \code{freeze_topics = TRUE}}
+
+\item{freeze_topics}{bool, hold topics fixed for prediction?}
 
 \item{likelihood_every}{int, evaluate the likelihood every n-th iteration}
 

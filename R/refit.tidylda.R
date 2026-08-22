@@ -21,6 +21,10 @@
 #' @param threads Number of parallel threads, defaults to 1.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Defaults to \code{TRUE}.
+#' @param likelihood_every Integer. Evaluate the log likelihood every n-th
+#'        iteration. Defaults to 10. See \code{\link[tidylda]{tidylda}}.
+#' @param mh_steps Integer. Metropolis-Hastings proposals per token per pass.
+#'        Defaults to 1. See \code{\link[tidylda]{tidylda}}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
@@ -126,6 +130,8 @@ refit.tidylda <- function(
     return_data = FALSE,
     threads = 1,
     verbose = TRUE,
+    likelihood_every = 10,
+    mh_steps = 1,
     ...
 ) {
   
@@ -342,7 +348,7 @@ refit.tidylda <- function(
   )
   
   ### run C++ gibbs sampler ----
-  lda <- fit_lda_c(
+  lda <- fit_lda_warp(
     Docs = counts$Docs,
     Zd_in = counts$Zd,
     Cd_in = counts$Cd,
@@ -352,11 +358,11 @@ refit.tidylda <- function(
     eta_in = eta$eta,
     iterations = iterations,
     burnin = burnin,
-    optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
     Beta_in = object$beta, # ignored for updates as freeze_topics = FALSE
     freeze_topics = FALSE,
-    threads = threads,
+    likelihood_every = as.integer(likelihood_every),
+    mh_steps = as.integer(mh_steps),
     verbose = verbose
   )
   

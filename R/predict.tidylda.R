@@ -21,6 +21,8 @@
 #'   ignored; only single-threaded prediction is implemented.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.
+#' @param mh_steps Integer. Metropolis-Hastings proposals per token per pass
+#'        when \code{method = "gibbs"}. Defaults to 1.
 #' @param ... Additional arguments, currently unused
 #' @return \code{type} gives different outputs depending on whether the user selects
 #'   "prob", "class", or "distribution". If "prob", the default, returns a
@@ -97,6 +99,7 @@ predict.tidylda <- function(
   times = 100,
   threads = 1,
   verbose = TRUE,
+  mh_steps = 1,
   ...
 ){
   
@@ -258,21 +261,20 @@ predict.tidylda <- function(
     )
 
     # pass inputs to C++ function for prediciton
-    lda <- fit_lda_c(
+    lda <- fit_lda_warp(
       Docs = counts$Docs,
       Zd_in = counts$Zd,
       Cd_in = counts$Cd,
       Cv_in = counts$Cv,
       Ck_in = counts$Ck,
       alpha_in = alpha$alpha,
-      eta_in = eta$eta,
+      eta_in = eta$eta,   # ignored: freeze_topics = TRUE
       iterations = iterations,
       burnin = burnin,
-      optimize_alpha = FALSE,
       calc_likelihood = FALSE,
-      Beta_in = object$beta, 
+      Beta_in = object$beta,
       freeze_topics = TRUE,
-      threads = threads,
+      mh_steps = as.integer(mh_steps),
       verbose = verbose
     )
     

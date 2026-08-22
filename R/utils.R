@@ -616,15 +616,18 @@ new_tidylda <- function(
   
 
   ### format theta ###
+  # Cd is documents by topics and alpha is a K-vector, so alpha must be added
+  # down the topic axis. Transposing first is what makes R's column-major
+  # recycling land alpha[k] on topic k; adding it to the D x K matrix directly
+  # recycles alpha diagonally instead, which silently corrupts theta for any
+  # asymmetric alpha and is invisible for a symmetric one.
   if (burnin > -1) {
-    theta <- t(lda$Cd_mean + lda$alpha) # t(t(lda$Cd_mean) + lda$alpha)
     Cd <- lda$Cd_mean
   } else {
-    theta <- t(lda$Cd + lda$alpha) # t(t(lda$Cd) + lda$alpha)
     Cd <- lda$Cd
   }
-  
-  theta <- t(theta)
+
+  theta <- t(t(Cd) + lda$alpha)
   
   theta <- theta / rowSums(theta)
   

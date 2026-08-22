@@ -15,6 +15,7 @@
   times = 100,
   threads = 1,
   verbose = TRUE,
+  mh_steps = 1,
   ...
 )
 }
@@ -48,6 +49,9 @@ ignored; only single-threaded prediction is implemented.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.}
+
+\item{mh_steps}{Integer. Metropolis-Hastings proposals per token per pass
+when \code{method = "gibbs"}. Defaults to 1.}
 
 \item{...}{Additional arguments, currently unused}
 }

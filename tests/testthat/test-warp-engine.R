@@ -19,12 +19,13 @@ setup <- function(k = 5, seed = 1) {
 
 run_warp <- function(s, seed = 42, ...) {
   set.seed(seed)
-  fit_lda_warp(
+  args <- list(
     Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
     Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = 0.05, iterations = 30, burnin = 10,
-    calc_likelihood = TRUE, verbose = FALSE, ...
+    eta_in = s$eta$eta, iterations = 30, burnin = 10,
+    calc_likelihood = TRUE, Beta_in = s$counts$Cv, verbose = FALSE
   )
+  do.call(fit_lda_warp, utils::modifyList(args, list(...)))
 }
 
 
@@ -78,8 +79,8 @@ test_that("Cd is current on return even without the likelihood", {
   m <- fit_lda_warp(
     Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
     Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = 0.05, iterations = 30, burnin = -1,
-    calc_likelihood = FALSE, verbose = FALSE
+    eta_in = s$eta$eta, iterations = 30, burnin = -1,
+    calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
   )
   expect_equal(sum(m$Cd), s$n)
   expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
@@ -133,8 +134,8 @@ test_that("burnin averaging is off when burnin is -1", {
   m <- fit_lda_warp(
     Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
     Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = 0.05, iterations = 10, burnin = -1,
-    calc_likelihood = FALSE, verbose = FALSE
+    eta_in = s$eta$eta, iterations = 10, burnin = -1,
+    calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
   )
   expect_equal(length(m$Cd_mean), 0)
   expect_equal(length(m$Cv_mean), 0)
@@ -148,25 +149,100 @@ test_that("invalid arguments are rejected", {
     fit_lda_warp(
       Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
       Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-      eta_in = 0.05, iterations = 10, burnin = 10,
-      calc_likelihood = FALSE, verbose = FALSE
+      eta_in = s$eta$eta, iterations = 10, burnin = 10,
+      calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
     ),
     "burnin"
   )
 })
 
 
-test_that("tidylda() rejects a non-scalar eta until Phase 3", {
-  expect_error(
-    tidylda(data = dtm, k = 4, iterations = 5, eta = matrix(0.05, 4, ncol(dtm)),
-            verbose = FALSE),
-    "scalar eta"
+test_that("vector and matrix eta both fit", {
+  vec <- tidylda(data = dtm, k = 4, iterations = 20, burnin = 10,
+                 eta = rep(0.05, ncol(dtm)), calc_likelihood = FALSE,
+                 verbose = FALSE)
+  expect_length(vec$eta, ncol(dtm))
+
+  mat <- tidylda(data = dtm, k = 4, iterations = 20, burnin = 10,
+                 eta = matrix(0.05, nrow = 4, ncol = ncol(dtm)),
+                 calc_likelihood = FALSE, verbose = FALSE)
+  expect_true(inherits(mat$eta, "matrix"))
+  expect_equal(dim(mat$eta), c(4L, ncol(dtm)))
+})
+
+
+test_that("a constant matrix eta matches the scalar it is made of", {
+  # The sharpest available check that generalizing to a matrix prior did not
+  # move the target: a K x V matrix filled with the scalar describes exactly the
+  # same model, so the two must agree beyond sampling noise.
+  skip_on_cran()
+
+  r2 <- function(eta, seed) {
+    set.seed(seed)
+    tidylda(data = dtm, k = 5, iterations = 300, burnin = 75, alpha = 0.1,
+            eta = eta, calc_likelihood = FALSE, calc_r2 = TRUE,
+            verbose = FALSE)$r2
+  }
+  seeds <- 1:6
+  scal <- vapply(seeds, function(s) r2(0.05, s), numeric(1))
+  matx <- vapply(seeds, function(s) r2(matrix(0.05, 5, ncol(dtm)), s), numeric(1))
+
+  expect_lt(abs(mean(matx) - mean(scal)) / mean(scal), 0.05)
+})
+
+
+test_that("frozen topics leave the word side untouched", {
+  s <- setup(k = 5)
+  beta <- s$counts$Cv + 0.05
+  beta <- beta / rowSums(beta)
+
+  set.seed(42)
+  m <- fit_lda_warp(
+    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
+    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
+    eta_in = s$eta$eta, iterations = 30, burnin = 10,
+    calc_likelihood = FALSE, Beta_in = beta, freeze_topics = TRUE,
+    verbose = FALSE
   )
-  expect_error(
-    tidylda(data = dtm, k = 4, iterations = 5, eta = rep(0.05, ncol(dtm)),
-            verbose = FALSE),
-    "scalar eta"
-  )
+
+  # C^v and C_k are not part of the frozen target, so they are not built.
+  expect_equal(length(m$Cv), 0)
+  expect_equal(length(m$Cv_mean), 0)
+
+  # The document side still has to be a valid assignment of every token.
+  expect_equal(sum(m$Cd), s$n)
+  expect_equal(unname(rowSums(m$Cd_mean)), unname(Matrix::rowSums(dtm)))
+})
+
+
+test_that("predict() runs on the warp engine and returns a distribution", {
+  set.seed(1)
+  m <- tidylda(data = dtm, k = 5, iterations = 40, burnin = 10,
+               calc_likelihood = FALSE, verbose = FALSE)
+
+  p <- predict(m, nih_sample_dtm[51:70, ], method = "gibbs",
+               iterations = 40, burnin = 10, verbose = FALSE)
+
+  expect_equal(nrow(p), 20)
+  expect_equal(ncol(p), 5)
+  expect_equal(unname(rowSums(p)), rep(1, 20), tolerance = 1e-8)
+})
+
+
+test_that("theta reflects an asymmetric alpha", {
+  # new_tidylda() used to compute theta as t(t(Cd + alpha)), a double transpose
+  # that added a K-vector to a D x K matrix and so recycled alpha diagonally
+  # across topics rather than adding alpha[k] to topic k. Invisible for a
+  # symmetric alpha; wrong for every other one.
+  set.seed(1)
+  m <- tidylda(data = dtm, k = 4, iterations = 30, burnin = 10,
+               alpha = c(50, 0.01, 0.01, 0.01), eta = 0.05,
+               calc_likelihood = FALSE, verbose = FALSE)
+
+  # Topic 1 carries 5000x the prior mass of the others, so it must be the
+  # largest component of theta in every document.
+  expect_true(all(apply(m$theta, 1, which.max) == 1))
+  expect_gt(mean(m$theta[, 1]), 3 * max(colMeans(m$theta[, -1, drop = FALSE])))
 })
 
 
@@ -192,8 +268,9 @@ test_that("the sampler targets the LDA posterior, not merely a stationary one", 
 
   set.seed(11)
   w <- do.call(fit_lda_warp, c(common, list(
-    eta_in = 0.05, iterations = 2000, burnin = 500,
-    calc_likelihood = TRUE, likelihood_every = 1, verbose = FALSE
+    eta_in = s$eta$eta, iterations = 2000, burnin = 500,
+    calc_likelihood = TRUE, Beta_in = s$counts$Cv, likelihood_every = 1,
+    verbose = FALSE
   )))
 
   g_ll <- g$log_likelihood[2, ncol(g$log_likelihood)]

@@ -386,6 +386,140 @@ noninf_test <- function(x_new, x_base,
 }
 
 
+METRICS <- c(r2 = "r2", coherence = "coherence_mean")
+
+
+# ---- the gate ----------------------------------------------------------------
+
+#' Apply the gate to every cell x metric of two runs
+#'
+#' @param base,new metrics tibbles as stored by run-benchmark.R
+#' @return one row per cell per metric
+compare_runs <- function(base, new,
+                         margin_frac = BENCH_MARGIN_FRAC,
+                         alpha = BENCH_ALPHA) {
+  cells <- base |>
+    dplyr::distinct(.data$corpus, .data$k) |>
+    dplyr::arrange(.data$corpus, .data$k)
+
+  rows <- list()
+  for (i in seq_len(nrow(cells))) {
+    cell <- cells[i, ]
+    pick <- function(df, col) {
+      df[[col]][df$corpus == cell$corpus & df$k == cell$k]
+    }
+    for (nm in names(METRICS)) {
+      rows[[length(rows) + 1]] <- dplyr::bind_cols(
+        tibble::tibble(corpus = cell$corpus, k = cell$k, metric = nm),
+        noninf_test(
+          x_new       = pick(new, METRICS[[nm]]),
+          x_base      = pick(base, METRICS[[nm]]),
+          margin_frac = margin_frac,
+          alpha       = alpha
+        )
+      )
+    }
+  }
+  dplyr::bind_rows(rows)
+}
+
+
+#' Print a comparison table and return the overall verdict
+report <- function(cmp) {
+  out <- cmp |>
+    dplyr::transmute(
+      cell     = paste0(.data$corpus, "/k", .data$k),
+      metric   = .data$metric,
+      base     = round(.data$mean_base, 4),
+      new      = round(.data$mean_new, 4),
+      diff     = round(.data$diff, 4),
+      margin   = round(.data$margin, 4),
+      mdd      = round(.data$mdd, 4),
+      sd_ratio = round(.data$sd_new / .data$sd_base, 2),
+      p        = signif(.data$p_noninf, 3),
+      verdict  = ifelse(.data$pass, "PASS", "FAIL"),
+      better   = ifelse(.data$p_not_better >= BENCH_ALPHA, "check", "")
+    )
+  print(as.data.frame(out), row.names = FALSE)
+
+  # The gate compares means. A sampler that mixes worse can match on the mean
+  # while being more seed-dependent, and that is most likely at misspecified K,
+  # where between-seed spread is already largest (coherence CV roughly doubles
+  # from K=50 to K=10 in the Gibbs baseline). An inflated ratio is not a failure
+  # --- it is where to look first if anything downstream seems off.
+  inflated <- cmp$sd_new / cmp$sd_base > 1.5
+  if (any(inflated, na.rm = TRUE)) {
+    cat("\nNote: sd_ratio > 1.5 in", sum(inflated, na.rm = TRUE),
+        "cell(s) --- the new sampler matches on the mean but is markedly more\n",
+        "  seed-dependent. Suspect mixing, not bias.\n")
+  }
+
+  underpowered <- cmp$mdd > cmp$margin
+  if (any(underpowered)) {
+    cat("\nNote: mdd > margin in",  sum(underpowered),
+        "cell(s) --- the gate cannot resolve a",
+        paste0(BENCH_MARGIN_FRAC * 100, "%"),
+        "margin at this sample size.\n",
+        "  Roadmap 6.1: add seeds rather than widen the margin.\n")
+  }
+  if (any(cmp$p_not_better >= BENCH_ALPHA)) {
+    cat("\nNote: cells marked 'check' scored better than the baseline by more\n",
+        "  than the margin. Not a failure, but a sampler that is not really\n",
+        "  sampling can look like this. Worth a second look.\n")
+  }
+
+  all(cmp$pass)
+}
+
+
+#' Paired one-sided non-inferiority test
+#'
+#' Same hypothesis as `noninf_test()` --- H0: mu_new - mu_base <= -delta --- but
+#' using per-seed paired differences.
+#'
+#' D14 chose the UNPAIRED test for the main grid, for a good reason: there, seed
+#' i means something different to each engine, and the pairing that does exist in
+#' Phases 2-3 evaporates at Phase 4 when initialization moves into the engine. A
+#' test that silently changes meaning mid-project is worse than a weaker one.
+#'
+#' `tlda-compare.R` is a different experiment. It runs both engines from ONE set
+#' of prepared inputs --- same tokens, same initial assignment, same prior --- so
+#' the pairing is structural rather than incidental, and it stays valid however
+#' initialization is later reorganized. That makes this the sharper instrument
+#' where it applies: removing the seed-to-seed variation common to both arms
+#' shrinks the standard deviation roughly fourfold, and with it the sample size
+#' needed to resolve the margin.
+#'
+#' Report it alongside `noninf_test()`, not instead of it.
+noninf_test_paired <- function(x_new, x_base,
+                               margin_frac = BENCH_MARGIN_FRAC,
+                               alpha = BENCH_ALPHA) {
+  ok <- is.finite(x_new) & is.finite(x_base)
+  x_new <- x_new[ok]; x_base <- x_base[ok]
+  stopifnot(length(x_new) >= 2)
+
+  base_mean <- mean(x_base)
+  margin <- margin_frac * abs(base_mean)
+  d <- x_new - x_base
+
+  tt <- stats::t.test(d, alternative = "greater", mu = -margin)
+  n <- length(d)
+  df <- n - 1
+  se <- stats::sd(d) / sqrt(n)
+
+  tibble::tibble(
+    n_pairs   = n,
+    diff      = mean(d),
+    sd_paired = stats::sd(d),
+    margin    = margin,
+    p_noninf  = tt$p.value,
+    pass      = tt$p.value < alpha,
+    mdd       = (stats::qt(1 - alpha, df) + stats::qt(0.8, df)) * se,
+    p_any     = stats::t.test(d)$p.value
+  )
+}
+
+
 #' Smallest true difference the gate could detect at this sample size
 #'
 #' Reported alongside the baseline so 6.1's power question --- "whether 20 seeds

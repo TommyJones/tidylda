@@ -18,6 +18,8 @@
   return_data = FALSE,
   threads = 1,
   verbose = TRUE,
+  likelihood_every = 10,
+  mh_steps = 1,
   ...
 )
 }
@@ -55,6 +57,12 @@ Defaults to \code{FALSE}.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Defaults to \code{TRUE}.}
+
+\item{likelihood_every}{Integer. Evaluate the log likelihood every n-th
+iteration. Defaults to 10. See \code{\link[tidylda]{tidylda}}.}
+
+\item{mh_steps}{Integer. Metropolis-Hastings proposals per token per pass.
+Defaults to 1. See \code{\link[tidylda]{tidylda}}.}
 
 \item{...}{Additional arguments, currently unused}
 }

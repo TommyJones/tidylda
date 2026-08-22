@@ -1,4 +1,12 @@
 # tidylda 0.0.8
+* Fixed the calculation of `theta` when `alpha` is asymmetric. The prior was
+    added along the wrong axis of the document-topic count matrix, so instead of
+    `alpha[k]` being added to topic `k`, the values were recycled diagonally
+    across topics. Models fitted with a scalar `alpha` are unaffected, since
+    every entry is then equal; models fitted with a vector `alpha` — including
+    output from `refit.tidylda()` and any model fitted with
+    `optimize_alpha = TRUE` — will now report different, correct values of
+    `theta`.
 * Fixed a miscalculation in the log likelihood reported by `tidylda()` and
     `refit.tidylda()`. A normalizing denominator was accumulated across topics
     instead of being reset for each topic, so the topic-word probabilities used

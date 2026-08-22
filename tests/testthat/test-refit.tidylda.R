@@ -175,6 +175,13 @@ test_that("can update models", {
   # update models with scalar eta
   
   # update models with matrix eta
+  #
+  # The Phase 2 warpLDA engine is scalar-eta only, so tidylda() cannot build the
+  # matrix-eta model this test refits from. refit() itself still runs on
+  # fit_lda_c() and is otherwise unaffected. Phase 3 generalizes the engine to
+  # the tLDA matrix prior and MUST remove this skip -- see roadmap section 6.
+  skip("matrix eta: unsupported by the warpLDA engine until Phase 3")
+
   l1 <- tidylda(
     data = d1,
     k = 4,

@@ -21,6 +21,11 @@ Useful links:
 \author{
 \strong{Maintainer}: Tommy Jones \email{jones.thos.w@gmail.com} (\href{https://orcid.org/0000-0001-6457-2452}{ORCID})
 
+Authors:
+\itemize{
+  \item Tommy Jones \email{jones.thos.w@gmail.com} (\href{https://orcid.org/0000-0001-6457-2452}{ORCID})
+}
+
 Other contributors:
 \itemize{
   \item Brendan Knapp \email{brendan.g.knapp@gmail.com} (\href{https://orcid.org/0000-0003-3284-4972}{ORCID}) [contributor]

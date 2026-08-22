@@ -139,8 +139,18 @@ tidylda <- function(
 #' @keywords internal
 #' @description
 #'   Takes in arguments from various \code{tidylda} S3 methods and fits the
-#'   resulting topic model. The arguments to this function are documented in
-#'   \code{\link[tidylda]{tidylda}}.
+#'   resulting topic model. Most arguments to this function are documented in
+#'   \code{\link[tidylda]{tidylda}}; the two below are specific to the warpLDA
+#'   engine and reach this function through \code{tidylda}'s \code{...}.
+#' @param likelihood_every integer. Evaluate the log likelihood every n-th
+#'   iteration. Defaults to 10. The log likelihood costs
+#'   \eqn{O(nnz \cdot K + VK)} and would otherwise dominate an
+#'   \eqn{O(VK + N)} sampler. This is not thinning: the chain advances every
+#'   iteration and every post-burn-in iteration still contributes to the count
+#'   sums. Only the read-only diagnostic runs less often.
+#' @param mh_steps integer. Number of Metropolis-Hastings proposals made per
+#'   token per pass. Defaults to 1. Larger values mix further per iteration at
+#'   a cost of \code{mh_steps * 2} bytes per token.
 #' @return Returns a \code{tidylda} S3 object as documented in \code{\link[tidylda]{new_tidylda}}.
 tidylda_bridge <- function(
   data, 
@@ -149,13 +159,15 @@ tidylda_bridge <- function(
   burnin, 
   alpha, 
   eta,
-  optimize_alpha, 
-  calc_likelihood, 
+  optimize_alpha,
+  calc_likelihood,
   calc_r2,
   threads,
-  return_data, 
+  return_data,
   verbose,
   mc,
+  likelihood_every = 10,
+  mh_steps = 1,
   ...
 ) {
 
@@ -194,6 +206,47 @@ tidylda_bridge <- function(
   alpha <- format_alpha(alpha = alpha, k = k)
 
   eta <- format_eta(eta = eta, k = k, Nv = ncol(dtm))
+
+  # The warpLDA engine is scalar-eta only until Phase 3 generalizes it to the
+  # tLDA matrix prior. Fail loudly rather than silently ignoring the structure
+  # the user asked for.
+  if (eta$eta_class != "scalar") {
+    stop(
+      "The warpLDA engine currently supports only a scalar eta; got '",
+      eta$eta_class, "'.\n",
+      "  Vector and matrix eta (including transfer learning via refit()) are\n",
+      "  restored in Phase 3 of the warpLDA port."
+    )
+  }
+
+  if (!is.numeric(likelihood_every) || length(likelihood_every) != 1 ||
+      likelihood_every < 1) {
+    stop("likelihood_every must be a single integer >= 1")
+  }
+
+  if (!is.numeric(mh_steps) || length(mh_steps) != 1 || mh_steps < 1) {
+    stop("mh_steps must be a single integer >= 1")
+  }
+
+  # D7 removed optimize_alpha: it rescaled alpha proportional to Ck each
+  # iteration as a placeholder for fixed-point estimation that was never
+  # implemented. The argument is retained so existing calls keep working, but it
+  # no longer does anything, and silently ignoring it would be worse than saying
+  # so. Fixing alpha is also what lets D19's alias table be built just once.
+  # Warned once per session rather than per call: this is informational, and a
+  # loop of fits should not produce a wall of identical warnings. Phase 6 turns
+  # it into a formal deprecation during the documentation and CRAN pass.
+  if (isTRUE(optimize_alpha)) {
+    rlang::warn(
+      paste0(
+        "optimize_alpha is no longer implemented and is being ignored.\n",
+        "  It rescaled alpha by topic size as a stand-in for fixed-point\n",
+        "  estimation that was never written; alpha is now fixed for the run."
+      ),
+      .frequency = "once",
+      .frequency_id = "tidylda_optimize_alpha_removed"
+    )
+  }
 
   # are you being logical
   if (!is.logical(calc_r2)) {
@@ -244,25 +297,23 @@ tidylda_bridge <- function(
     threads = threads
   )
 
-  # divide into batches to enable parallel execution of the Gibbs sampler
-  
-
-  ### run C++ gibbs sampler ----
-  lda <- fit_lda_c(
+  ### run the C++ sampler ----
+  # Phase 2 of the warpLDA project: tidylda() fits with the warpLDA engine.
+  # refit() and predict() still call fit_lda_c(), which they must until the
+  # engine handles a matrix eta (Phase 3) and freeze_topics (Phase 3, D9).
+  lda <- fit_lda_warp(
     Docs = counts$Docs,
     Zd_in = counts$Zd,
     Cd_in = counts$Cd,
     Cv_in = counts$Cv,
     Ck_in = counts$Ck,
     alpha_in = alpha$alpha,
-    eta_in = eta$eta,
+    eta_in = eta$eta[1, 1], # scalar; guarded above
     iterations = iterations,
     burnin = burnin,
-    optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    Beta_in = counts$Cv, # this is actually ignored as freeze_topics = FALSE for initial fitting
-    freeze_topics = FALSE, # this stays FALSE for initial fitting
-    threads = threads,
+    likelihood_every = as.integer(likelihood_every),
+    mh_steps = as.integer(mh_steps),
     verbose = verbose
   )
 

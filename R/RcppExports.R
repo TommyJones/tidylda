@@ -96,6 +96,28 @@ fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterat
     .Call(`_tidylda_fit_lda_c`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, optimize_alpha, calc_likelihood, Beta_in, freeze_topics, threads, verbose)
 }
 
+#' Fit an LDA model with the warpLDA sampler
+#' @keywords internal
+#' @description Metropolis-Hastings replacement for \code{fit_lda_c}. Phase 2:
+#'   single-threaded, scalar \code{eta} only.
+#' @param Docs List of vectors of word indices, one per document
+#' @param Zd_in List of initial topic assignments matching \code{Docs}
+#' @param Cd_in IntegerMatrix, documents by topics
+#' @param Cv_in IntegerMatrix, topics by words
+#' @param Ck_in Vector of token counts per topic
+#' @param alpha_in Vector of prior parameters for topics over documents
+#' @param eta_in Scalar prior parameter for words over topics
+#' @param iterations int number of sampling iterations
+#' @param burnin int number of burn in iterations, -1 to disable averaging
+#' @param calc_likelihood bool, calculate log likelihood?
+#' @param likelihood_every int, evaluate the likelihood every n-th iteration
+#' @param mh_steps int, Metropolis-Hastings proposals per token per pass
+#' @param verbose bool, show a progress bar?
+#' @return Returns a list with the same names as \code{fit_lda_c}.
+fit_lda_warp <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, likelihood_every = 10L, mh_steps = 1L, verbose = TRUE) {
+    .Call(`_tidylda_fit_lda_warp`, Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterations, burnin, calc_likelihood, likelihood_every, mh_steps, verbose)
+}
+
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
     .Call(`_tidylda_RcppExport_registerCCallable`)

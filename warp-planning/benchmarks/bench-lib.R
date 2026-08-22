@@ -15,25 +15,52 @@ suppressPackageStartupMessages({
 
 # ---- constants --------------------------------------------------------------
 
-#' Fitting hyperparameters, identical for every fit in the grid.
+#' Fitting hyperparameters, pinned per engine and recorded in the results.
 #'
-#' R-squared and coherence are not comparable across different iteration counts,
-#' so these are pinned for the whole grid and recorded in the persisted results.
+#' Priors and metrics are identical across engines. **Iteration counts are not**,
+#' because an iteration does not mean the same amount of work to both samplers:
+#' collapsed Gibbs draws every token from its exact conditional, while warpLDA
+#' takes one Metropolis-Hastings proposal per pass and rejects some fraction.
+#' Matching iterations would compare mixing rates; matching *convergence* is what
+#' D14 actually asks about.
+#'
+#' Measured: warp reaches Gibbs' 200-iteration quality at roughly 1200
+#' iterations, within +/-5% on both metrics in all four cells (three within
+#' +/-2%), with its log-likelihood plateauing at the same level. It is still
+#' 1.5x to 7.2x faster in wall clock at that point, the advantage growing in K.
 #'
 #' `threads = 1` is load-bearing rather than incidental. Design notes 9(b)
-#' records that the current sampler's batch loop is broken for `threads > 1` and
-#' was deliberately left unfixed, since the rewrite deletes the code it lives in.
+#' records that the old sampler's batch loop is broken for `threads > 1` and was
+#' deliberately left unfixed, since the rewrite deletes the code it lives in.
 #' All parallelism in this harness is across fits, never inside one.
 BENCH_HP <- list(
-  iterations     = 200,
-  burnin         = 50,
-  alpha          = 0.1,
-  eta            = 0.05,
-  calc_likelihood = TRUE,
-  calc_r2        = TRUE,
-  optimize_alpha = FALSE,
-  threads        = 1
+  gibbs = list(
+    iterations      = 200,
+    burnin          = 50,
+    alpha           = 0.1,
+    eta             = 0.05,
+    calc_likelihood = TRUE,
+    calc_r2         = TRUE,
+    threads         = 1
+  ),
+  warp = list(
+    iterations       = 1200,
+    burnin           = 300,
+    alpha            = 0.1,
+    eta              = 0.05,
+    calc_likelihood  = TRUE,
+    calc_r2          = TRUE,
+    threads          = 1,
+    mh_steps         = 1,      # D18 default; reproduces the reference exactly
+    likelihood_every = 10      # D11; a read-only diagnostic, not thinning
+  )
 )
+
+#' Hyperparameters for one engine
+bench_hp <- function(engine) {
+  if (is.null(BENCH_HP[[engine]])) stop("No hyperparameters defined for engine '", engine, "'")
+  BENCH_HP[[engine]]
+}
 
 #' The benchmark grid: two corpora, two topic counts, seeds calibrated per K.
 #'
@@ -193,28 +220,35 @@ extract_metrics <- function(model) {
 #' independent of which core ran it and of how many cores were used --- the
 #' harness-level analogue of D12's per-work-item seeding.
 #'
-#' The likelihood curve is kept because 6.1 requires validating the 200/50
-#' iteration setting by inspecting it. It is a few kilobytes per fit.
+#' The likelihood curve is kept because 6.1 requires validating the iteration
+#' setting by inspecting it. It is a few kilobytes per fit.
+#'
+#' Only the engine `tidylda()` currently dispatches to can be fitted here. As of
+#' Phase 2 that is warpLDA; the Gibbs arm is the stored baseline from Phase 1
+#' (`baseline-5abaa96.rds`) and is not re-runnable from this harness.
 #'
 #' @return a list with `metrics` (one row) and `log_likelihood` (a tibble)
-fit_once <- function(dtm, k, seed, hp = BENCH_HP) {
+fit_once <- function(dtm, k, seed, hp = bench_hp("warp")) {
   set.seed(seed)
 
-  elapsed <- system.time(
-    model <- tidylda::tidylda(
-      data            = dtm,
-      k               = k,
-      iterations      = hp$iterations,
-      burnin          = hp$burnin,
-      alpha           = hp$alpha,
-      eta             = hp$eta,
-      optimize_alpha  = hp$optimize_alpha,
-      calc_likelihood = hp$calc_likelihood,
-      calc_r2         = hp$calc_r2,
-      threads         = hp$threads,
-      verbose         = FALSE
-    )
+  args <- list(
+    data            = dtm,
+    k               = k,
+    iterations      = hp$iterations,
+    burnin          = hp$burnin,
+    alpha           = hp$alpha,
+    eta             = hp$eta,
+    calc_likelihood = hp$calc_likelihood,
+    calc_r2         = hp$calc_r2,
+    threads         = hp$threads,
+    verbose         = FALSE
   )
+  # Engine-specific extras travel through tidylda()'s dots.
+  for (nm in c("mh_steps", "likelihood_every")) {
+    if (!is.null(hp[[nm]])) args[[nm]] <- hp[[nm]]
+  }
+
+  elapsed <- system.time(model <- do.call(tidylda::tidylda, args))
 
   list(
     metrics = dplyr::bind_cols(
@@ -238,7 +272,7 @@ fit_once <- function(dtm, k, seed, hp = BENCH_HP) {
 #' Returns the fit's id invisibly. Errors are caught and recorded rather than
 #' thrown: one pathological cell should not take down a multi-hour grid, and a
 #' failed fit is itself a result worth seeing.
-run_grid_row <- function(row, dtm, out_dir, hp = BENCH_HP) {
+run_grid_row <- function(row, dtm, out_dir, hp = bench_hp("warp")) {
   path <- file.path(out_dir, paste0(row$id, ".rds"))
 
   fit <- try(fit_once(dtm = dtm, k = row$k, seed = row$seed, hp = hp), silent = TRUE)

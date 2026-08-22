@@ -11,3 +11,8 @@ inst/doc
 /doc/
 /Meta/
 .DS_Store
+
+# warpLDA reference implementation (text2vec, MIT). Read, not vendored -- see
+# roadmap D2. Pinned to commit 0b31bdd8; every LDA.hpp line number cited in the
+# design notes refers to that commit.
+ignore/text2vec/

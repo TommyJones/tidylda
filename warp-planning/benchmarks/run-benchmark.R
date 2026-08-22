@@ -3,7 +3,7 @@
 #
 #   Rscript warp-planning/benchmarks/run-benchmark.R [options]
 #
-#     --engine=gibbs     which sampler; names the results subdirectory
+#     --engine=warp      which sampler; names the results subdirectory
 #     --workers=20       parallel fits (never threads within a fit; see bench-lib)
 #     --seeds=20         seeds per cell
 #     --probe            seed 1 only (4 fits), report timings, do not assemble
@@ -31,7 +31,7 @@ opt <- function(name, default) {
   if (length(hit) == 0) default else sub(paste0("^--", name, "="), "", hit[1])
 }
 
-engine       <- opt("engine", "gibbs")
+engine       <- opt("engine", "warp")
 n_workers    <- as.integer(opt("workers", 20))
 n_seeds      <- opt("seeds", NA_character_)   # NA = per-K calibration
 probe        <- "--probe" %in% args
@@ -40,7 +40,7 @@ collect_only <- "--collect-only" %in% args
 # 5abaa96 is the last commit that touched the sampler; `warp` HEAD has moved on
 # with docs-only commits. The name records the sampler state, and the actual HEAD
 # is stored inside the file so there is no later ambiguity.
-default_out <- c(gibbs = "baseline-5abaa96.rds")
+default_out <- c(gibbs = "baseline-5abaa96.rds", warp = "run-warp.rds")
 out_file <- opt("out", if (engine %in% names(default_out)) {
   default_out[[engine]]
 } else {
@@ -49,6 +49,11 @@ out_file <- opt("out", if (engine %in% names(default_out)) {
 
 out_dir <- file.path(here, "results", engine)
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Iteration counts differ by engine: matching them would compare mixing rates
+# rather than posteriors. See BENCH_HP in bench-lib.R.
+hp <- bench_hp(engine)
+cat(sprintf("hyperparameters: iterations=%d burnin=%d\n", hp$iterations, hp$burnin))
 
 
 # ---- corpora and package -----------------------------------------------------
@@ -85,7 +90,7 @@ if (!collect_only && nrow(todo) > 0) {
     seq_len(nrow(todo)),
     function(i) {
       row <- todo[i, ]
-      run_grid_row(row, dtm = corpora[[row$corpus]], out_dir = out_dir)
+      run_grid_row(row, dtm = corpora[[row$corpus]], out_dir = out_dir, hp = hp)
     },
     mc.cores = n_workers,
     mc.preschedule = FALSE
@@ -138,7 +143,7 @@ if (probe) {
       curves      = res$curves,
       summary     = summary_tbl,
       corpora     = readRDS(file.path(here, "data", "corpora-manifest.rds")),
-      hyperparams = BENCH_HP,
+      hyperparams = hp,
       git_head    = git_head(repo),
       run_at      = Sys.time(),
       session     = utils::sessionInfo()

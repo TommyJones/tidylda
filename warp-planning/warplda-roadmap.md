@@ -39,37 +39,48 @@ repository root.
 
 | | |
 |---|---|
-| **Last updated** | 2026-08-21 |
+| **Last updated** | 2026-08-22 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 2 — warpLDA engine, single-threaded, scalar prior |
-| **Last completed** | **Phase 1: benchmarking harness built and Gibbs baseline established.** 240 fits, all ok, persisted to `warp-planning/benchmarks/baseline-5abaa96.rds`. Results in §6.2. |
+| **Current phase** | Phase 3 — matrix $\boldsymbol\eta$ (tLDA) and `freeze_topics` |
+| **Last completed** | **Phase 2: warpLDA engine built, single-threaded, scalar prior. Gate PASSES all eight cell × metric combinations.** Results, timings and three reference defects in §6.3. |
 | **In flight** | Nothing. |
 
-**Next action:** Begin Phase 2 — port warpLDA single-threaded with a **scalar**
-prior, including D18 (`mh_steps`) and D19 ($\alpha$ alias table). Validate with
-`Rscript warp-planning/benchmarks/run-benchmark.R --engine=warp` followed by
-`compare.R baseline-5abaa96.rds run-warp.rds`.
+**Next action:** Phase 3 — generalize the engine to a matrix $\boldsymbol\eta$
+(D3–D6 govern layout), add D9's `freeze_topics` specialization, and point
+`refit()` and `predict()` at the new engine. Then re-run
+`run-benchmark.R --engine=warp` and `compare.R`, and additionally exercise a
+transferred prior, which the current grid does not.
 
-**What Phase 1 settled, beyond the baseline itself:**
+**Where the engine is:** `src/warp_rng.h` (D12/D13), `src/warp_alias.h`,
+`src/warp_corpus.h` (dual CSR/CSC view), `src/warp_lda.cpp` (`fit_lda_warp`).
+`fit_lda_c()` is untouched and still serves `refit()` and `predict()`; it is
+deleted in Phase 6 once nothing calls it.
 
-- **D14 revised** — paired TOST replaced by an unpaired one-sided
-  non-inferiority test. Reasoning recorded in D14 and §6.1; the short version is
-  that pairing does not survive Phase 4's fused initialization, and only one
-  direction of difference is a merge blocker.
-- **Seed counts are now asymmetric** — 100 at $K=10$, 20 at $K=50$ — because
-  coherence is underpowered at low $K$ against a relative margin. §6.1 grid note.
-- **200/50 validated**; no change needed. §6.1.
-- **Likelihood interval default of 10 is supported** by the Gibbs curves. §7 q2.
-- **$K=10$, not $K=50$, is where a worse sampler hides.** Counterintuitive
-  relative to the grid's original rationale; see the callout in §6.1.
+**What Phase 2 settled:**
 
-**Two things Phase 2 must do that are easy to forget:**
+- **The port is statistically sound.** Gate PASSes everywhere, `sd_ratio`
+  0.78–1.07, and warp's log-likelihood plateaus at the same level as Gibbs —
+  the check that distinguishes "right posterior" from "some other stationary
+  distribution."
+- **Iteration counts now differ by engine: Gibbs 200/50, warp 1200/300.** An
+  iteration is not the same unit of work to both samplers. §6.3 has the
+  convergence table and the reasoning.
+- **warp is 3.1× faster over the whole grid** (2.80 vs 8.73 core-hours) at equal
+  quality, despite six times the iterations; 1.7×–6.8× per fit, growing in $K$.
+- **The reference has a real bug in `beta_bar`** (§6.3(a)) that a faithful port
+  would have inherited silently. Do not trust `LDA.hpp` over the design notes.
+- **D9 now scheduled** (Phase 3); **D12/D13 moved forward** into Phase 2.
 
-1. `tests/testthat/test-tidylda-fit-methods.R:41` asserts
-   `nrow(log_likelihood) == tail(iteration, 1) + 1`, which a non-unit likelihood
-   interval (D11) invalidates. Update it alongside.
-2. The warp arm costs ~9 core-hours to benchmark. Budget it.
+**Three things Phase 3 must not forget:**
+
+1. **Remove the two `skip()`s** — `test-tidylda-fit-methods.R` (vector
+   $\boldsymbol\eta$) and `test-refit.tidylda.R` (matrix $\boldsymbol\eta$).
+   Both name Phase 3 in the skip message.
+2. **Drop the scalar-$\boldsymbol\eta$ guard** in `tidylda_bridge()`, which
+   currently errors on anything else.
+3. **$\bar\eta_k$ becomes a $K$-vector**, computed once from
+   $\sum_v \eta_{kv}$. It is a scalar today only because the prior is.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -115,18 +126,18 @@ Settled. See §1 rule 3 before changing any of these.
 | # | Decision | Rationale | Notes § |
 |---|---|---|---|
 | D1 | Work on branch `warp`, not a fork | Simpler; same repo | — |
-| D2 | Port from text2vec `src/mcemlda/` (MIT licensed) as reference | Compact, faithful warpLDA; confirms the derivation line by line | §1 |
+| D2 | Port from text2vec `src/mcemlda/` (MIT licensed) as reference | Compact, faithful warpLDA; confirms the derivation line by line. **But do not port it blindly** — three defects found in Phase 2, listed in §6.3 | §1 |
 | D3 | Store $\boldsymbol\eta$ **dense**, no sparse representation | $\hat\beta^{(t-1)}$ is dense at $t=1$, so tLDA has no sparsity to exploit at any $t$ | §5.2 |
 | D4 | Store $\boldsymbol\eta$ **column-major ($V \times K$)** | The word pass needs $\boldsymbol\eta_{\cdot v}$ contiguous beside $C^v_{\cdot v}$; this is the transpose of tidylda's current $K \times V$ | §3.4 |
 | D5 | $\boldsymbol\eta$ as `float`, promoted to `double` for computation | Halves the largest allocation; keeps precision drift out of MH accept decisions | §5.4 |
 | D6 | $C_k$ stays integer; $\bar\eta_k$ stays `double` | $C_k$ can exceed $2^{24}$ where `float` loses integer exactness | §5.4 |
 | D7 | **Drop `optimize_alpha`** | A placeholder for unimplemented fixed-point estimation; carrying it forward adds real complexity for a hack. Consequence: $\boldsymbol\alpha$ is fixed, so its alias table is built once | §6.5 |
 | D8 | Keep informed $\hat\beta\cdot\hat\theta$ initialization; discard warpLDA's uniform start | Required for seeded and tLDA models; uniform init also expected to slow convergence | §6.2 |
-| D9 | `freeze_topics` (prediction) as a **separate specialization**, not a branch in the hot loop | With topics frozen $q_w \propto \hat\beta_{kv}$ is fixed for the whole run, so alias tables build once; $\boldsymbol\eta$, $C^v$, $C_k$ go unused | §6.3 |
-| D10 | Burnin: accumulate `Cd_sum` during the doc pass, `Cv_sum` during the word pass | Each pass rebuilds its own matrix from `old_z`, so each is current in its own pass. No reconciliation sweep needed. Valid because these estimate *marginal* expectations, and totals stay exact | §6.4 |
+| D9 | `freeze_topics` (prediction) as a **separate specialization**, not a branch in the hot loop. **Built in Phase 3** | With topics frozen $q_w \propto \hat\beta_{kv}$ is fixed for the whole run, so alias tables build once; $\boldsymbol\eta$, $C^v$, $C_k$ go unused. *Phase assigned 2026-08-22: the §6 table never scheduled it, and it is what `predict()` needs. Pairing it with Phase 3's matrix $\boldsymbol\eta$ puts the whole public API on the new engine at the end of one phase* | §6.3 |
+| D10 | Burnin: accumulate `Cd_sum` during the doc pass, `Cv_sum` during the word pass | Each pass rebuilds its own matrix from `old_z`, so each is current in its own pass. No reconciliation sweep needed. Valid because these estimate *marginal* expectations, and totals stay exact. **Implementation caveat (Phase 2):** the reference maintains `C_word` through the word pass's accept step (`LDA.hpp:116-117`) but **never updates `C_doc`** in the doc pass (`:168-178`), because it never reads it again. `C_doc[d]` therefore matches `old_z` only until the first acceptance. We add the two missing updates and accumulate at the end of each document; without them the natural placement silently averages a stale matrix | §6.4 |
 | D11 | Likelihood evaluated every $n$-th iteration, parameterized. **The scheme is settled; the default value is not** — see §7 open question 2 | The likelihood is $O(\text{nnz}\cdot K + VK)$ and would otherwise dominate an $O(VK+N)$ sampler by ~$K$. **This is not thinning** — the chain advances every iteration and every post-burnin iteration still contributes to the count sums. Only a read-only diagnostic runs less often | §7 |
-| D12 | RNG seeded **per work item**, not per thread: `seed = f(master, iteration, pass, index)` | Gives reproducibility *independent of thread count*, not merely at a fixed count. Removes a confound from benchmarking and needs no caveat for CRAN. Master seed drawn from R's stream on the main thread so `set.seed()` governs | §8.2 |
-| D13 | Expand seeds through `splitmix64`, or use a counter-based generator (Threefry/Philox, e.g. `sitmo`) | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong | §8.3 |
+| D12 | RNG seeded **per work item**, not per thread: `seed = f(master, iteration, pass, index)`. **Built in Phase 2**, not Phase 5 | Gives reproducibility *independent of thread count*, not merely at a fixed count. Removes a confound from benchmarking and needs no caveat for CRAN. Master seed drawn from R's stream on the main thread so `set.seed()` governs. *Moved forward 2026-08-22: building it while single-threaded means Phase 5 changes only scheduling, so "Phase 5 at `threads = 1` reproduces Phase 2 bit for bit" becomes a real regression check separating a threading bug from an RNG-change bug* | §8.2 |
+| D13 | Expand seeds through `splitmix64`. **Implemented in Phase 2** as `splitmix64` + `xoshiro256++`, inline in `src/warp_rng.h`; no `sitmo` dependency added | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong. Verified: first draws of adjacent document seeds correlate at r = +0.002 over 200k pairs | §8.3 |
 | D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R/C++ round trip and the 16-bytes-per-token marshalling | §11 |
@@ -156,12 +167,12 @@ Settled. See §1 rule 3 before changing any of these.
 |---|---|---|
 | **0** | Defect fixes on `main` | **Done — `5abaa96`** |
 | **1** | Statistical benchmarking harness | Produces stable baseline distributions of $R^2$ and mean coherence for the current sampler, across multiple seeds and at least two corpora/$K$ settings |
-| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`) and D19 ($\alpha$ alias table). **Known breakage to fix here:** `tests/testthat/test-tidylda-fit-methods.R:41` asserts `nrow(log_likelihood) == tail(iteration,1)+1`, which a non-unit likelihood interval (D11) invalidates | Matches CGS on the harness. Any deviation here is unambiguously an implementation bug, not a tLDA subtlety |
-| **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA) | Parity preserved when a transferred prior is in play; `refit()` path exercised |
+| **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`), D19 ($\alpha$ alias table) and — moved forward — D12/D13 (RNG) | **Done.** Matches CGS on the harness at a converged iteration count. Results and the three reference defects in §6.3 |
+| **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA); **plus D9's `freeze_topics` specialization**, which `predict()` needs. Remove the two Phase 2 skips in `test-refit.tidylda.R` and `test-tidylda-fit-methods.R`, and point `refit()`/`predict()` at the new engine | Parity preserved when a transferred prior is in play; `refit()` and `predict()` paths exercised; whole public API on the new engine |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
-| **7** | *Unscheduled.* Memory surgery for large corpora — see §6.3 | A separate project, after the engine lands |
+| **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
 
 **Documentation gap to close in Phase 6.** `counts` is a real slot on the
 `tidylda` object but `new_tidylda()`'s `@return` never mentions it — it documents
@@ -379,7 +390,119 @@ on a 100-document corpus, has the *highest* mean coherence of the four (0.1637).
 (medium/$K{=}50$). The full 240-fit baseline is 8.7 core-hours, about 27 minutes
 of wall clock at 20 workers. Phase 2 must budget the same again for the warp arm.
 
-### 6.3 Phase 7 sketch — memory surgery for large corpora
+### 6.3 Phase 2 results — warpLDA engine, scalar prior
+
+**Complete and passing.** The engine is in `src/warp_rng.h`, `src/warp_alias.h`,
+`src/warp_corpus.h` and `src/warp_lda.cpp`. `tidylda()` dispatches to it;
+`refit()` and `predict()` still call `fit_lda_c()` until Phase 3.
+
+**Gate result: PASS on all eight cell × metric combinations.** Run
+`compare.R baseline-5abaa96.rds run-warp.rds` to reproduce.
+
+| Corpus | $K$ | metric | Gibbs | warp | diff | margin | sd ratio |
+|---|---|---|---|---|---|---|---|
+| medium | 10 | $R^2$ | 0.1000 | 0.1011 | +0.0011 | 0.0050 | 0.87 |
+| medium | 10 | coherence | 0.1119 | 0.1131 | +0.0012 | 0.0056 | 0.82 |
+| medium | 50 | $R^2$ | 0.2056 | 0.2064 | +0.0008 | 0.0103 | 0.99 |
+| medium | 50 | coherence | 0.1267 | 0.1304 | +0.0038 | 0.0063 | 1.07 |
+| small | 10 | $R^2$ | 0.2189 | 0.2230 | +0.0041 | 0.0109 | 0.89 |
+| small | 10 | coherence | 0.1217 | 0.1200 | −0.0017 | 0.0061 | 0.91 |
+| small | 50 | $R^2$ | 0.5096 | 0.5043 | −0.0052 | 0.0255 | 0.96 |
+| small | 50 | coherence | 0.1637 | 0.1598 | −0.0039 | 0.0082 | 0.78 |
+
+`sd_ratio` runs 0.78–1.07, so there is no variance inflation hiding behind a
+matched mean — the failure mode that would show up first at misspecified $K$.
+The one `check` flag (medium/$K{=}50$ coherence) means only that at $n = 20$ the
+gate cannot rule out warp being better by more than 5%; the point estimate is
++3.0%.
+
+#### Iteration counts differ by engine, deliberately
+
+**Gibbs runs 200/50; warp runs 1200/300.** §6.1 originally pinned iterations
+across the whole grid, on the sound reasoning that the metrics are not
+comparable across iteration counts. That reasoning quietly assumes an iteration
+means the same amount of work to both samplers. It does not: collapsed Gibbs
+draws every token from its exact conditional, while warpLDA takes one
+Metropolis-Hastings proposal per pass and rejects some fraction. Matching
+iterations compares *mixing rates*; D14 asks about the *posterior*.
+
+Measured convergence, warp against the Gibbs 200-iteration baseline (5 seeds):
+
+| Corpus / $K$ | $R^2$ @200 → @600 → @1200 | coherence @200 → @600 → @1200 |
+|---|---|---|
+| small / 10 | −13.0% → −2.6% → **+0.8%** | −13.3% → +3.4% → **−1.5%** |
+| small / 50 | −15.7% → −5.1% → **−0.9%** | −16.3% → −10.2% → **−4.3%** |
+| medium / 10 | −9.6% → −0.4% → **+1.9%** | −23.1% → −4.5% → **+1.8%** |
+| medium / 50 | −15.7% → −3.2% → **+0.5%** | −25.7% → −6.6% → **+1.3%** |
+
+Cells inside ±5% on both metrics: 0/4 at 200 iterations, 2/4 at 600, **4/4 at
+1200**. Monotone approach from below in every cell, and warp's log-likelihood
+plateaus at the same level as Gibbs (−61939 against −61945 on small/$K{=}10$).
+That last point is the load-bearing one: a wrong $\bar\eta$ or a mis-derived
+acceptance ratio still gives a valid MCMC chain, it just converges *somewhere
+else*. Converging to the same likelihood is what separates those two cases.
+
+`burnin` is held at 25% of iterations, as in Phase 1.
+
+#### The speed win, which is the point of the project
+
+Median seconds per fit, single-threaded:
+
+| Corpus | $K$ | Gibbs @200 | warp @1200 | speedup |
+|---|---|---|---|---|
+| small | 10 | 8.5 | 5.1 | 1.7× |
+| small | 50 | 45.8 | 11.2 | 4.1× |
+| medium | 10 | 143.9 | 70.6 | 2.0× |
+| medium | 50 | 781.8 | 115.5 | **6.8×** |
+
+**Whole 240-fit grid: 8.73 core-hours for Gibbs, 2.80 for warp — 3.1× overall,
+at equal or better quality, with six times the iterations.** Per *iteration* the
+gap is far larger (9× to 43×, growing in $K$ exactly as $O(NK)$ against
+$O(VK+N)$ predicts); most of it is spent buying convergence back. Parallelism in
+Phase 5 multiplies this further.
+
+#### Three defects in the reference implementation
+
+D2 says to port from text2vec. It should not be ported blindly.
+
+**(a) `beta_bar` is a sum over the wrong index — the serious one.**
+`LDA.hpp:65` sets `beta_bar = n_topic * beta`. The collapsed conditional needs
+$\bar\eta_k = \sum_{v=1}^{V}\eta_{kv}$, a sum over the **vocabulary** — so
+$V\eta$, not $K\eta$. (`alpha_bar` really is a sum over topics, which is
+probably how the two got conflated.) On the medium corpus at $K = 50$ that is
+222.15 against 2.5. Since $\bar\eta$ only ever appears added to $C_k$, the
+difference substantially changes how far each acceptance ratio is shrunk toward
+1. Porting it faithfully yields a valid chain converging to the wrong posterior
+— which "it compiles and the likelihood curve looks right" would never catch.
+tidylda's own Gibbs sampler has this right (`lda_gibbs2.cpp:333`).
+
+**(b) The doc pass never maintains `C_doc`.** See the D10 caveat.
+
+**(c) `C_local` is written but never sized.** `init()` (`LDA.hpp:69-90`) resizes
+`C_doc`, `C_word`, `C_all` and `C_local_diff` but not `C_local`, which is then
+written at `:125-126` and read at `:203`. Out-of-bounds write. The design notes
+suspected this; it is real. Neither `C_local` nor `C_local_diff` is needed here
+— both serve text2vec's distributed bookkeeping.
+
+A fourth item is not a defect in the reference but a trap when adapting it:
+`init()` fills `new_z` with a uniform random topic (`:77`). An acceptance ratio
+is a valid MH step only if the proposal came from the matching proposal
+distribution, and at iteration 1 no pass has run. Under warpLDA's own uniform
+initialization this is harmless; under tidylda's informed initialization (D8) it
+would discard part of what that initialization bought. The engine sets
+`new_z = old_z`, so the first resolve is a no-op via the reference's own skip.
+
+#### Notes for later phases
+
+- `optimize_alpha` (D7) is accepted but ignored, with a once-per-session
+  warning. Phase 6 turns that into a formal deprecation.
+- Two tests are `skip()`ped pending Phase 3, both naming it in the skip message:
+  vector $\boldsymbol\eta$ in `test-tidylda-fit-methods.R` and matrix
+  $\boldsymbol\eta$ in `test-refit.tidylda.R`.
+- The reference lives at `ignore/text2vec/` (pinned `0b31bdd8`, `.gitignore`d,
+  not vendored per D2).
+
+### 6.4 Phase 7 sketch — memory surgery for large corpora
 
 **Unscheduled, and deliberately separate.** Recorded here so the reasoning is not
 lost, not because it is next.

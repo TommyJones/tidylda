@@ -3,9 +3,46 @@ output:
   pdf_document: default
   html_document: default
 ---
+
+<!--
+EDITING THIS FILE: USE ASCII ONLY, AND KEEP INLINE MATH LEGAL.
+
+These documents render to PDF through pandoc -> pdflatex. Two things break it,
+and both fail late and confusingly, so check before you commit:
+
+  python3 warp-planning/check-markdown.py warp-planning/*.md
+
+1. NON-ASCII CHARACTERS. pdflatex accepts only Unicode that inputenc's utf8
+   option maps to a LaTeX command; anything else fails with "Unicode character
+   ... not set up for use with LaTeX". LaTeX stops at the FIRST one, so a single
+   reported error usually hides several more.
+
+   Permitted: em dash, en dash, section sign. Nothing else.
+
+   Write symbols as ASCII or as real math. Prefer ASCII for prose punctuation --
+   "->" not an arrow glyph, "x" not a multiplication sign, "+/-" not a plus-minus
+   sign. Reserve math delimiters for actual mathematics.
+
+   The trap: U+2212 MINUS SIGN is visually near-identical to the ASCII hyphen and
+   slips into negative numbers in results tables unnoticed.
+
+2. PANDOC'S INLINE MATH RULES. Violate one and pandoc emits two literal dollar
+   signs, putting a bare LaTeX command outside math mode -- "Missing $ inserted".
+   Writing the delimiter as "D" below to avoid tripping the checker on this note:
+
+     - an opening D must NOT be followed by whitespace
+     - a closing D must NOT be preceded by whitespace
+     - a closing D must NOT be followed immediately by a digit
+
+   That last rule is why a plus-minus command wrapped in delimiters and butted
+   straight against "5%" fails, while putting a space after the closing
+   delimiter would not. It is also why decorative symbols next to numbers belong
+   in ASCII: "1.6x" is safe, whereas the same thing written as math is one edit
+   away from breaking.
+-->
 # warpLDA Project Roadmap
 
-**Branch:** `warp` · **Companion document:**
+**Branch:** `warp` – **Companion document:**
 `warp-planning/warplda-design-notes.md` (math, derivations, rationale)
 
 ---
@@ -42,51 +79,47 @@ repository root.
 | **Last updated** | 2026-08-23 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 4.5 — replace `lsamp_one()`'s per-token sort |
-| **Last completed** | **Phase 4: initialization fused into the engine (D16).** One C++ entry point; `Docs`/`Zd` never materialized. Initial state verified identical to `create_lexicon`. §6.3. |
-| **In flight** | **Statistical re-validation of Phase 4 is owed** — the gates were deferred to avoid contending with other work on this machine. See below. |
+| **Current phase** | Phase 5 -- RcppThread parallelism |
+| **Last completed** | **Phases 4 and 4.5: initialization fused into the engine (D16), and its per-token sort replaced.** Both gates pass. 6.3. |
+| **In flight** | Nothing. |
 
-**Next action, in order:**
-
-1. **Run the deferred Phase 4 gates** when the machine is free:
-   `run-benchmark.R --engine=warp` then
-   `compare.R baseline-5abaa96.rds run-warp.rds`, plus `tlda-compare.R`.
-   ~5 core-hours at 20 workers. Both are expected to pass; Phase 4 changed which
-   token slot holds which topic, not the model. See §6.3.
-2. **Phase 4.5** — `lsamp_one()` sorts the full $K$-vector per token to draw one
-   variate, and allocates around three times per token. Replace with a
-   constant-work draw. It changes every initial assignment, so it needs its own
-   gate run — which then doubles as Phase 5's baseline.
-3. **Phase 5** — RcppThread parallelism.
+**Next action:** Phase 5. Read open question 1 in section 7 first -- it now
+carries a concrete candidate for the $C_k$ problem, the reason Phase 5's own
+exit criterion rules out the obvious alternative, and a warning that scaling
+measured on the medium corpus will flatter what happens at the corpus sizes this
+project exists to enable.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
-`fit_lda_warp()`, which now also does initialization. `fit_lda_c()` has no
-callers. `create_lexicon()` has no callers either, but is still used as a
-reference by one test (§6.3); both go in Phase 6.
+`fit_lda_warp()`, which does its own initialization. `fit_lda_c()`,
+`create_lexicon()` and all of `src/sample.h` have no callers; all three go in
+Phase 6.
 
-**What Phases 2–4 settled:**
+**What Phases 2 through 4.5 settled:**
 
-- **The port is statistically sound under both priors** — scalar 8/8, matrix 8/8
-  unpaired and 8/8 paired, as of Phase 3.
-- **Iteration counts differ by engine**: Gibbs 200/50, warp 1200/300.
-- **warp is 3.05× faster over the main grid** at equal quality; the matrix prior
-  costs ~5%; initialization is 4% of a 1200-iteration fit at $K{=}50$.
-- **D9 revised** (runtime flag, on a measurement); **D12/D13 moved into Phase 2**;
-  **D16 done**; **D20's phase corrected to 6**.
-- **Two pre-existing defects fixed**: `theta` under asymmetric `alpha`
-  (NEWS 0.0.8), and a redundant unstable `std::sort` in the Phase 2 `Corpus`
-  constructor (§6.3).
+- **Statistically sound under both priors.** Scalar 8/8; matrix 8/8 unpaired and
+  8/8 paired. Every difference is within a fraction of the margin.
+- **Iteration counts differ by engine**: Gibbs 200/50, warp 1200/300, because an
+  iteration is not the same unit of work to the two samplers.
+- **warp is ~3x faster over the main grid** at equal quality, 1.2x to 6.7x per
+  fit and growing in $K$; the matrix prior costs about 5%; initialization is
+  now 0.3% of a 1200-iteration fit.
+- **D9 revised** (runtime flag, on a measurement); **D12/D13 moved into Phase
+  2**; **D16 done**; **D20 corrected to Phase 6**.
+- **Three pre-existing defects fixed**: `theta` under asymmetric `alpha` (NEWS
+  0.0.8), a redundant unstable `std::sort` in the Phase 2 `Corpus` constructor,
+  and a per-token $O(K\log K)$ sort in the initialization sampler.
 
-**Three things Phase 4.5 must not forget:**
+**Three things Phase 5 must not forget:**
 
-1. It **changes results**, so budget a full gate run. There is no diff-based
-   shortcut, unlike Phase 4.
-2. `lsamp_one()` is also called by `create_lexicon()`, which the Phase 4 exit
-   test compares against. Changing one and not the other breaks that test — by
-   design, but decide deliberately.
-3. The sort exists for numerical stability in the log-sum-exp accumulation, not
-   for correctness of the distribution. Whatever replaces it must still be
-   stable when one topic dominates, which is exactly the tLDA case.
+1. **$C_k$ is the only genuinely shared structure**, and D12's
+   thread-count-independence requirement is what makes it hard, not contention.
+   Section 7 open question 1 has the candidate solution and why the obvious one
+   is disqualified.
+2. **Gibbs stays single-threaded**, so any parallel comparison is parallel-warp
+   against serial-Gibbs. Report per-core and as-shipped numbers separately.
+3. **One tLDA cell is knowingly underpowered** -- small/K=50 coherence, mdd
+   0.00542 against a 0.00496 margin. If a future run has budget, 100 seeds
+   there closes it; roughly 10 core-hours.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -145,10 +178,10 @@ Settled. See §1 rule 3 before changing any of these.
 | D12 | RNG seeded **per work item**, not per thread: `seed = f(master, iteration, pass, index)`. **Built in Phase 2**, not Phase 5 | Gives reproducibility *independent of thread count*, not merely at a fixed count. Removes a confound from benchmarking and needs no caveat for CRAN. Master seed drawn from R's stream on the main thread so `set.seed()` governs. *Moved forward 2026-08-22: building it while single-threaded means Phase 5 changes only scheduling, so "Phase 5 at `threads = 1` reproduces Phase 2 bit for bit" becomes a real regression check separating a threading bug from an RNG-change bug* | §8.2 |
 | D13 | Expand seeds through `splitmix64`. **Implemented in Phase 2** as `splitmix64` + `xoshiro256++`, inline in `src/warp_rng.h`; no `sitmo` dependency added | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong. Verified: first draws of adjacent document seeds correlate at r = +0.002 over 200k pairs | §8.3 |
 | D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
-| D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
+| D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2x $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()`. **Done in Phase 4** | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them eliminates the R/C++ round trip and the 16-bytes-per-token marshalling. `create_lexicon()` is now uncalled by the package and survives only as a reference for one test; it goes with `fit_lda_c()` in Phase 6 | §11 |
 | D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Deferred to Phase 6**, after the engine works | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
-| D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps × 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
+| D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps x 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
 | D20 | Scalar fast path for $\boldsymbol\eta$ — **Phase 6** | A memory win in the common non-transfer case, but an optimization rather than a correctness requirement. *Corrected 2026-08-23: this row previously said Phase 4, contradicting the §6 table. Phase 6 is right — a scalar path computes with a `double` $\eta$ where the matrix path uses the `float`-rounded value (D5), so it moves results and cannot ride along with a refactor whose whole value is being verifiable without a benchmark run.* `format_eta()` keeps materializing $K \times V$ until then | §5.5 |
 
@@ -176,7 +209,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`), D19 ($\alpha$ alias table) and — moved forward — D12/D13 (RNG) | **Done.** Matches CGS on the harness at a converged iteration count. Results in §6.3 |
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA); D9's `freeze_topics`; `refit()` and `predict()` onto the new engine | **Done.** Whole public API on warpLDA; `fit_lda_c()` has no callers. Gate passes under both a scalar and a matrix prior — §6.3 |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | **Done.** One C++ entry point; `Docs`/`Zd` never materialized, so per-token marshalling drops from 16 bytes to zero. **Exit criterion revised** from "identical results to Phase 3" to "identical *initial state*" — see §6.3 |
-| **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | Gate passes; initialization wall clock measurably down. **Scheduled, not optional.** Measured on the medium corpus: initialization is 0.66 s at $K{=}10$ and 3.90 s at $K{=}50$ — 4% of a 1200-iteration fit but 20% of a 200-iteration one, and it grows with both $N$ and $K\log K$. Changes every initial assignment, so it needs a full gate run; doing it before Phase 5 means that run doubles as Phase 5's baseline |
+| **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | **Done.** Initialization 7.9x faster at $K{=}10$, 11.8x at $K{=}50$; gate re-run covers Phases 4 and 4.5 together. §6.3 |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
 | **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
@@ -229,7 +262,7 @@ and `compare.R` does not duplicate the runner's knowledge of it.
 | `small` | `nih_sample_dtm` (ships with the package) | 100 docs |
 | `medium` | fixed 1,000-row sample of `nih` | 997 docs (see below) |
 
-`nih` is a 68,508 × 44 data frame in `data/nih.rda`, present in the repo but
+`nih` is a 68,508 x 44 data frame in `data/nih.rda`, present in the repo but
 `.Rbuildignore`d (`^data/nih.rda`), so it is available for benchmarking and
 never shipped. Relevant columns are `APPLICATION_ID` and `ABSTRACT_TEXT`. Build
 the DTM with `tidytext::unnest_tokens()` + `cast_sparse()`. The `unnest_tokens`
@@ -397,7 +430,7 @@ on a 100-document corpus, has the *highest* mean coherence of the four (0.1637).
 (medium/$K{=}50$). The full 240-fit baseline is 8.7 core-hours, about 27 minutes
 of wall clock at 20 workers. Phase 2 must budget the same again for the warp arm.
 
-### 6.3 Phase 2, 3 and 4 results — the warpLDA engine
+### 6.3 Phase 2 through 4.5 results — the warpLDA engine
 
 **Both phases complete and passing.** The engine is in `src/warp_rng.h`,
 `src/warp_alias.h`, `src/warp_corpus.h`, `src/warp_eta.h` and `src/warp_lda.cpp`.
@@ -406,7 +439,7 @@ As of Phase 3, `tidylda()`, `refit()` and `predict()` all dispatch to it.
 Phase 2 (scalar prior) is below; Phase 3 (matrix prior, `freeze_topics`, the rest
 of the API) follows it.
 
-**Gate result: PASS on all eight cell × metric combinations.** Run
+**Gate result: PASS on all eight cell x metric combinations.** Run
 `compare.R baseline-5abaa96.rds run-warp.rds` to reproduce.
 
 | Corpus | $K$ | metric | Gibbs | warp | diff | margin | sd ratio |
@@ -416,9 +449,9 @@ of the API) follows it.
 | medium | 50 | $R^2$ | 0.2056 | 0.2064 | +0.0008 | 0.0103 | 0.99 |
 | medium | 50 | coherence | 0.1267 | 0.1304 | +0.0038 | 0.0063 | 1.07 |
 | small | 10 | $R^2$ | 0.2189 | 0.2230 | +0.0041 | 0.0109 | 0.89 |
-| small | 10 | coherence | 0.1217 | 0.1200 | −0.0017 | 0.0061 | 0.91 |
-| small | 50 | $R^2$ | 0.5096 | 0.5043 | −0.0052 | 0.0255 | 0.96 |
-| small | 50 | coherence | 0.1637 | 0.1598 | −0.0039 | 0.0082 | 0.78 |
+| small | 10 | coherence | 0.1217 | 0.1200 | -0.0017 | 0.0061 | 0.91 |
+| small | 50 | $R^2$ | 0.5096 | 0.5043 | -0.0052 | 0.0255 | 0.96 |
+| small | 50 | coherence | 0.1637 | 0.1598 | -0.0039 | 0.0082 | 0.78 |
 
 `sd_ratio` runs 0.78–1.07, so there is no variance inflation hiding behind a
 matched mean — the failure mode that would show up first at misspecified $K$.
@@ -438,16 +471,16 @@ iterations compares *mixing rates*; D14 asks about the *posterior*.
 
 Measured convergence, warp against the Gibbs 200-iteration baseline (5 seeds):
 
-| Corpus / $K$ | $R^2$ @200 → @600 → @1200 | coherence @200 → @600 → @1200 |
+| Corpus / $K$ | $R^2$ @200 -> @600 -> @1200 | coherence @200 -> @600 -> @1200 |
 |---|---|---|
-| small / 10 | −13.0% → −2.6% → **+0.8%** | −13.3% → +3.4% → **−1.5%** |
-| small / 50 | −15.7% → −5.1% → **−0.9%** | −16.3% → −10.2% → **−4.3%** |
-| medium / 10 | −9.6% → −0.4% → **+1.9%** | −23.1% → −4.5% → **+1.8%** |
-| medium / 50 | −15.7% → −3.2% → **+0.5%** | −25.7% → −6.6% → **+1.3%** |
+| small / 10 | -13.0% -> -2.6% -> **+0.8%** | -13.3% -> +3.4% -> **-1.5%** |
+| small / 50 | -15.7% -> -5.1% -> **-0.9%** | -16.3% -> -10.2% -> **-4.3%** |
+| medium / 10 | -9.6% -> -0.4% -> **+1.9%** | -23.1% -> -4.5% -> **+1.8%** |
+| medium / 50 | -15.7% -> -3.2% -> **+0.5%** | -25.7% -> -6.6% -> **+1.3%** |
 
-Cells inside ±5% on both metrics: 0/4 at 200 iterations, 2/4 at 600, **4/4 at
+Cells inside +/-5% on both metrics: 0/4 at 200 iterations, 2/4 at 600, **4/4 at
 1200**. Monotone approach from below in every cell, and warp's log-likelihood
-plateaus at the same level as Gibbs (−61939 against −61945 on small/$K{=}10$).
+plateaus at the same level as Gibbs (-61939 against -61945 on small/$K{=}10$).
 That last point is the load-bearing one: a wrong $\bar\eta$ or a mis-derived
 acceptance ratio still gives a valid MCMC chain, it just converges *somewhere
 else*. Converging to the same likelihood is what separates those two cases.
@@ -460,14 +493,14 @@ Median seconds per fit, single-threaded:
 
 | Corpus | $K$ | Gibbs @200 | warp @1200 | speedup |
 |---|---|---|---|---|
-| small | 10 | 8.5 | 5.1 | 1.7× |
-| small | 50 | 45.8 | 11.2 | 4.1× |
-| medium | 10 | 143.9 | 70.6 | 2.0× |
-| medium | 50 | 781.8 | 115.5 | **6.8×** |
+| small | 10 | 8.5 | 5.1 | 1.7x |
+| small | 50 | 45.8 | 11.2 | 4.1x |
+| medium | 10 | 143.9 | 70.6 | 2.0x |
+| medium | 50 | 781.8 | 115.5 | **6.8x** |
 
-**Whole 240-fit grid: 8.73 core-hours for Gibbs, 2.80 for warp — 3.1× overall,
+**Whole 240-fit grid: 8.73 core-hours for Gibbs, 2.80 for warp — 3.1x overall,
 at equal or better quality, with six times the iterations.** Per *iteration* the
-gap is far larger (9× to 43×, growing in $K$ exactly as $O(NK)$ against
+gap is far larger (9x to 43x, growing in $K$ exactly as $O(NK)$ against
 $O(VK+N)$ predicts); most of it is spent buying convergence back. Parallelism in
 Phase 5 multiplies this further.
 
@@ -477,10 +510,10 @@ Phase 5 multiplies this further.
 callers and is deleted in Phase 6.
 
 **Both gates pass.** Scalar prior, against the stored Gibbs baseline: PASS on all
-eight cell × metric combinations, `sd_ratio` 0.83–1.15. Matrix prior
+eight cell x metric combinations, `sd_ratio` 0.83–1.15. Matrix prior
 (`tlda-compare.R`): PASS on all eight, and PASS again on the paired test.
 
-| | scalar η (main grid) | matrix η (tLDA) |
+| | scalar $\eta$ (main grid) | matrix $\eta$ (tLDA) |
 |---|---|---|
 | unpaired gate | 8/8 PASS | 8/8 PASS |
 | paired gate | n/a — see D14 | 8/8 PASS |
@@ -490,13 +523,13 @@ eight cell × metric combinations, `sd_ratio` 0.83–1.15. Matrix prior
 
 | Corpus | $K$ | Gibbs | warp | speedup |
 |---|---|---|---|---|
-| small | 10 | 8.5 | 5.2 | 1.6× |
-| small | 50 | 45.8 | 11.4 | 4.0× |
-| medium | 10 | 143.9 | 71.6 | 2.0× |
-| medium | 50 | 781.8 | 119.9 | **6.5×** |
+| small | 10 | 8.5 | 5.2 | 1.6x |
+| small | 50 | 45.8 | 11.4 | 4.0x |
+| medium | 10 | 143.9 | 71.6 | 2.0x |
+| medium | 50 | 781.8 | 119.9 | **6.5x** |
 
-Whole grid 8.73 → 2.86 core-hours, **3.05× overall**. The tLDA grid shows lower
-ratios (1.2×–5.1×, 2.20× overall) for a reason that has nothing to do with the
+Whole grid 8.73 -> 2.86 core-hours, **3.05x overall**. The tLDA grid shows lower
+ratios (1.2x–5.1x, 2.20x overall) for a reason that has nothing to do with the
 matrix prior: it fits **half** the corpus at the **full** vocabulary, so $N$
 halves while $VK$ does not, and warp's $O(VK + N)$ cost falls by less than
 Gibbs' $O(NK)$. Measured directly on the full corpus, the matrix prior costs
@@ -597,6 +630,99 @@ argument above is why that is safe to defer rather than skip: run
 `run-benchmark.R --engine=warp` and `tlda-compare.R` when the machine is free,
 and expect both to pass.
 
+#### Phase 4.5 — the initialization sampler
+
+**Complete.** `src/warp_init_sample.h` replaces `lsamp_one()` on the
+initialization path.
+
+`lsamp_one()` drew one integer per token by sorting the whole $K$-vector
+descending — twice, once for values and once for the index permutation — then
+accumulating log-sum-exp across it with a `log_add_exp` per topic, each an `exp`
+plus a `log1p`. Roughly three heap allocations and $O(K\log K)$ work per token.
+
+The replacement subtracts the maximum, exponentiates once per topic into a
+hoisted buffer while accumulating a running total, and walks that against
+$u\cdot\text{total}$. One uniform, $O(K)$, no allocation.
+
+| | $K=10$ | $K=50$ |
+|---|---|---|
+| initialization, before | 0.66 s | 3.90 s |
+| initialization, after | 0.08 s | **0.33 s** |
+| speedup | 7.9x | 11.8x |
+
+Medium corpus. Initialization falls from 20% of a 200-iteration fit to about 2%,
+and from 4% of a 1200-iteration fit to 0.3%.
+
+**The sort was never load-bearing for correctness.** Accumulating in descending
+order is a numerical-stability device; subtracting the maximum is the standard
+and stronger one, because it bounds every exponent at zero regardless of order.
+That matters most in exactly the tLDA case, where a transferred prior makes one
+topic dominate its column by many orders of magnitude. Verified standalone: the
+$\chi^2$ statistic is properly distributed over 200 replications (mean 48.84
+against 49 expected, p95 65.1 against 66.3); log-weights of $\pm 700$ are handled
+where a naive `exp` would overflow or flush to zero; and a dominant topic never
+lets a negligible-weight category be drawn.
+
+**A side benefit worth knowing.** The draw is now one `R::unif_rand()` per token
+— a *fixed* consumption. `R::rexp()` uses Ahrens-Dieter, which consumes a
+variable number of uniforms, so the stream position after initialization used to
+depend on the data. It also makes initialization a candidate for the
+per-work-item RNG scheme (D12) if it is ever parallelized.
+
+**Test change, made deliberately.** Phase 4's exit test compared the fused
+initialization against `create_lexicon()` by exact equality. Phase 4.5 breaks
+that premise on purpose, so the test was retired and replaced with one that
+checks the property D8 actually cares about and that no future sampler change
+should break: initialization tracks the priors it was given rather than being
+uniform. Reproducibility under `set.seed()` is tested separately.
+
+**Both gates pass, covering Phases 4 and 4.5 together.**
+
+| gate | result |
+|---|---|
+| main grid (scalar eta), 8/8 | PASS, `sd_ratio` 0.76-1.02 |
+| tLDA (matrix eta), 8/8 unpaired | PASS, `sd_ratio` 0.84-1.07 |
+| tLDA, 8/8 paired | PASS |
+
+Differences are essentially zero throughout: r-squared diffs 0.0000 to 0.0007,
+coherence -0.0002 to +0.0023.
+
+**K=50 was raised from 20 to 100 seeds in the main grid**, and that resolved the
+one cell that failed at n=20. small/K=50 coherence read -0.0061 with p = 0.168 at
+20 seeds; at 100 seeds it reads -0.0029 with p = 0.0043 and mdd falls from 0.0063
+to 0.0048. Adding seeds moved the estimate *toward* the baseline and sharpened
+the test, which is the signature of a noisy estimate rather than a real shift --
+a genuine regression would have held its size and become more significant. This
+is the second time 6.1's "add seeds, do not widen the margin" has been the right
+call.
+
+**Pairing survived Phase 4 better than expected.** The two arms no longer share
+an exact initial assignment -- warp builds its own token structure -- so the
+paired test was expected to weaken. It did not much: sharing the scenario
+(document split, base model, eta at t, Cd_start) carries most of the
+correlation. The paired test is 1.9x to 36x sharper than the unpaired one, and
+rescues three cells the unpaired test cannot resolve.
+
+**One cell is underpowered and knowingly accepted.** small/K=50 coherence in the
+tLDA grid has mdd 0.00542 against a 0.00496 margin even paired. It passes (diff
++0.0023, p = 0.0013) but the gate cannot fully certify it. The tLDA K=50 cells
+stayed at 20 seeds because each row runs Gibbs at 200 iterations *plus* warp at
+1200; topping up to 100 seeds would cost roughly 10 core-hours. Accepted as a
+known limitation rather than paid for.
+
+**Speed, tLDA arm** (both arms timed including initialization, single-threaded):
+
+| Corpus | K | Gibbs | warp | speedup |
+|---|---|---|---|---|
+| small | 10 | 3.8 s | 3.1 s | 1.20x |
+| small | 50 | 21.5 s | 8.3 s | 2.60x |
+| medium | 10 | 62.3 s | 35.8 s | 1.74x |
+| medium | 50 | 373.4 s | 70.2 s | **5.32x** |
+
+**`src/sample.h` is dead code.** Nothing includes it. Its `log_sample_one()`
+also reads `q[k - 1]` at `k = 0`, an out-of-bounds access. Not worth fixing —
+delete it in Phase 6 alongside `fit_lda_c()` and `create_lexicon()`.
+
 #### Notes for later phases
 
 - `optimize_alpha` (D7) is accepted but ignored, with a once-per-session
@@ -653,10 +779,43 @@ path) both point this direction and should land first.
 
 ## 7. Open questions
 
-1. **Work partitioning for parallelism.** The RNG scheme is settled (D12/D13),
-   but how documents and words divide across threads is not — including whether
-   the two passes should partition differently, and how the shared $C_k$ vector
-   is updated without contention. Phase 5.
+1. **Work partitioning for parallelism.** Phase 5. Most of this partitions
+   cleanly: split the doc pass by document and the $C^d$ writes are disjoint;
+   split the word pass by word and $C^v$ and the eta columns are disjoint. The
+   one genuinely shared structure is **$C_k$, a K-vector written on every
+   acceptance in both passes**.
+
+   Phase 5's exit criterion -- identical results across thread counts (D12) --
+   constrains the fix more than performance does. Per-thread deltas merged at
+   pass end are the obvious approach and are ruled out by it: what a work item
+   sees would depend on the partition, hence on the thread count.
+
+   **Candidate worth trying first: snapshot $C_k$ at the start of each pass and
+   apply accumulated deltas at the end.** Every work item then sees the same
+   value regardless of partitioning, so the result is deterministic and
+   thread-count-independent by construction, and the passes need no
+   synchronization at all. It changes results relative to today, since $C_k$
+   goes stale within a pass, so it needs its own gate run -- but deferring an
+   update within a pass is the same approximation warpLDA already makes
+   everywhere else.
+
+   **Expect sublinear scaling at large V*K, and measure it.** The cache-residency
+   argument is about the per-work-item working set, which stays K-sized. The word
+   pass nonetheless streams all of $C^v$ and all of eta once per iteration:
+   0.9 MB each at the benchmark's medium corpus and K=50, but 200 MB each at
+   V=1e5, K=500. At benchmark scale that is cache-resident and cores are the
+   bottleneck; at the scale this project exists to enable it is roughly 400 MB
+   of streaming per iteration and the word pass becomes memory-bandwidth-bound,
+   where adding cores stops helping proportionally. Scaling measured on the
+   medium corpus will therefore flatter what happens on a large one.
+
+   **Report per-core and as-shipped numbers separately.** Gibbs stays
+   single-threaded -- its batch loop is broken (design notes 9b) and Phase 6
+   deletes it -- so any parallel comparison is parallel-warp against
+   serial-Gibbs. That is the number users experience and is worth publishing,
+   but it is not a per-core comparison of samplers and should not be presented
+   as one.
+
 2. **Likelihood evaluation interval.** Default of 10 proposed. **Phase 1
    evidence supports it**; confirm against the warpLDA curve in Phase 2 before
    fixing the default. Essentially all readable structure is in the first ~50
@@ -687,6 +846,30 @@ Things that cost time to discover once and should not cost it twice.
 (Imports) are required to build or load at all. `quanteda`, `tm`, `slam`,
 `spelling` are Suggests exercised by the test suite — CI installs them, so
 install them locally too or you verify less than CI does.
+
+**Rendering these documents to PDF.** Both `.md` files here carry a
+`pdf_document` header. Under `pdflatex` (what tinytex uses by default), only the
+Unicode that `inputenc`'s `utf8` option maps to a LaTeX command will render;
+anything else fails with *"Unicode character ... not set up for use with
+LaTeX"*, and LaTeX stops at the first one, so a single reported error usually
+hides several more.
+
+Safe to use in prose: em dash, en dash and the section sign, which are in the
+LaTeX core. **Not safe, and all previously present here** (named rather than
+shown, since writing them would reintroduce the problem): U+2212 MINUS SIGN
+(visually almost identical to the ASCII hyphen, and the one that surfaced
+first), U+2192 RIGHTWARDS ARROW, any bare Greek letter such as U+03B7, and
+U+00D7 MULTIPLICATION SIGN, U+00B7 MIDDLE DOT and U+00B1 PLUS-MINUS SIGN, which
+need `textcomp` rather than the kernel.
+
+All have been converted: minus signs to ASCII hyphens, the rest to math mode
+(`\rightarrow`, `\eta`, `\times`, `\cdot`, `\pm` between dollar signs). Keep
+it that way — write mathematical symbols as math, not as Unicode glyphs. To
+check before rendering:
+
+```sh
+grep -nP '[^\x00-\x7F]' warp-planning/*.md | grep -vP '[\x{2013}\x{2014}\x{00A7}]'
+```
 
 **Local checks need `vignettes = FALSE`.** Pandoc is not installed on this
 machine and `sudo` requires a password, so vignette building fails at the

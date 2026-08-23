@@ -64,7 +64,7 @@
 #include "warp_alias.h"
 #include "warp_corpus.h"
 #include "warp_eta.h"
-#include "sample_int.h"
+#include "warp_init_sample.h"
 #include "matrix_conversions.h"
 
 using namespace Rcpp;
@@ -147,6 +147,11 @@ Rcpp::List fit_lda_warp(
   // and reused for every repeat of that word, C_doc is NOT updated within a
   // document, and tokens are visited documents-ascending then words-ascending.
   // Changing any of that changes which random numbers each token consumes.
+  //
+  // One uniform per token, on the main thread, so set.seed() governs. That is a
+  // fixed consumption per token, unlike the R::rexp() this used to draw --- R's
+  // exponential generator consumes a variable number of uniforms, which made
+  // the stream position after initialization depend on the data.
   // =========================================================================
   const arma::sp_mat dtm = dtm_in.t();   // V x D: a column is now a document
 
@@ -160,10 +165,10 @@ Rcpp::List fit_lda_warp(
 
   Corpus corpus(D, V, N, mh_steps);
   {
-    // Hoisted out of the per-token loop. create_lexicon() built a fresh
-    // std::vector<double> per document and then implicitly converted it to an
-    // arma::vec on every single lsamp_one() call; this allocates once.
-    arma::vec qz(K);
+    // Both hoisted out of the per-token loop, so initialization allocates
+    // nothing per token.
+    std::vector<double> qz(K);
+    std::vector<double> scratch(K);
 
     for (std::size_t d = 0; d < D; d++) {
       // Document length from the column's nonzeros. create_lexicon() scanned the
@@ -186,7 +191,8 @@ Rcpp::List fit_lda_warp(
 
         for (std::size_t i = 0; i < count; i++) {
           corpus.add(static_cast<word_t>(v),
-                     static_cast<topic_t>(lsamp_one(qz)));
+                     static_cast<topic_t>(
+                         sample_log_weights(qz, R::unif_rand(), scratch)));
         }
       }
       corpus.end_doc();

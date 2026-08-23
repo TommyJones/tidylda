@@ -85,7 +85,12 @@ bench_hp <- function(engine) {
 #' minutes of compute for a cell that already has 1.7x the power it needs.
 BENCH_CORPORA <- c("small", "medium")
 BENCH_KS      <- c(10L, 50L)
-BENCH_SEEDS   <- list("10" = 1:100, "50" = 1:20)
+# K=50 raised from 20 to 100 after the Phase 4/4.5 gate run: small/K=50
+# coherence came back at p = 0.168 with the point estimate at 74% of the margin
+# and mdd (0.0063) close to it, which is the harness saying it cannot tell rather
+# than that something is wrong. 6.1's prescription is to add seeds, not widen the
+# margin, and these are the cheap cells -- 10 s and 104 s a fit.
+BENCH_SEEDS   <- list("10" = 1:100, "50" = 1:100)
 
 #' Seeds for a given K
 seeds_for_k <- function(k) BENCH_SEEDS[[as.character(k)]]

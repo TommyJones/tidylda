@@ -266,51 +266,64 @@ test_that("the sampler targets the LDA posterior, not merely a stationary one", 
 })
 
 
-test_that("the fused initialization reproduces create_lexicon exactly", {
-  # Phase 4 (D16) moved initialization into the engine. It is NOT bit-identical
-  # to Phase 3 end to end, and the reason is worth knowing: the Phase 2 Corpus
-  # constructor ran std::sort over each document's tokens by word, which was
-  # redundant -- create_lexicon already emits them word-ascending -- and
-  # std::sort is not stable, so it permuted tokens within runs of the same word.
-  # Those tokens are exchangeable (same word, same document) and each carries an
-  # independently sampled topic, so the shuffle left every count matrix
-  # unchanged while changing which token occupies which slot, and therefore
-  # which per-work-item RNG stream reaches it.
+test_that("initialization is informed by the priors, not uniform", {
+  # Phase 4 verified the fused initialization against create_lexicon() by exact
+  # equality. Phase 4.5 replaced lsamp_one()'s per-token O(K log K) sort with a
+  # constant-work draw, so that comparison no longer holds and the test was
+  # retired deliberately rather than left to rot.
   #
-  # So the exit criterion is this instead, and it is the stronger statement:
-  # the initialization draws the same topics, and every count matrix the sampler
-  # starts from is identical.
-  #
-  # NOTE: this test calls create_lexicon(), which Phase 6 deletes. When that
-  # happens, either keep create_lexicon() as a test-only reference or retire
-  # this test deliberately -- do not let it disappear by accident.
-  skip_on_cran()
+  # What replaces it tests the property D8 actually cares about, and which no
+  # future change to the sampling algorithm should break: each token's starting
+  # topic is drawn from P(z) proportional to beta[k, v] * (Cd_start[d, k] +
+  # alpha[k]), so the initial assignment tracks the priors it was given. A
+  # uniform-random start -- warpLDA's own, which tidylda discards -- would not.
+  d <- nih_sample_dtm[1:20, ]
+  k <- 4
+  v <- ncol(d)
+  alpha <- rep(0.1, k)
 
+  # Flat beta, so the document prior alone decides. Give document i almost all
+  # of its mass on topic (i mod k).
+  beta_flat <- matrix(1 / v, nrow = k, ncol = v)
+  Cd_start <- matrix(1e-6, nrow = nrow(d), ncol = k)
+  favoured <- (seq_len(nrow(d)) - 1) %% k + 1
+  for (i in seq_len(nrow(d))) Cd_start[i, favoured[i]] <- 1000
+
+  set.seed(4)
+  m <- fit_lda_warp(dtm_in = d, Cd_start = Cd_start, alpha_in = alpha,
+                    eta_in = matrix(0.05, nrow = k, ncol = v),
+                    iterations = 0, burnin = -1, calc_likelihood = FALSE,
+                    Beta_in = beta_flat, freeze_topics = FALSE, verbose = FALSE)
+
+  # Every token still accounted for.
+  expect_equal(sum(m$Cd), sum(d))
+  expect_equal(sum(m$Cv), sum(d))
+  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
+
+  # Each document should have landed overwhelmingly on the topic it was steered
+  # toward. The prior ratio is 1000 : 1e-6, so anything less than near-total
+  # concentration means the initialization is ignoring it.
+  got <- apply(m$Cd, 1, which.max)
+  expect_equal(got, favoured)
+  expect_gt(mean(m$Cd[cbind(seq_len(nrow(d)), favoured)] / rowSums(m$Cd)), 0.99)
+})
+
+
+test_that("initialization is reproducible under set.seed", {
   d <- nih_sample_dtm[1:20, ]
   k <- 4
   al <- format_alpha(0.1, k)
   et <- format_eta(0.05, k, ncol(d))
 
-  set.seed(99)
-  a <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
-                               threads = 1)
-  lex <- create_lexicon(Cd_in = a$Cd_start, Beta_in = a$beta_initial,
-                        dtm_in = d, alpha = al$alpha, freeze_topics = FALSE)
-
-  set.seed(99)
-  b <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
-                               threads = 1)
-  # iterations = 0 initializes and returns without sampling.
-  m <- fit_lda_warp(dtm_in = d, Cd_start = b$Cd_start, alpha_in = al$alpha,
-                    eta_in = et$eta, iterations = 0, burnin = -1,
-                    calc_likelihood = FALSE, Beta_in = b$beta_initial,
-                    freeze_topics = FALSE, verbose = FALSE)
-
-  expect_identical(as.integer(lex$Ck), as.integer(m$Ck))
-  expect_identical(as.integer(lex$Cd), as.integer(m$Cd))
-  expect_identical(as.integer(lex$Cv), as.integer(m$Cv))
-
-  # And the totals still account for every token.
-  expect_equal(sum(m$Cd), sum(d))
-  expect_equal(sum(m$Cv), sum(d))
+  init <- function(seed) {
+    set.seed(seed)
+    p <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha,
+                                 eta = et$eta, threads = 1)
+    fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
+                 eta_in = et$eta, iterations = 0, burnin = -1,
+                 calc_likelihood = FALSE, Beta_in = p$beta_initial,
+                 freeze_topics = FALSE, verbose = FALSE)$Cd
+  }
+  expect_identical(init(21), init(21))
+  expect_false(identical(init(21), init(22)))
 })

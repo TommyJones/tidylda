@@ -9,6 +9,43 @@ output:
     number_sections: true
 ---
 
+<!--
+EDITING THIS FILE: USE ASCII ONLY, AND KEEP INLINE MATH LEGAL.
+
+These documents render to PDF through pandoc -> pdflatex. Two things break it,
+and both fail late and confusingly, so check before you commit:
+
+  python3 warp-planning/check-markdown.py warp-planning/*.md
+
+1. NON-ASCII CHARACTERS. pdflatex accepts only Unicode that inputenc's utf8
+   option maps to a LaTeX command; anything else fails with "Unicode character
+   ... not set up for use with LaTeX". LaTeX stops at the FIRST one, so a single
+   reported error usually hides several more.
+
+   Permitted: em dash, en dash, section sign. Nothing else.
+
+   Write symbols as ASCII or as real math. Prefer ASCII for prose punctuation --
+   "->" not an arrow glyph, "x" not a multiplication sign, "+/-" not a plus-minus
+   sign. Reserve math delimiters for actual mathematics.
+
+   The trap: U+2212 MINUS SIGN is visually near-identical to the ASCII hyphen and
+   slips into negative numbers in results tables unnoticed.
+
+2. PANDOC'S INLINE MATH RULES. Violate one and pandoc emits two literal dollar
+   signs, putting a bare LaTeX command outside math mode -- "Missing $ inserted".
+   Writing the delimiter as "D" below to avoid tripping the checker on this note:
+
+     - an opening D must NOT be followed by whitespace
+     - a closing D must NOT be preceded by whitespace
+     - a closing D must NOT be followed immediately by a digit
+
+   That last rule is why a plus-minus command wrapped in delimiters and butted
+   straight against "5%" fails, while putting a space after the closing
+   delimiter would not. It is also why decorative symbols next to numbers belong
+   in ASCII: "1.6x" is safe, whereas the same thing written as math is one edit
+   away from breaking.
+-->
+
 # Purpose and Scope
 
 These are working notes for replacing tidylda's collapsed Gibbs sampler with a
@@ -226,7 +263,7 @@ costs nothing.** The tLDA change to this loop is simply
 prob[t] = C_word.at(w,t) + eta.at(w,t);   // eta stored word-major
 ```
 
-plus `beta_bar` $\rightarrow$ `eta_bar[t]` in both acceptance ratios. That is
+plus `beta_bar` -> `eta_bar[t]` in both acceptance ratios. That is
 substantially the entire sampler-side change.
 
 The paper reaches $O(N)$ by exploiting that $C^v_{\cdot v}$ has at most
@@ -244,7 +281,7 @@ When the $VK$ term actually bites — roughly when $VK \gtrsim N$:
 | $V$ | $K$ | $N$ | $VK$ vs $N$ | Verdict |
 |---|---|---|---|---|
 | $5\times10^3$ | 10 | $5\times10^4$ | $\approx N$ | fine |
-| $5\times10^4$ | 100 | $5\times10^6$ | $\approx N$ | ~2× off ideal, fine |
+| $5\times10^4$ | 100 | $5\times10^6$ | $\approx N$ | ~2x off ideal, fine |
 | $2\times10^5$ | 1000 | $10^7$ | $20\times N$ | would hurt |
 
 **Decision: ship the $O(VK)$ approach. Revisit only if profiling at high $K$
@@ -334,7 +371,7 @@ stop worrying about it.**
 
 **Store $\boldsymbol\eta$ as `float`, compute in `double`.** The $V \times K$
 matrix is where the memory is; single precision halves it (at $K=500$,
-$V=10^5$: 400MB $\rightarrow$ 200MB) and is amply sufficient for a prior.
+$V=10^5$: 400MB -> 200MB) and is amply sufficient for a prior.
 Promote to `double` on read for the acceptance ratios — free, since the FPU
 works in doubles anyway, and it keeps any precision drift out of the MH accept
 decision.
@@ -538,7 +575,7 @@ Two mitigations, which compose:
 1. **Iterate the DTM's nonzeros, not tokens.** The inner sum is currently taken
    per token occurrence; taking it per unique $(d,v)$ pair gives
    $O(\text{nnz}(X)\cdot K)$ instead of $O(NK)$. For a corpus averaging three
-   occurrences per document-term pair that is a free 3× saving.
+   occurrences per document-term pair that is a free 3x saving.
 2. **Evaluate the likelihood every $n$-th iteration**, exposed as a parameter
    (`likelihood_every` or similar) defaulting to around 10. This preserves
    `calc_likelihood = TRUE` as the default — worth keeping — while cutting the
@@ -725,7 +762,7 @@ all of `refit`'s alignment logic, `new_tidylda`, `posterior`,
 
 New engine responsibilities:
 
-1. DTM $\rightarrow$ dual-view token array (CSR by doc, CSC by word), built once, in C++;
+1. DTM -> dual-view token array (CSR by doc, CSC by word), built once, in C++;
 2. informed initialization from $\hat\beta \cdot \hat\theta$, replacing warpLDA's uniform start;
 3. alternating doc-pass / word-pass MH sampling with matrix $\boldsymbol\eta$;
 4. a `freeze_topics` specialization for prediction;
@@ -744,7 +781,7 @@ behavior.
 
 Design cost to be aware of: warpLDA *defers* acceptance to the next pass, so
 `mh_steps > 1` means storing that many pending proposals per token rather than a
-single `new_z` — `mh_steps × 2` bytes per token. The inline propose-accept loop
+single `new_z` — `mh_steps x 2` bytes per token. The inline propose-accept loop
 used by LightLDA does not fit the deferred structure, so the array is the right
 shape. At the default it is exactly today's `Z{old_z, new_z}`.
 

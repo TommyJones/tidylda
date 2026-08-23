@@ -107,24 +107,40 @@ run_tlda_row <- function(row, dtm) {
   path <- file.path(out_dir, paste0(row$id, ".rds"))
   res <- try({
     prep <- prepare_transfer(dtm, row$k, row$seed)
-    cm <- list(Docs = prep$counts$Docs, Zd_in = prep$counts$Zd,
-               Cd_in = prep$counts$Cd, Cv_in = prep$counts$Cv,
-               Ck_in = prep$counts$Ck, alpha_in = prep$alpha$alpha,
-               eta_in = prep$eta$eta)
-
     hg <- bench_hp("gibbs"); hw <- bench_hp("warp")
 
+    # Since Phase 4 the two engines no longer share one initialization: warp
+    # builds its own token structure from the DTM, while fit_lda_c still needs
+    # the lexicon create_lexicon() produces. Both are drawn from the SAME
+    # informed distribution and from the same prepared inputs -- same document
+    # split, same base model, same eta^(t), same Cd_start -- so a pair still
+    # shares everything about the scenario and differs only in the initial
+    # topic draw. See the note on the paired test below.
+    #
+    # Timing covers initialization for both arms, or the comparison would charge
+    # warp for work it does inside fit_lda_warp() while giving Gibbs its
+    # initialization for free.
     set.seed(row$seed)
-    tg <- system.time(g <- do.call(fit_lda_c, c(cm, list(
-      iterations = hg$iterations, burnin = hg$burnin, optimize_alpha = FALSE,
-      calc_likelihood = FALSE, Beta_in = prep$counts$Cv, freeze_topics = FALSE,
-      threads = 1, verbose = FALSE))))[["elapsed"]]
+    tg <- system.time({
+      lex <- create_lexicon(Cd_in = prep$counts$Cd_start,
+                            Beta_in = prep$counts$beta_initial,
+                            dtm_in = prep$dtm, alpha = prep$alpha$alpha,
+                            freeze_topics = FALSE)
+      g <- fit_lda_c(
+        Docs = lex$Docs, Zd_in = lex$Zd, Cd_in = lex$Cd, Cv_in = lex$Cv,
+        Ck_in = lex$Ck, alpha_in = prep$alpha$alpha, eta_in = prep$eta$eta,
+        iterations = hg$iterations, burnin = hg$burnin, optimize_alpha = FALSE,
+        calc_likelihood = FALSE, Beta_in = prep$counts$beta_initial,
+        freeze_topics = FALSE, threads = 1, verbose = FALSE)
+    })[["elapsed"]]
 
     set.seed(row$seed)
-    tw <- system.time(w <- do.call(fit_lda_warp, c(cm, list(
+    tw <- system.time(w <- fit_lda_warp(
+      dtm_in = prep$dtm, Cd_start = prep$counts$Cd_start,
+      alpha_in = prep$alpha$alpha, eta_in = prep$eta$eta,
       iterations = hw$iterations, burnin = hw$burnin, calc_likelihood = FALSE,
-      Beta_in = prep$counts$Cv, freeze_topics = FALSE,
-      mh_steps = 1L, verbose = FALSE))))[["elapsed"]]
+      Beta_in = prep$counts$beta_initial, freeze_topics = FALSE,
+      mh_steps = 1L, verbose = FALSE))[["elapsed"]]
 
     bind_rows(
       bind_cols(tibble::tibble(engine = "gibbs"), score(g, prep, hg$burnin),
@@ -190,9 +206,13 @@ if (!probe) {
   cmp <- compare_runs(base, new)
   passed <- report(cmp)
 
-  # Both engines here run from ONE shared initialization, so the pairing is
-  # structural and the paired test is the sharper instrument -- see
-  # noninf_test_paired() for why this is legitimate here and not in the main grid.
+  # A pair shares the whole scenario: the same document split, the same base
+  # model, the same eta^(t), the same Cd_start. Since Phase 4 it no longer shares
+  # the exact initial topic assignment -- each engine now draws its own from that
+  # common distribution -- so the pairing is weaker than it was, but it still
+  # removes the dominant between-seed variance, which is scenario-to-scenario
+  # rather than draw-to-draw. Compare sd_paired against the unpaired sds above to
+  # see how much correlation survives.
   cat("\nPaired gate (shared initialization, the sharper test):\n\n")
   cells <- base |> dplyr::distinct(.data$corpus, .data$k) |>
     dplyr::arrange(.data$corpus, .data$k)

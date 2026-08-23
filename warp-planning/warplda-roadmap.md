@@ -80,13 +80,13 @@ repository root.
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
 | **Current phase** | None. All scheduled phases are done. |
-| **Last completed** | **Phase 6: cleanup, documentation, CRAN preparation.** Old engine deleted, D17 and D20 landed, documentation rewritten, version 0.1.0. §6.4. |
+| **Last completed** | **Phase 6.5: issue triage.** Two issues closed, six annotated against the 0.1.0 code. §6.5. |
 | **In flight** | Nothing. |
 
-**Next action:** **Phase 6.5** -- triage the ten open GitHub issues against the
-0.1.0 code (§6.5). It is small and belongs before release rather than after, since
-a tracker still listing solved problems misleads users at exactly the moment new
-ones arrive.
+**Next action:** decide issue 30 -- whether to surface the log posterior density
+the engine already computes and `new_tidylda()` currently drops (§6.5). It is a
+one-line addition plus documentation, it is additive rather than breaking, and
+0.1.0 is the natural moment for it.
 
 Then release prep for 0.1.0: `cran-comments.md`, a reverse-dependency check, and
 submission. **Phase 7** (the $O(N)$ word proposal, §6.6) and **Phase 8** (memory
@@ -209,7 +209,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **5** | RcppThread parallelism | **Done.** Bit-identical at 1/2/4/8/16 threads; both gates pass; sampler efficiency 59-68% (about 78% clock-adjusted), 7.8x on 12 physical cores. §6.3 |
 | **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. §6.4 |
-| **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | Small. Every open issue read and either closed with a reason or confirmed still live |
+| **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | **Done.** Ten issues read; 70 and 77 closed, six commented with status, 8/28/51 untouched. One open question surfaced: whether to surface the log posterior density (issue 30) |
 | **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.6 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
 | **8** | *Unscheduled.* Memory surgery for large corpora — see §6.7 | A separate project. Breaking, broadly |
 
@@ -960,36 +960,53 @@ doing here before: pandoc is present, just not on `PATH` (§8).
 
 ---
 
-### 6.5 Phase 6.5 sketch -- retire the issues this project closed
+### 6.5 Phase 6.5 results -- retiring the issues this project closed
 
-**Small, and worth doing before release.** Ten issues are open on GitHub, several
-of which describe problems this project either fixed outright or made moot. An
-issue tracker that still lists solved problems misleads users about what the
-package does and costs the maintainer attention on every triage pass.
+**Done.** All ten open issues read against the 0.1.0 code. Two closed, six
+commented, two untouched. The rule was a recorded decision per issue, not a bulk
+close, and applying it moved two issues out of the category the sketch had put
+them in.
 
-The point of the phase is a **decision on each one, recorded in the issue
-thread**, not a bulk close. Three categories, and the middle one is where the
-judgment is:
+| # | Disposition |
+|---|---|
+| 70 | **Closed.** `recover_counts_from_probs()` is deleted, so the bug has no code path left |
+| 77 | **Closed.** `predict()` parallelizes over documents as asked. Noted that parallel *training* also landed, contradicting the issue's premise that it was ill-advised -- true of the old batched Gibbs implementation, not of the warp engine |
+| 30 | **Open**, against the sketch's expectation. See below |
+| 34 | **Open.** Status note: `optimize_alpha` is deprecated, and a fixed $\boldsymbol\alpha$ is what lets D19's alias table be built once, so implementing fixed-point estimation is no longer the free addition it looked like when filed |
+| 78 | **Open.** Re-scoped against the new baseline: the speedup minibatch training must justify is now roughly 23x larger. Noted that the broken batched implementation it would have built on is deleted |
+| 63 | **Open**, but its implementation sketch was stale in two ways: it proposed using `recover_counts_from_probs()`, now deleted, and it says "remove rows from `Cv`" when D17 made $C^v$ tokens-by-topics |
+| 68 | **Open**, and marginally stronger: `threads` is now functional and `mh_steps` is new, so there is more computational surface to move into a control object |
+| 8, 28, 51 | **Open**, genuinely untouched by this project |
 
-**Fixed or made moot -- close with a pointer to the commit:**
+Both 34 and 78 carry a note that time to delivery will be long if it comes at
+all, so nobody reads the status update as a commitment.
 
-| # | Title | Disposition |
-|---|---|---|
-| 70 | `recover_counts_from_probs` gives incorrect counts | The function is deleted (§6.4). The bug cannot recur |
-| 77 | Parallel predictions | `predict(method = "mh")` threads through `fit_lda_warp()` as of Phase 3, capped at the document count. Verify against the issue's actual ask before closing |
-| 30 | Nail down that log likelihood calculation | Phase 0 fixed the normalizer, D11 fixes the evaluation interval and states what the number is. Confirm the issue wanted the calculation settled rather than a different estimand |
+**Why 30 stayed open.** The sketch listed it as closeable on the grounds that
+Phase 0 fixed the normalizer and D11 settled the evaluation interval. Reading the
+issue against the code, that is not what it asks for. It has two parts, and the
+answers differ:
 
-**Changed status, needs a decision rather than a close:**
+- *"the likelihood calculation assumes that eta is a vector, not a matrix"* --
+  **fixed.** The calculation reads `eta.column(v)` per word and normalizes with
+  `eta.bar(k)`, so a tLDA matrix prior is handled correctly.
+- *"I'd like to return both likelihoods... the latter has continually been
+  problematic for me to calculate, given that its positive"* -- **computed but
+  not surfaced.** The engine emits three rows: iteration, `lpd`, and
+  `lpd + lp_alpha + lp_eta`. `new_tidylda()` reads the first two and drops the
+  third.
 
-| # | Title | What changed |
-|---|---|---|
-| 34 | optimize alpha using fixed point iteration | D7 removed `optimize_alpha` and 0.1.0 deprecates the argument. The issue is now a question about whether to ever implement it properly, on a fixed-$\boldsymbol\alpha$ engine that D19's alias table assumes. Answer it or close it as "won't do" -- do not leave it implying the argument still works |
-| 78 | Explore speeding up training with stochastic batches | The motivation was speed, and warpLDA plus threading delivered roughly 23x. Minibatch LDA is still a real and separate idea, so this is *not* automatically obsolete -- but it should be re-scoped against the new baseline or closed. Note that the abandoned batched implementation it may have been referring to was deleted in Phase 6 |
+The positivity that blocked the issue's author is **correct behaviour**, which is
+the useful thing this triage established. Row 3 is a log *density*: a Dirichlet
+density is unbounded above, so as the posterior concentrates the value at the
+mode grows without limit. Positive values carry no diagnostic meaning; only
+differences between iterations of one model do. This is the same quantity the
+stale `@details` comment retired in Phase 5 was most likely complaining about
+(design notes §9).
 
-**Untouched by this project** -- 8, 28, 51, 63, 68. Leave them alone.
-
-**Exit criterion.** Every open issue has been read against the 0.1.0 code and is
-either closed with a reason, or left open having been confirmed still live.
+So what remains is a naming and documentation decision, not a calculation:
+surface row 3 or not, and if so, call it a log posterior density rather than a
+likelihood and say that positive values are normal. It costs nothing to surface
+-- it is already computed at every evaluation.
 
 ---
 

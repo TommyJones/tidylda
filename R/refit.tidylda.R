@@ -349,17 +349,14 @@ refit.tidylda <- function(
   
   ### run C++ gibbs sampler ----
   lda <- fit_lda_warp(
-    Docs = counts$Docs,
-    Zd_in = counts$Zd,
-    Cd_in = counts$Cd,
-    Cv_in = counts$Cv,
-    Ck_in = counts$Ck,
+    dtm_in = dtm,
+    Cd_start = counts$Cd_start,
     alpha_in = alpha$alpha,
     eta_in = eta$eta,
     iterations = iterations,
     burnin = burnin,
     calc_likelihood = calc_likelihood,
-    Beta_in = object$beta, # ignored for updates as freeze_topics = FALSE
+    Beta_in = counts$beta_initial,
     freeze_topics = FALSE,
     likelihood_every = as.integer(likelihood_every),
     mh_steps = as.integer(mh_steps),

@@ -10,7 +10,7 @@
 using namespace Rcpp;
 
 // convert an NumericMatrix to two-dimensional vector
-std::vector<std::vector<double>> mat_to_vec(
+inline std::vector<std::vector<double>> mat_to_vec(
     const Rcpp::NumericMatrix& x,
     const bool&          by_rows = false
 ) {
@@ -39,7 +39,7 @@ std::vector<std::vector<double>> mat_to_vec(
 }
 
 // convert an IntegerMatrix to two-dimensional vector
-std::vector<std::vector<long>> mat_to_vec(
+inline std::vector<std::vector<long>> mat_to_vec(
     const Rcpp::IntegerMatrix& x,
     const bool&          by_rows = false
 ) {
@@ -69,7 +69,7 @@ std::vector<std::vector<long>> mat_to_vec(
 }
 
 // convert a std::vector to NumericMatrix
-NumericMatrix vec_to_mat(
+inline NumericMatrix vec_to_mat(
     const std::vector<std::vector<double>>& x,
     const bool&                             row_major = false
 ) {
@@ -93,7 +93,7 @@ NumericMatrix vec_to_mat(
 }
 
 // convert a std::vector of ints to IntegerMatrix
-IntegerMatrix vec_to_mat(
+inline IntegerMatrix vec_to_mat(
     const std::vector<std::vector<long>>& x,
     const bool&                           row_major = false
 ) {

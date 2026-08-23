@@ -64,6 +64,8 @@
 #include "warp_alias.h"
 #include "warp_corpus.h"
 #include "warp_eta.h"
+#include "sample_int.h"
+#include "matrix_conversions.h"
 
 using namespace Rcpp;
 using namespace warp;
@@ -86,14 +88,13 @@ uint64_t draw_master_seed() {
 //' @keywords internal
 //' @description Metropolis-Hastings replacement for \code{fit_lda_c}. Phase 2:
 //'   single-threaded, scalar \code{eta} only.
-//' @param Docs List of vectors of word indices, one per document
-//' @param Zd_in List of initial topic assignments matching \code{Docs}
-//' @param Cd_in IntegerMatrix, documents by topics
-//' @param Cv_in IntegerMatrix, topics by words
-//' @param Ck_in Vector of token counts per topic
+//' @param dtm_in arma::sp_mat document term matrix, documents by words
+//' @param Cd_start IntegerMatrix, documents by topics. Initial document-topic
+//'   counts, \code{theta_initial * rowSums(dtm)} from the R side
 //' @param alpha_in Vector of prior parameters for topics over documents
 //' @param eta_in NumericMatrix, topics by words. Prior for words over topics
-//' @param iterations int number of sampling iterations
+//' @param iterations int number of sampling iterations. Zero initializes and
+//'   returns without sampling, which is how the initialization is inspected
 //' @param burnin int number of burn in iterations, -1 to disable averaging
 //' @param calc_likelihood bool, calculate log likelihood?
 //' @param likelihood_every int, evaluate the likelihood every n-th iteration
@@ -105,11 +106,8 @@ uint64_t draw_master_seed() {
 //' @return Returns a list with the same names as \code{fit_lda_c}.
 // [[Rcpp::export]]
 Rcpp::List fit_lda_warp(
-    const std::vector<std::vector<std::size_t>>&  Docs,
-    const std::vector<std::vector<std::size_t>>&  Zd_in,
-    const IntegerMatrix&                          Cd_in,
-    const IntegerMatrix&                          Cv_in,
-    const std::vector<long>&                      Ck_in,
+    const arma::sp_mat&                           dtm_in,
+    const IntegerMatrix&                          Cd_start,
     const std::vector<double>&                    alpha_in,
     const NumericMatrix&                          eta_in,
     const std::size_t&                            iterations,
@@ -122,9 +120,9 @@ Rcpp::List fit_lda_warp(
     const bool&                                   verbose = true
 ) {
 
-  const std::size_t K = Ck_in.size();
-  const std::size_t D = Docs.size();
-  const std::size_t V = Cv_in.ncol();
+  const std::size_t K = alpha_in.size();
+  const std::size_t D = dtm_in.n_rows;
+  const std::size_t V = dtm_in.n_cols;
 
   if (K > 65535) stop("warpLDA engine supports at most 65535 topics");
   if (mh_steps < 1) stop("mh_steps must be at least 1");
@@ -132,8 +130,70 @@ Rcpp::List fit_lda_warp(
     stop("burnin must be less than iterations");
   }
 
-  Corpus corpus(Docs, Zd_in, V, mh_steps);
-  const std::size_t N = corpus.n_tokens();
+  // =========================================================================
+  // Initialization (D16): build the token structure and sample each token's
+  // starting topic, in one walk of the sparse DTM.
+  //
+  // This was create_lexicon(), which returned Docs and Zd to R as
+  // vector<vector<size_t>> -- 16 bytes per token out and straight back in.
+  // Nothing of the kind is materialized now.
+  //
+  // The initialization is INFORMED, not uniform (D8): each token is drawn from
+  // P(z) proportional to beta_hat[k][v] * theta_hat[d][k], in log space. That is
+  // what makes seeded and transfer-learned models work, and it is why warpLDA's
+  // own uniform init is discarded wholesale.
+  //
+  // The draw order is load-bearing. qz is computed once per distinct (d,v) pair
+  // and reused for every repeat of that word, C_doc is NOT updated within a
+  // document, and tokens are visited documents-ascending then words-ascending.
+  // Changing any of that changes which random numbers each token consumes.
+  // =========================================================================
+  const arma::sp_mat dtm = dtm_in.t();   // V x D: a column is now a document
+
+  auto Cd0  = mat_to_vec(Cd_start, true);   // Cd0[d][k]
+  auto Beta = mat_to_vec(Beta_in, true);    // Beta[k][v]
+
+  double sum_alpha = 0.0;
+  for (std::size_t k = 0; k < K; k++) sum_alpha += alpha_in[k];
+
+  const std::size_t N = static_cast<std::size_t>(arma::accu(dtm));
+
+  Corpus corpus(D, V, N, mh_steps);
+  {
+    // Hoisted out of the per-token loop. create_lexicon() built a fresh
+    // std::vector<double> per document and then implicitly converted it to an
+    // arma::vec on every single lsamp_one() call; this allocates once.
+    arma::vec qz(K);
+
+    for (std::size_t d = 0; d < D; d++) {
+      // Document length from the column's nonzeros. create_lexicon() scanned the
+      // entire vocabulary with dtm(v, d), a binary search per probe, making this
+      // O(V log nnz) per document (design notes section 9).
+      double nd = 0.0;
+      for (auto it = dtm.begin_col(d); it != dtm.end_col(d); ++it) nd += (*it);
+
+      const double denom_term = std::log(nd + sum_alpha - 1.0);
+
+      for (auto it = dtm.begin_col(d); it != dtm.end_col(d); ++it) {
+        const std::size_t v = it.row();
+        const std::size_t count = static_cast<std::size_t>(*it);
+        if (count == 0) continue;
+
+        for (std::size_t k = 0; k < K; k++) {
+          qz[k] = std::log(Beta[k][v]) +
+                  std::log(Cd0[d][k] + alpha_in[k]) - denom_term;
+        }
+
+        for (std::size_t i = 0; i < count; i++) {
+          corpus.add(static_cast<word_t>(v),
+                     static_cast<topic_t>(lsamp_one(qz)));
+        }
+      }
+      corpus.end_doc();
+      Rcpp::checkUserInterrupt();
+    }
+    corpus.finalize();
+  }
 
   // ---- priors ----
   const std::vector<double> alpha = alpha_in;
@@ -163,7 +223,25 @@ Rcpp::List fit_lda_warp(
   // that transpose in Phase 6.
   std::vector<int> Cd(D * K, 0);
   std::vector<int> Cv(freeze_topics ? 0 : V * K, 0);
-  std::vector<long> Ck = Ck_in;
+  // Derive all three count views from the topics just sampled.
+  //
+  // Ck is the one that MUST be built here: it is never rebuilt during a pass,
+  // only maintained incrementally on every acceptance, so it has to start
+  // exactly right. Cd and Cv are rebuilt by their own passes and would be
+  // filled anyway -- deriving them now costs one O(N) sweep and makes the state
+  // well defined at iterations = 0, which is what lets the initialization be
+  // inspected and tested on its own.
+  std::vector<long> Ck(K, 0);
+  for (token_t i = 0; i < N; i++) Ck[corpus.old_z(i)]++;
+
+  for (std::size_t d = 0; d < D; d++)
+    for (token_t i = corpus.doc_begin(d); i < corpus.doc_end(d); i++)
+      Cd[d * K + corpus.old_z(i)]++;
+
+  if (!freeze_topics)
+    for (token_t i = 0; i < N; i++)
+      Cv[corpus.word_of(i) * K + corpus.old_z(i)]++;
+
 
   const bool averaging = (burnin > -1);
   std::vector<long> Cd_sum(averaging ? D * K : 0, 0);

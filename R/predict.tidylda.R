@@ -262,17 +262,14 @@ predict.tidylda <- function(
 
     # pass inputs to C++ function for prediciton
     lda <- fit_lda_warp(
-      Docs = counts$Docs,
-      Zd_in = counts$Zd,
-      Cd_in = counts$Cd,
-      Cv_in = counts$Cv,
-      Ck_in = counts$Ck,
+      dtm_in = dtm_new_data,
+      Cd_start = counts$Cd_start,
       alpha_in = alpha$alpha,
       eta_in = eta$eta,   # ignored: freeze_topics = TRUE
       iterations = iterations,
       burnin = burnin,
       calc_likelihood = FALSE,
-      Beta_in = object$beta,
+      Beta_in = counts$beta_initial,
       freeze_topics = TRUE,
       mh_steps = as.integer(mh_steps),
       verbose = verbose

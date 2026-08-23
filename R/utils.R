@@ -352,27 +352,22 @@ recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
 #' @param threads number of parallel threads, currently unused
 #' @param ... Additional arguments, currently unused
 #' @return
-#'   Returns a list with 5 elements: \code{docs}, \code{Zd}, \code{Cd}, \code{Cv},
-#'   and \code{Ck}. All of these are used by \code{\link[tidylda]{fit_lda_c}}.
+#'   Returns a list with two elements, both of which the engine consumes
+#'   directly:
 #'
-#'   \code{docs} is a list with one element per document. Each element is a vector
-#'   of integers of length \code{sum(dtm[j,])} for the j-th document. The integer
-#'   entries correspond to the zero-index column of the \code{dtm}.
+#'   \code{beta_initial} is a numeric matrix with one row per topic and one
+#'   column per token, giving P(token|topic) to initialize from. Supplied by the
+#'   caller for updates and predictions; sampled from \code{eta} otherwise.
 #'
-#'   \code{Zd} is a list of similar format as \code{docs}. The difference is that
-#'   the integer values correspond to the zero-index for topics.
+#'   \code{Cd_start} is a numeric matrix, documents by topics, holding
+#'   \code{theta_initial * rowSums(dtm)} --- the expected number of tokens each
+#'   topic accounts for in each document.
 #'
-#'   \code{Cd} is a matrix of integers denoting how many times each topic has
-#'   been sampled in each document.
-#'
-#'   \code{Cv} is similar to \code{Cd} but it counts how many times each topic
-#'   has been sampled for each token.
-#'
-#'   \code{Ck} is an integer vector denoting how many times each topic has been
-#'   sampled overall.
-#' @note
-#'   All of \code{Cd}, \code{Cv}, and \code{Ck} should be derivable by summing
-#'   over Zd in various ways.
+#'   Together these define the informed initialization: the engine samples each
+#'   token's starting topic from P(z) proportional to
+#'   \code{beta_initial[k, v] * (Cd_start[d, k] + alpha[k])}, in log space. That
+#'   per-token work happens in C++ (see \code{\link[tidylda]{fit_lda_warp}}), so
+#'   nothing proportional to the token count crosses the R/C++ boundary.
 initialize_topic_counts <- function(
   dtm, 
   k, 
@@ -442,18 +437,16 @@ initialize_topic_counts <- function(
   
   Cd_start <- theta_initial * Matrix::rowSums(dtm)
   
-  # Initialize objects with that single Gibbs iteration mentioned above
-  # executed in parallel with RcppThread
-  lexicon <- 
-    create_lexicon(
-      Cd_in = Cd_start,
-      Beta_in = beta_initial,
-      dtm_in = dtm, 
-      alpha = alpha,
-      freeze_topics = freeze_topics
-    )
-  
-  lexicon
+  # Phase 4 (D16): the per-token work -- building the token structure and
+  # sampling each token's initial topic -- now happens inside the engine, in the
+  # same walk of the DTM that the sampler uses. What used to come back here as
+  # `Docs` and `Zd` (16 bytes per token, out to R and straight back in) is never
+  # materialized. This function keeps only the parts that are O(KV + DK) rather
+  # than per-token, and hands the engine its two starting matrices.
+  list(
+    beta_initial = beta_initial,
+    Cd_start = Cd_start
+  )
 }
 
 #' Summarize a topic model consistently across methods/functions

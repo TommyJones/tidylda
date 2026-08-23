@@ -5,11 +5,8 @@
 \title{Fit an LDA model with the warpLDA sampler}
 \usage{
 fit_lda_warp(
-  Docs,
-  Zd_in,
-  Cd_in,
-  Cv_in,
-  Ck_in,
+  dtm_in,
+  Cd_start,
   alpha_in,
   eta_in,
   iterations,
@@ -23,21 +20,17 @@ fit_lda_warp(
 )
 }
 \arguments{
-\item{Docs}{List of vectors of word indices, one per document}
+\item{dtm_in}{arma::sp_mat document term matrix, documents by words}
 
-\item{Zd_in}{List of initial topic assignments matching \code{Docs}}
-
-\item{Cd_in}{IntegerMatrix, documents by topics}
-
-\item{Cv_in}{IntegerMatrix, topics by words}
-
-\item{Ck_in}{Vector of token counts per topic}
+\item{Cd_start}{IntegerMatrix, documents by topics. Initial document-topic
+counts, \code{theta_initial * rowSums(dtm)} from the R side}
 
 \item{alpha_in}{Vector of prior parameters for topics over documents}
 
 \item{eta_in}{NumericMatrix, topics by words. Prior for words over topics}
 
-\item{iterations}{int number of sampling iterations}
+\item{iterations}{int number of sampling iterations. Zero initializes and
+returns without sampling, which is how the initialization is inspected}
 
 \item{burnin}{int number of burn in iterations, -1 to disable averaging}
 

@@ -39,50 +39,54 @@ repository root.
 
 | | |
 |---|---|
-| **Last updated** | 2026-08-22 |
+| **Last updated** | 2026-08-23 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 4 — fuse initialization into the engine (D16) |
-| **Last completed** | **Phase 3: matrix $\boldsymbol\eta$ (tLDA), `freeze_topics`, and `refit()`/`predict()` on the new engine.** Both gates pass; `fit_lda_c()` has no callers. §6.3. |
-| **In flight** | Nothing. |
+| **Current phase** | Phase 4.5 — replace `lsamp_one()`'s per-token sort |
+| **Last completed** | **Phase 4: initialization fused into the engine (D16).** One C++ entry point; `Docs`/`Zd` never materialized. Initial state verified identical to `create_lexicon`. §6.3. |
+| **In flight** | **Statistical re-validation of Phase 4 is owed** — the gates were deferred to avoid contending with other work on this machine. See below. |
 
-**Next action:** Phase 4 — fuse `create_lexicon()` into the engine so the DTM is
-walked once in C++ (D16), eliminating the `vector<vector<size_t>>` round trip
-through R at 16 bytes per token. Then D20's scalar $\boldsymbol\eta$ fast path,
-which avoids materializing $K \times V$ at all when the user passed a scalar.
-Exit criterion is identical results to Phase 3, so keep a stored run to diff
-against.
+**Next action, in order:**
+
+1. **Run the deferred Phase 4 gates** when the machine is free:
+   `run-benchmark.R --engine=warp` then
+   `compare.R baseline-5abaa96.rds run-warp.rds`, plus `tlda-compare.R`.
+   ~5 core-hours at 20 workers. Both are expected to pass; Phase 4 changed which
+   token slot holds which topic, not the model. See §6.3.
+2. **Phase 4.5** — `lsamp_one()` sorts the full $K$-vector per token to draw one
+   variate, and allocates around three times per token. Replace with a
+   constant-work draw. It changes every initial assignment, so it needs its own
+   gate run — which then doubles as Phase 5's baseline.
+3. **Phase 5** — RcppThread parallelism.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
-`fit_lda_warp()`. `fit_lda_c()` and `create_lexicon()` are still compiled;
-`create_lexicon()` is still used, `fit_lda_c()` is not and is deleted in Phase 6.
+`fit_lda_warp()`, which now also does initialization. `fit_lda_c()` has no
+callers. `create_lexicon()` has no callers either, but is still used as a
+reference by one test (§6.3); both go in Phase 6.
 
-**What Phases 2 and 3 settled:**
+**What Phases 2–4 settled:**
 
-- **The port is statistically sound under both priors.** Scalar: 8/8 PASS
-  against the stored Gibbs baseline. Matrix: 8/8 PASS unpaired *and* 8/8 paired.
-- **Iteration counts differ by engine** — Gibbs 200/50, warp 1200/300. An
-  iteration is not the same unit of work to the two samplers. §6.3.
-- **warp is 3.05× faster over the main grid** (2.86 vs 8.73 core-hours) at equal
-  quality; 1.6×–6.5× per fit, growing in $K$. The matrix prior costs ~5%.
-- **D9 revised** — algorithmic specializations kept, runtime flag instead of a
-  separate kernel, on the strength of a measurement. **D12/D13 moved into
-  Phase 2.**
-- **A pre-existing `theta` bug is fixed**: `alpha` was recycled diagonally rather
-  than added per topic, silently wrong for any asymmetric `alpha`. NEWS 0.0.8.
+- **The port is statistically sound under both priors** — scalar 8/8, matrix 8/8
+  unpaired and 8/8 paired, as of Phase 3.
+- **Iteration counts differ by engine**: Gibbs 200/50, warp 1200/300.
+- **warp is 3.05× faster over the main grid** at equal quality; the matrix prior
+  costs ~5%; initialization is 4% of a 1200-iteration fit at $K{=}50$.
+- **D9 revised** (runtime flag, on a measurement); **D12/D13 moved into Phase 2**;
+  **D16 done**; **D20's phase corrected to 6**.
+- **Two pre-existing defects fixed**: `theta` under asymmetric `alpha`
+  (NEWS 0.0.8), and a redundant unstable `std::sort` in the Phase 2 `Corpus`
+  constructor (§6.3).
 
-**Three things Phase 4 must not forget:**
+**Three things Phase 4.5 must not forget:**
 
-1. **Fusing initialization changes RNG consumption**, so results will not match
-   Phase 3 bit-for-bit even though D12's per-work-item scheme is unchanged — the
-   *initial assignment* comes from a different draw order. Plan to re-run both
-   gates rather than diff.
-2. **Read $\boldsymbol\eta$ through a `double`.** It is stored `float` (D5);
-   `int + float` evaluates a whole acceptance ratio in single precision. See the
-   note at the end of §6.3.
-3. `initialize_topic_counts()` is also called by `refit()` and `predict()` with
-   `beta_initial`/`theta_initial`; D16 has to serve all three paths, not just
-   `tidylda()`.
+1. It **changes results**, so budget a full gate run. There is no diff-based
+   shortcut, unlike Phase 4.
+2. `lsamp_one()` is also called by `create_lexicon()`, which the Phase 4 exit
+   test compares against. Changing one and not the other breaks that test — by
+   design, but decide deliberately.
+3. The sort exists for numerical stability in the log-sum-exp accumulation, not
+   for correctness of the distribution. Whatever replaces it must still be
+   stable when one topic dominates, which is exactly the tLDA case.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -142,11 +146,11 @@ Settled. See §1 rule 3 before changing any of these.
 | D13 | Expand seeds through `splitmix64`. **Implemented in Phase 2** as `splitmix64` + `xoshiro256++`, inline in `src/warp_rng.h`; no `sitmo` dependency added | xorshift-family generators (including text2vec's `XOR128PLUS`) produce **correlated streams from nearby seeds** — a silent bias that looks like nothing until benchmarks come back subtly wrong. Verified: first draws of adjacent document seeds correlate at r = +0.002 over 200k pairs | §8.3 |
 | D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2× $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
-| D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()` | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them is what eliminates the R/C++ round trip and the 16-bytes-per-token marshalling | §11 |
+| D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()`. **Done in Phase 4** | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them eliminates the R/C++ round trip and the 16-bytes-per-token marshalling. `create_lexicon()` is now uncalled by the package and survives only as a reference for one test; it goes with `fit_lda_c()` in Phase 6 | §11 |
 | D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Deferred to Phase 6**, after the engine works | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
 | D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps × 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
-| D20 | Scalar fast path for $\boldsymbol\eta$ — **deferred to Phase 4**, not Phase 2 | A memory win in the common non-transfer case, but it is an optimization, not a correctness requirement, and Phase 2 has enough moving parts. `format_eta()` keeps materializing $K \times V$ until then | §5.5 |
+| D20 | Scalar fast path for $\boldsymbol\eta$ — **Phase 6** | A memory win in the common non-transfer case, but an optimization rather than a correctness requirement. *Corrected 2026-08-23: this row previously said Phase 4, contradicting the §6 table. Phase 6 is right — a scalar path computes with a `double` $\eta$ where the matrix path uses the `float`-rounded value (D5), so it moves results and cannot ride along with a refactor whose whole value is being verifiable without a benchmark run.* `format_eta()` keeps materializing $K \times V$ until then | §5.5 |
 
 ---
 
@@ -171,7 +175,8 @@ Settled. See §1 rule 3 before changing any of these.
 | **1** | Statistical benchmarking harness | Produces stable baseline distributions of $R^2$ and mean coherence for the current sampler, across multiple seeds and at least two corpora/$K$ settings |
 | **2** | warpLDA engine, single-threaded, **scalar** prior. Includes D18 (`mh_steps`), D19 ($\alpha$ alias table) and — moved forward — D12/D13 (RNG) | **Done.** Matches CGS on the harness at a converged iteration count. Results in §6.3 |
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA); D9's `freeze_topics`; `refit()` and `predict()` onto the new engine | **Done.** Whole public API on warpLDA; `fit_lda_c()` has no callers. Gate passes under both a scalar and a matrix prior — §6.3 |
-| **4** | Fuse initialization into the engine; eliminate the R round trip | Identical results to Phase 3; one C++ entry point; per-token memory down from 16 bytes |
+| **4** | Fuse initialization into the engine; eliminate the R round trip | **Done.** One C++ entry point; `Docs`/`Zd` never materialized, so per-token marshalling drops from 16 bytes to zero. **Exit criterion revised** from "identical results to Phase 3" to "identical *initial state*" — see §6.3 |
+| **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | Gate passes; initialization wall clock measurably down. **Scheduled, not optional.** Measured on the medium corpus: initialization is 0.66 s at $K{=}10$ and 3.90 s at $K{=}50$ — 4% of a 1200-iteration fit but 20% of a 200-iteration one, and it grows with both $N$ and $K\log K$. Changes every initial assignment, so it needs a full gate run; doing it before Phase 5 means that run doubles as Phase 5's baseline |
 | **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
 | **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
@@ -392,7 +397,7 @@ on a 100-document corpus, has the *highest* mean coherence of the four (0.1637).
 (medium/$K{=}50$). The full 240-fit baseline is 8.7 core-hours, about 27 minutes
 of wall clock at 20 workers. Phase 2 must budget the same again for the warp arm.
 
-### 6.3 Phase 2 and 3 results — the warpLDA engine
+### 6.3 Phase 2, 3 and 4 results — the warpLDA engine
 
 **Both phases complete and passing.** The engine is in `src/warp_rng.h`,
 `src/warp_alias.h`, `src/warp_corpus.h`, `src/warp_eta.h` and `src/warp_lda.cpp`.
@@ -527,6 +532,70 @@ D5 exists to prevent. This was introduced and caught during Phase 3; it shifted
 accept thresholds by ~2.6e-9 relative, passed every test and both gates, and was
 visible only as results moving between runs when nothing that should affect them
 had changed.
+
+#### Phase 4 — initialization fused into the engine (D16)
+
+**Complete.** `initialize_topic_counts()` now returns only `beta_initial` and
+`Cd_start`; everything per-token happens in C++, in the same walk of the DTM the
+sampler uses. `Docs` and `Zd` are never built, so the 16-bytes-per-token round
+trip through R is gone entirely — at $N \sim 10^8$ that was ~1.6 GB allocated
+twice for no purpose.
+
+Also folded in, at no cost to results: document lengths now come from the
+sparse column's nonzeros rather than a dense scan over the whole vocabulary with
+a binary-search probe per word ($O(V\log \mathrm{nnz})$ per document, design
+notes §9), and the `arma::vec` that `lsamp_one()` needs is allocated once
+instead of being converted from a `std::vector<double>` on every token.
+
+**The exit criterion changed, and the reason is a Phase 2 defect.**
+
+The roadmap asked for *identical results to Phase 3*, so that this refactor
+could be verified by diff rather than by a 5-core-hour benchmark run. That turned
+out to be unreachable, and not because of anything Phase 4 did.
+
+The Phase 2 `Corpus` constructor sorted each document's tokens by word:
+
+```cpp
+std::sort(order.begin(), order.end(),
+          [&](std::size_t a, std::size_t b) { return docs[d][a] < docs[d][b]; });
+```
+
+That sort was **redundant** — `create_lexicon` already emitted tokens
+word-ascending — and `std::sort` is **not stable**. Verified: on already-sorted
+input with duplicate keys it is the identity at $n = 8$ but not at $n = 40$, 200
+or 600, because libstdc++ switches from insertion sort to introsort above 16
+elements and quicksort partitioning swaps equal elements. So it permuted tokens
+within runs of the same word, each of which carries an independently sampled
+topic.
+
+Those tokens are exchangeable — same word, same document, identical
+observations — so the shuffle changed nothing about the model. It changed only
+which token slot holds which topic, and therefore which per-work-item RNG stream
+(D12) reaches which token. Chains diverge from iteration 1.
+
+**Revised exit criterion, which is the stronger claim:** the initialization
+draws the same topics and every count matrix the sampler starts from is
+identical. Verified against `create_lexicon` on all three:
+
+```
+Ck identical: TRUE    Cd identical: TRUE    Cv identical: TRUE
+```
+
+Locked by a test in `test-warp-engine.R`, using `iterations = 0` — which now
+initializes and returns without sampling. That test calls `create_lexicon()`,
+which Phase 6 deletes; keep it as a test-only reference or retire the test
+deliberately, but do not let it vanish by accident.
+
+End-state identity was only ever going to hold by accident of that sort, and
+could not survive a compiler or libstdc++ change either. Initial-state identity
+plus an untouched sampler isolates the difference to something provably
+exchangeable.
+
+**Statistical re-validation is still owed.** The gates were not re-run in this
+phase, by agreement, because they contend with other work on this machine. The
+argument above is why that is safe to defer rather than skip: run
+`run-benchmark.R --engine=warp` and `tlda-compare.R` when the machine is free,
+and expect both to pass.
 
 #### Notes for later phases
 

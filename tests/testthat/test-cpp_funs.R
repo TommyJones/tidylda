@@ -9,14 +9,26 @@ alpha <- rep(0.1, k)
 
 eta <- matrix(0.05, nrow = k, ncol = ncol(dtm))
 
-counts <- 
+# initialize_topic_counts() returns the starting priors; since Phase 4 (D16) the
+# per-token lexicon is built inside the warpLDA engine rather than handed back
+# to R. fit_lda_c() -- the collapsed Gibbs sampler these tests exercise, kept
+# until Phase 6 -- still wants the old lexicon, so build it explicitly here.
+priors <-
   initialize_topic_counts(
-    dtm = dtm, 
-    k = 4,
-    alpha = rep(0.1, 10), 
-    eta = matrix(0.05, nrow = 10, ncol = ncol(dtm)),
+    dtm = dtm,
+    k = k,
+    alpha = alpha,
+    eta = eta,
     threads = 1
   )
+
+counts <- create_lexicon(
+  Cd_in = priors$Cd_start,
+  Beta_in = priors$beta_initial,
+  dtm_in = dtm,
+  alpha = alpha,
+  freeze_topics = FALSE
+)
 
 m <- fit_lda_c(
   Docs = counts$Docs,

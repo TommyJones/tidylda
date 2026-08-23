@@ -6,6 +6,8 @@ context("warpLDA engine")
 dtm <- nih_sample_dtm[1:50, ]
 
 # Build the inputs fit_lda_warp() expects, the same way tidylda_bridge() does.
+# Since Phase 4 (D16) the engine takes the DTM directly and does its own
+# initialization, so there is no lexicon to marshal.
 setup <- function(k = 5, seed = 1) {
   v <- ncol(dtm)
   alpha <- format_alpha(0.1, k)
@@ -20,14 +22,12 @@ setup <- function(k = 5, seed = 1) {
 run_warp <- function(s, seed = 42, ...) {
   set.seed(seed)
   args <- list(
-    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
+    dtm_in = dtm, Cd_start = s$counts$Cd_start, alpha_in = s$alpha$alpha,
     eta_in = s$eta$eta, iterations = 30, burnin = 10,
-    calc_likelihood = TRUE, Beta_in = s$counts$Cv, verbose = FALSE
+    calc_likelihood = TRUE, Beta_in = s$counts$beta_initial, verbose = FALSE
   )
   do.call(fit_lda_warp, utils::modifyList(args, list(...)))
 }
-
 
 test_that("output contract matches fit_lda_c", {
   s <- setup()
@@ -76,12 +76,7 @@ test_that("Cd is current on return even without the likelihood", {
   # is on. new_tidylda() reads Cd directly when burnin == -1.
   s <- setup()
   set.seed(42)
-  m <- fit_lda_warp(
-    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = s$eta$eta, iterations = 30, burnin = -1,
-    calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
-  )
+  m <- run_warp(s, burnin = -1, calc_likelihood = FALSE)
   expect_equal(sum(m$Cd), s$n)
   expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
 })
@@ -131,12 +126,7 @@ test_that("likelihood_every controls evaluation frequency, not the chain", {
 test_that("burnin averaging is off when burnin is -1", {
   s <- setup()
   set.seed(42)
-  m <- fit_lda_warp(
-    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = s$eta$eta, iterations = 10, burnin = -1,
-    calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
-  )
+  m <- run_warp(s, iterations = 10, burnin = -1, calc_likelihood = FALSE)
   expect_equal(length(m$Cd_mean), 0)
   expect_equal(length(m$Cv_mean), 0)
 })
@@ -146,12 +136,7 @@ test_that("invalid arguments are rejected", {
   s <- setup()
   expect_error(run_warp(s, mh_steps = 0), "mh_steps")
   expect_error(
-    fit_lda_warp(
-      Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-      Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-      eta_in = s$eta$eta, iterations = 10, burnin = 10,
-      calc_likelihood = FALSE, Beta_in = s$counts$Cv, verbose = FALSE
-    ),
+    run_warp(s, iterations = 10, burnin = 10, calc_likelihood = FALSE),
     "burnin"
   )
 })
@@ -193,17 +178,13 @@ test_that("a constant matrix eta matches the scalar it is made of", {
 
 test_that("frozen topics leave the word side untouched", {
   s <- setup(k = 5)
-  beta <- s$counts$Cv + 0.05
+  # beta_initial is already a K x V matrix of P(token|topic); normalize so the
+  # frozen proposal is an exact distribution.
+  beta <- s$counts$beta_initial
   beta <- beta / rowSums(beta)
 
   set.seed(42)
-  m <- fit_lda_warp(
-    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha,
-    eta_in = s$eta$eta, iterations = 30, burnin = 10,
-    calc_likelihood = FALSE, Beta_in = beta, freeze_topics = TRUE,
-    verbose = FALSE
-  )
+  m <- run_warp(s, calc_likelihood = FALSE, Beta_in = beta, freeze_topics = TRUE)
 
   # C^v and C_k are not part of the frozen target, so they are not built.
   expect_equal(length(m$Cv), 0)
@@ -254,24 +235,25 @@ test_that("the sampler targets the LDA posterior, not merely a stationary one", 
   skip_on_cran()
 
   s <- setup(k = 5, seed = 3)
-  common <- list(
-    Docs = s$counts$Docs, Zd_in = s$counts$Zd, Cd_in = s$counts$Cd,
-    Cv_in = s$counts$Cv, Ck_in = s$counts$Ck, alpha_in = s$alpha$alpha
+
+  # Gibbs still needs the lexicon; the warp engine builds its own.
+  lex <- create_lexicon(Cd_in = s$counts$Cd_start,
+                        Beta_in = s$counts$beta_initial,
+                        dtm_in = dtm, alpha = s$alpha$alpha,
+                        freeze_topics = FALSE)
+
+  set.seed(11)
+  g <- fit_lda_c(
+    Docs = lex$Docs, Zd_in = lex$Zd, Cd_in = lex$Cd, Cv_in = lex$Cv,
+    Ck_in = lex$Ck, alpha_in = s$alpha$alpha,
+    eta_in = s$eta$eta, iterations = 400, burnin = 100, optimize_alpha = FALSE,
+    calc_likelihood = TRUE, Beta_in = s$counts$beta_initial,
+    freeze_topics = FALSE, threads = 1, verbose = FALSE
   )
 
   set.seed(11)
-  g <- do.call(fit_lda_c, c(common, list(
-    eta_in = s$eta$eta, iterations = 400, burnin = 100, optimize_alpha = FALSE,
-    calc_likelihood = TRUE, Beta_in = s$counts$Cv, freeze_topics = FALSE,
-    threads = 1, verbose = FALSE
-  )))
-
-  set.seed(11)
-  w <- do.call(fit_lda_warp, c(common, list(
-    eta_in = s$eta$eta, iterations = 2000, burnin = 500,
-    calc_likelihood = TRUE, Beta_in = s$counts$Cv, likelihood_every = 1,
-    verbose = FALSE
-  )))
+  w <- run_warp(s, seed = 11, iterations = 2000, burnin = 500,
+                calc_likelihood = TRUE, likelihood_every = 1)
 
   g_ll <- g$log_likelihood[2, ncol(g$log_likelihood)]
   w_ll <- w$log_likelihood[2, ncol(w$log_likelihood)]
@@ -281,4 +263,54 @@ test_that("the sampler targets the LDA posterior, not merely a stationary one", 
   # target would produce -- porting the reference's beta_bar = K * eta instead
   # of V * eta moves this by orders of magnitude more than 2%.
   expect_lt(abs(w_ll - g_ll) / abs(g_ll), 0.02)
+})
+
+
+test_that("the fused initialization reproduces create_lexicon exactly", {
+  # Phase 4 (D16) moved initialization into the engine. It is NOT bit-identical
+  # to Phase 3 end to end, and the reason is worth knowing: the Phase 2 Corpus
+  # constructor ran std::sort over each document's tokens by word, which was
+  # redundant -- create_lexicon already emits them word-ascending -- and
+  # std::sort is not stable, so it permuted tokens within runs of the same word.
+  # Those tokens are exchangeable (same word, same document) and each carries an
+  # independently sampled topic, so the shuffle left every count matrix
+  # unchanged while changing which token occupies which slot, and therefore
+  # which per-work-item RNG stream reaches it.
+  #
+  # So the exit criterion is this instead, and it is the stronger statement:
+  # the initialization draws the same topics, and every count matrix the sampler
+  # starts from is identical.
+  #
+  # NOTE: this test calls create_lexicon(), which Phase 6 deletes. When that
+  # happens, either keep create_lexicon() as a test-only reference or retire
+  # this test deliberately -- do not let it disappear by accident.
+  skip_on_cran()
+
+  d <- nih_sample_dtm[1:20, ]
+  k <- 4
+  al <- format_alpha(0.1, k)
+  et <- format_eta(0.05, k, ncol(d))
+
+  set.seed(99)
+  a <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
+                               threads = 1)
+  lex <- create_lexicon(Cd_in = a$Cd_start, Beta_in = a$beta_initial,
+                        dtm_in = d, alpha = al$alpha, freeze_topics = FALSE)
+
+  set.seed(99)
+  b <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
+                               threads = 1)
+  # iterations = 0 initializes and returns without sampling.
+  m <- fit_lda_warp(dtm_in = d, Cd_start = b$Cd_start, alpha_in = al$alpha,
+                    eta_in = et$eta, iterations = 0, burnin = -1,
+                    calc_likelihood = FALSE, Beta_in = b$beta_initial,
+                    freeze_topics = FALSE, verbose = FALSE)
+
+  expect_identical(as.integer(lex$Ck), as.integer(m$Ck))
+  expect_identical(as.integer(lex$Cd), as.integer(m$Cd))
+  expect_identical(as.integer(lex$Cv), as.integer(m$Cv))
+
+  # And the totals still account for every token.
+  expect_equal(sum(m$Cd), sum(d))
+  expect_equal(sum(m$Cv), sum(d))
 })

@@ -39,7 +39,7 @@ inline T log_accu_exp (const T& x) {
 }
 
 // Sample a single object from a vector of integers using log probabilities
-arma::uword lsamp_one(const arma::vec &lpvec) {
+inline arma::uword lsamp_one(const arma::vec &lpvec) {
   
   //check whether all elements are finite
   if (lpvec.has_inf())
@@ -69,7 +69,7 @@ arma::uword lsamp_one(const arma::vec &lpvec) {
 }
 
 // Sample a single object from a vector of integers using probabilities
-arma::uword samp_one(const arma::vec &pvec) {
+inline arma::uword samp_one(const arma::vec &pvec) {
   
   // check that all elements are positive
   if (arma::any(pvec < 0.0))

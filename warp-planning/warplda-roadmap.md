@@ -799,15 +799,39 @@ path) both point this direction and should land first.
    update within a pass is the same approximation warpLDA already makes
    everywhere else.
 
-   **Expect sublinear scaling at large V*K, and measure it.** The cache-residency
-   argument is about the per-work-item working set, which stays K-sized. The word
-   pass nonetheless streams all of $C^v$ and all of eta once per iteration:
-   0.9 MB each at the benchmark's medium corpus and K=50, but 200 MB each at
-   V=1e5, K=500. At benchmark scale that is cache-resident and cores are the
-   bottleneck; at the scale this project exists to enable it is roughly 400 MB
-   of streaming per iteration and the word pass becomes memory-bandwidth-bound,
-   where adding cores stops helping proportionally. Scaling measured on the
-   medium corpus will therefore flatter what happens on a large one.
+   **Memory is NOT the limiter -- this was checked, not assumed.** An earlier
+   draft of this entry claimed the word pass becomes memory-bandwidth-bound at
+   large V*K. That is wrong and has been measured. Holding V = 6240 and K = 50
+   fixed and growing the corpus so the token array crosses the 19.3 MB L3:
+
+   | docs | N tokens | z_ array | ns/token/iteration |
+   |---|---|---|---|
+   | 4,000 | 766k | 3.1 MB | 250.3 |
+   | 8,000 | 1.53M | 6.1 MB | 223.8 |
+   | 16,000 | 3.02M | 12.1 MB | 218.3 |
+   | 32,000 | 6.00M | 24.0 MB | 218.4 |
+
+   Flat across the crossing. Two reasons the word pass's one scattered access
+   -- the CSC indirection `z_[csc_token_[i]]`, which the reference has too at
+   `LDA.hpp:102` -- costs so little:
+
+   - **It ascends.** `csc_token_` is built by a stable counting sort, so within
+     a word the token indices come out in increasing order. The pass makes V
+     ascending sparse sweeps through the token array, which prefetchers handle.
+     It is nothing like the random access into $C^v$ that collapsed Gibbs makes.
+   - **The traffic is small next to the arithmetic.** Even assuming every
+     scattered access misses, that is N*64 bytes per word pass -- about 380 MB
+     and 19 ms at 6M tokens, against roughly 1.3 s of actual work per iteration.
+
+   The same arithmetic applies to $C^v$ and eta: about 400 MB streamed per
+   iteration at V=1e5, K=500, or roughly 20 ms, against seconds of per-token
+   compute. Sequential and prefetch-friendly, and not close to binding.
+
+   **Where it does matter is parallelism**, because compute divides by thread
+   count and memory traffic does not. That moves streaming from around 1.5% of
+   an iteration to perhaps 10-25% at 16 threads -- worth measuring, but still
+   not dominant. Expect $C_k$ coordination, not bandwidth, to be what limits
+   scaling.
 
    **Report per-core and as-shipped numbers separately.** Gibbs stays
    single-threaded -- its batch loop is broken (design notes 9b) and Phase 6

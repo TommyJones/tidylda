@@ -83,14 +83,14 @@ repository root.
 | **Last completed** | **Phase 6.5: issue triage.** Two issues closed, six annotated against the 0.1.0 code. §6.5. |
 | **In flight** | Nothing. |
 
-**Next action:** decide issue 30 -- whether to surface the log posterior density
-the engine already computes and `new_tidylda()` currently drops (§6.5). It is a
-one-line addition plus documentation, it is additive rather than breaking, and
-0.1.0 is the natural moment for it.
+**Next action:** **Phase 6.6** (§6.6) -- delete the plug-in prior-inclusive
+likelihood, which has a sign error, and replace it with the collapsed joint. It
+closes issue 30, ships before 0.1.0 rather than after, and is cheaper than the
+metric it sits beside.
 
 Then release prep for 0.1.0: `cran-comments.md`, a reverse-dependency check, and
-submission. **Phase 7** (the $O(N)$ word proposal, §6.6) and **Phase 8** (memory
-surgery, §6.7) are both unscheduled; Phase 7 is the cheaper of the two and should
+submission. **Phase 7** (the $O(N)$ word proposal, §6.7) and **Phase 8** (memory
+surgery, §6.8) are both unscheduled; Phase 7 is the cheaper of the two and should
 land first.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
@@ -210,8 +210,9 @@ Settled. See §1 rule 3 before changing any of these.
 | **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. §6.4 |
 | **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | **Done.** Ten issues read; 70 and 77 closed, six commented with status, 8/28/51 untouched. One open question surfaced: whether to surface the log posterior density (issue 30) |
-| **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.6 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
-| **8** | *Unscheduled.* Memory surgery for large corpora — see §6.7 | A separate project. Breaking, broadly |
+| **6.6** | Replace the plug-in prior-inclusive likelihood with the collapsed joint; delete the sign-buggy row 3 — see §6.6 | Small, additive, before the 0.1.0 release. Agrees with an independent R implementation; negative everywhere; no gate run |
+| **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.7 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
+| **8** | *Unscheduled.* Memory surgery for large corpora — see §6.8 | A separate project. Breaking, broadly |
 
 **The `counts` documentation gap is closed.** `new_tidylda()`'s `@return` now
 documents the slot, in its final sparse topics-in-columns form, with a note that
@@ -995,22 +996,124 @@ answers differ:
   `lpd + lp_alpha + lp_eta`. `new_tidylda()` reads the first two and drops the
   third.
 
-The positivity that blocked the issue's author is **correct behaviour**, which is
-the useful thing this triage established. Row 3 is a log *density*: a Dirichlet
-density is unbounded above, so as the posterior concentrates the value at the
-mode grows without limit. Positive values carry no diagnostic meaning; only
-differences between iterations of one model do. This is the same quantity the
-stale `@details` comment retired in Phase 5 was most likely complaining about
-(design notes §9).
+**Row 3 also has a sign error, found while answering that question.**
+`warp_lda.cpp:370-374` builds the Dirichlet normalizers as
+$\sum_v \log\Gamma(\eta) - \log\Gamma(\bar\eta)$, which is $+\log B(\eta)$,
+where a Dirichlet log density needs $-\log B(\eta)$. Same for
+$\boldsymbol\alpha$. Verified by recomputing row 3 in R: with the code's sign it
+matches to the cent, with the correct sign it differs by **81,393 nats** on a
+40-document corpus. Nothing user-facing is affected, because `new_tidylda()`
+drops the row before it reaches the model object.
 
-So what remains is a naming and documentation decision, not a calculation:
-surface row 3 or not, and if so, call it a log posterior density rather than a
-likelihood and say that positive values are normal. It costs nothing to surface
--- it is already computed at every evaluation.
+An earlier version of this section, and the first comment posted to issue 30,
+said the positivity was correct behaviour and stopped there. That was half right.
+The quantity is *still* positive once corrected -- a Dirichlet density with
+$\eta \ll 1$ is genuinely unbounded above -- but the reported number was
+inflated by a defect, not only by the nature of a density. Corrected in both
+places.
+
+**The right fix is replacement, not repair.** Row 3 is a plug-in density: it
+evaluates Dirichlet densities at point estimates and adds them. That is not what
+the LDA literature reports when it reports a prior-inclusive likelihood. That is
+the **collapsed joint** $\log p(w, z \mid \boldsymbol\alpha, \boldsymbol\eta)$,
+with $\theta$ and $\Phi$ analytically integrated out -- a Dirichlet-multinomial.
+Griffiths and Steyvers (2004) report it; Mallet prints it per iteration.
+
+| | Quantity | Sign |
+|---|---|---|
+| Row 2, surfaced | $\log p(w \mid \hat\theta, \hat\beta)$, plug-in | $\le 0$ |
+| Row 3, dropped | plug-in likelihood $+$ Dirichlet log-densities at the estimates | unbounded |
+| Literature | $\log p(w, z \mid \boldsymbol\alpha, \boldsymbol\eta)$, marginalized | $\le 0$ |
+
+Three properties make the third the right target:
+
+- It is a probability **mass**, not a density. Integrating out $\theta$ and
+  $\Phi$ leaves a discrete distribution over $(w, z)$, so it is bounded above by
+  zero and cannot come out positive. That dissolves the original issue.
+- It is the unnormalized log target of a collapsed sampler, so monitoring it is
+  the ordinary MCMC practice of watching the log posterior up to a constant.
+- Marginalizing gives it an automatic Occam factor, so it is comparable across
+  $K$. A plug-in likelihood is not: it improves monotonically as topics are added
+  and cannot be used to choose $K$ at all.
+
+It is also **cheaper than what row 2 costs**. Terms where a count is zero
+collapse into the constant, so it evaluates over the nonzero counts alone --
+$O(\mathrm{nnz})$ against row 2's $O(\mathrm{nnz} \cdot K)$. On the model above:
+row 2 is $-64{,}132$, row 3 as computed is $+111{,}516$, the collapsed joint is
+$-75{,}958$.
+
+Scheduled as **Phase 6.6** (§6.6), before the 0.1.0 release rather than after --
+see that section for why.
 
 ---
 
-### 6.6 Phase 7 sketch -- the $O(N)$ word proposal
+### 6.6 Phase 6.6 spec -- replace the prior-inclusive likelihood
+
+**Scheduled, and it belongs before the 0.1.0 release.** Three reasons, in order
+of weight:
+
+1. **0.1.0 already changes the reported log likelihood.** The Phase 0 normalizer
+   fix moved every value, and `NEWS.md` already tells users the numbers differ
+   from previous versions. Landing a second diagnostic change under the same
+   heading costs one more bullet. Landing it in 0.2.0 makes it a fresh surprise
+   in a release that otherwise would not have touched the metric.
+2. **It ships a defect otherwise.** Row 3's sign error is inert only because
+   `new_tidylda()` happens to drop the row. That is not a safety property, it is
+   an accident of which index the R side reads.
+3. **It is small and additive.** One new column on an existing tibble, no
+   signature change, no change to what the sampler draws. Verifiable against an
+   independent R implementation on a toy corpus, the same way the reference
+   sampler in §6.4 was.
+
+**What to do.**
+
+- **Delete row 3.** Do not repair the sign. It is a plug-in Dirichlet density,
+  which is not a quantity anyone asked for and not what the literature reports.
+- **Add the collapsed joint** in its place:
+
+$$\log p(w, z \mid \boldsymbol\alpha, \boldsymbol\eta) = \sum_d \left[ \sum_k \log\Gamma(C^d_{dk} + \alpha_k) - \log\Gamma(n_d + \bar\alpha) \right] + D\left[\log\Gamma(\bar\alpha) - \sum_k \log\Gamma(\alpha_k)\right]$$
+$$+ \sum_k \left[ \sum_v \log\Gamma(C^v_{vk} + \eta_{kv}) - \log\Gamma(C_k + \bar\eta_k) \right] + \sum_k \left[\log\Gamma(\bar\eta_k) - \sum_v \log\Gamma(\eta_{kv})\right]$$
+
+- **Keep row 2 as it is.** It is the current `log_likelihood` column and users
+  may read it. Changing what an existing column means is worse than adding one.
+- **Surface both** from `new_tidylda()`: `log_likelihood` unchanged, plus a new
+  column for the joint.
+
+**Implementation notes.**
+
+- *The sparse trick is what makes it cheap.* Where $C^d_{dk} = 0$,
+  $\log\Gamma(0 + \alpha_k) = \log\Gamma(\alpha_k)$, which is already part of
+  the constant term. So accumulate
+  $\log\Gamma(c + \alpha_k) - \log\Gamma(\alpha_k)$ over **nonzero counts
+  only** and add the constant once. Same for $C^v$. That is $O(\mathrm{nnz})$
+  rather than $O(DK + VK)$, and cheaper than row 2's $O(\mathrm{nnz}\cdot K)$.
+- *The constant terms already exist.* `lgeta` and `lgalpha` at
+  `warp_lda.cpp:365-374` are exactly the two bracketed constants above, with the
+  sign flipped. Fix the sign there and they are reusable as-is -- which is also
+  the tidiest way to ensure the bug cannot survive the edit.
+- *Matrix $\boldsymbol\eta$ needs no special case.* `eta.column(v)` and
+  `eta.bar(k)` supply $\eta_{kv}$ and $\bar\eta_k$ directly, and D20's scalar
+  path already presents the same interface.
+- *It needs a synchronized joint sample*, exactly like row 2, so it goes inside
+  the existing likelihood block after the $C^d$ rebuild -- not in a new pass.
+
+**Exit criterion.** The joint agrees with an independent R implementation to
+floating-point tolerance on a toy corpus, is negative on every corpus in the
+benchmark grid, and `devtools::check()` stays clean. **No gate run** -- the
+sampler is untouched, this is a read-only diagnostic.
+
+**What this does not do.** The joint conditions on $z$, so it is a convergence
+diagnostic and a within-model quantity, not a model-comparison statistic. Proper
+comparison wants $\log p(w \mid \boldsymbol\alpha, \boldsymbol\eta)$ with $z$
+marginalized too, which is intractable and needs the held-out estimators of
+Wallach et al. (2009). Document the distinction rather than implying otherwise --
+misusing this quantity across models is the standard error in the LDA
+literature, and Griffiths and Steyvers reached for the harmonic-mean estimator to
+avoid it, which has infinite variance and is worse.
+
+---
+
+### 6.7 Phase 7 sketch -- the $O(N)$ word proposal
 
 **Unscheduled but wanted, and cheaper than the design notes suggest.** The word
 pass builds a dense $K$-length proposal vector and alias table for every word
@@ -1069,7 +1172,7 @@ a profile that argues otherwise.
 
 ---
 
-### 6.7 Phase 8 sketch — memory surgery for large corpora
+### 6.8 Phase 8 sketch — memory surgery for large corpora
 
 **Unscheduled, and deliberately separate.** Recorded here so the reasoning is not
 lost, not because it is next.
@@ -1111,7 +1214,7 @@ argues for memoisation, which reintroduces the memory. Not resolved; just worth
 not rediscovering from scratch.
 
 **Prerequisites.** D17 (sparse counts) and D20 (scalar $\boldsymbol\eta$ fast
-path) both point this direction and landed in Phase 6. Phase 7 (§6.6) should also
+path) both point this direction and landed in Phase 6. Phase 7 (§6.7) should also
 go first: it is independent, cheaper, and under a matrix prior the two pull in
 opposite directions on memory.
 

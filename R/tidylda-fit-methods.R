@@ -58,19 +58,37 @@
 #'   fixed-point estimation that was never written. \code{alpha} is now fixed
 #'   for the whole run. The argument will be removed in a future release.
 #'
-#'   The log likelihood calculation is the same that can be found on page 9 of
-#'   \url{https://arxiv.org/pdf/1510.08628.pdf}, and \code{eta} may be a scalar,
-#'   a vector, or a matrix in any of \code{\link[tidylda]{tidylda}},
-#'   \code{\link[tidylda]{refit.tidylda}} and
-#'   \code{\link[tidylda]{predict.tidylda}}. The reported value is the log
-#'   probability of the corpus under the model, excluding the priors, and is
-#'   negative as expected.
+#'   \strong{Two log likelihood columns, and they answer different questions.}
+#'   When \code{calc_likelihood = TRUE}, the \code{log_likelihood} slot has a
+#'   column of each.
 #'
-#'   It is evaluated every tenth iteration by default rather than every
+#'   \code{log_likelihood} is \eqn{P(tokens | \theta, \beta)}: the probability
+#'   of the observed tokens under the current estimates of \code{theta} and
+#'   \code{beta}. It is a plug-in quantity, so it improves monotonically as
+#'   topics are added and \strong{cannot be used to choose \code{k}}.
+#'
+#'   \code{log_joint} is \eqn{P(tokens, topics | \alpha, \eta)}, the collapsed
+#'   joint, with \code{theta} and \code{beta} analytically integrated out. This
+#'   is the quantity most of the LDA literature reports. Integrating out the
+#'   parameters leaves a discrete distribution, so unlike a density it is always
+#'   negative, and it carries an implicit penalty for model complexity. It is
+#'   also the sampler's own target, which makes it the more informative of the
+#'   two for judging convergence.
+#'
+#'   Both condition on the current assignment of tokens to topics, so both are
+#'   \emph{within-model} diagnostics. Neither is a valid basis for comparing
+#'   models to each other; that requires \eqn{P(tokens | \alpha, \eta)} with the
+#'   topic assignments marginalized out, which is intractable and needs the
+#'   held-out estimators of Wallach et al. (2009).
+#'
+#'   Both are evaluated every tenth iteration by default rather than every
 #'   iteration. This is not thinning: the chain advances every iteration and
 #'   every post-burn-in iteration still contributes to the posterior means. Only
-#'   the diagnostic, which feeds nothing the sampler uses, is computed less
+#'   these diagnostics, which feed nothing the sampler uses, are computed less
 #'   often. Pass \code{likelihood_every = 1} to recover a value per iteration.
+#'   Both accept \code{eta} as a scalar, a vector, or a matrix, here and in
+#'   \code{\link[tidylda]{refit.tidylda}} and
+#'   \code{\link[tidylda]{predict.tidylda}}.
 #'
 #'   \code{threads} sets the number of worker threads. Results are identical at
 #'   any thread count, so it trades wall clock for cores and nothing else; a

@@ -19,6 +19,21 @@
 * `tidylda()` and `refit.tidylda()` gain `mh_steps`, the number of
     Metropolis-Hastings proposals per token per pass.
 
+* The `log_likelihood` slot gained a second metric. Alongside the existing
+    `log_likelihood` column — the plug-in P(tokens | theta, beta) — there is now
+    a `log_joint` column holding the collapsed joint,
+    P(tokens, topics | alpha, eta), with `theta` and `beta` analytically
+    integrated out. This is the quantity most of the LDA literature reports. It
+    is always negative, it carries an implicit penalty for model complexity, and
+    it is the sampler's own target, which makes it the more informative of the
+    two for judging convergence. Neither is valid for comparing models to each
+    other; see `?tidylda`.
+
+    This replaces an undocumented internal quantity that was computed but never
+    surfaced — a plug-in Dirichlet density which had a sign error on both of its
+    normalizing constants and which, being a density rather than a probability,
+    was unbounded above and routinely positive.
+
 ## Breaking changes
 
 * **The `counts` slot changed orientation and class.** `counts$Cv` is now

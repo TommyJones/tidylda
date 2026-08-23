@@ -518,3 +518,106 @@ test_that("initialization draws from the distribution it is supposed to", {
   expect_lt(max(abs(z)), 5)
   expect_gt(cor(as.vector(expected), as.vector(realized)), 0.999)
 })
+
+# ---------------------------------------------------------------------------
+# Collapsed joint log probability (Phase 6.6)
+#
+# The engine reports two quantities: a plug-in P(w | theta, beta) and the
+# collapsed joint P(w, z | alpha, eta) with theta and beta integrated out. The
+# joint replaced a plug-in Dirichlet density that had a sign error on both
+# normalizers and, being a density, was unbounded above.
+#
+# Verified against an independent R implementation written from the algebra
+# rather than from the C++, in the direct form with the full constants -- the
+# engine accumulates the mathematically equivalent form in which zero counts
+# cancel, so agreeing is a real check on that rearrangement.
+# ---------------------------------------------------------------------------
+
+collapsed_joint_reference <- function(Cd, Cv, Ck, alpha, eta) {
+  D <- nrow(Cd)
+  alpha_bar <- sum(alpha)
+  eta_bar <- rowSums(eta)
+
+  doc <- sum(lgamma(Cd + rep(alpha, each = D))) -
+    sum(lgamma(rowSums(Cd) + alpha_bar)) +
+    D * (lgamma(alpha_bar) - sum(lgamma(alpha)))
+
+  wrd <- sum(lgamma(Cv + t(eta))) -
+    sum(lgamma(Ck + eta_bar)) +
+    sum(lgamma(eta_bar)) - sum(lgamma(eta))
+
+  doc + wrd
+}
+
+fit_raw <- function(dtm, k, alpha, eta, scalar_eta, iterations = 25L) {
+  init <- initialize_topic_counts(
+    dtm = dtm, k = k, alpha = alpha, eta = eta, threads = 1L
+  )
+  fit_lda_warp(
+    dtm_in = dtm,
+    Cd_start = init$Cd_start,
+    alpha_in = alpha,
+    eta_in = if (scalar_eta) matrix(eta[1, 1], 1, 1) else eta,
+    iterations = iterations,
+    burnin = -1L,
+    calc_likelihood = TRUE,
+    Beta_in = init$beta_initial,
+    freeze_topics = FALSE,
+    threads = 1L,
+    verbose = FALSE
+  )
+}
+
+test_that("the collapsed joint matches an independent implementation", {
+  dtm <- nih_sample_dtm[1:60, ]
+  dtm <- dtm[, Matrix::colSums(dtm) > 0]
+  V <- ncol(dtm)
+
+  cases <- list(
+    list(k = 5L, alpha = rep(0.1, 5), eta = matrix(0.05, 5, V), scalar = TRUE),
+    list(k = 5L, alpha = c(.05, .1, .2, .3, .4), eta = matrix(0.05, 5, V), scalar = TRUE),
+    list(k = 8L, alpha = rep(0.15, 8), eta = matrix(seq(0.01, 0.4, length.out = 8 * V), 8, V), scalar = FALSE)
+  )
+
+  for (cs in cases) {
+    set.seed(42)
+    raw <- fit_raw(dtm, cs$k, cs$alpha, cs$eta, cs$scalar)
+
+    ll <- raw$log_likelihood
+    expect_equal(nrow(ll), 3)
+
+    got <- ll[3, ncol(ll)]
+    want <- collapsed_joint_reference(
+      raw$Cd, raw$Cv, as.numeric(raw$Ck), cs$alpha, cs$eta
+    )
+
+    # Tolerance is set by eta's float storage (D5), not by the rearrangement.
+    expect_equal(got, want, tolerance = 1e-8)
+
+    # A probability mass, not a density: it cannot be positive.
+    expect_true(all(ll[3, ] < 0))
+
+    # And the plug-in likelihood is negative too, for a different reason.
+    expect_true(all(ll[2, ] < 0))
+  }
+})
+
+test_that("both likelihood columns reach the model object", {
+  dtm <- nih_sample_dtm[1:50, ]
+  dtm <- dtm[, Matrix::colSums(dtm) > 0]
+
+  set.seed(11)
+  m <- tidylda(
+    data = dtm, k = 4, iterations = 30, burnin = 10,
+    calc_likelihood = TRUE, calc_r2 = FALSE, verbose = FALSE
+  )
+
+  expect_named(m$log_likelihood, c("iteration", "log_likelihood", "log_joint"))
+  expect_true(all(m$log_likelihood$log_joint < 0))
+  expect_true(all(is.finite(m$log_likelihood$log_joint)))
+
+  # The two are different quantities and must not be silently the same column.
+  expect_false(isTRUE(all.equal(
+    m$log_likelihood$log_likelihood, m$log_likelihood$log_joint
+  )))
+})

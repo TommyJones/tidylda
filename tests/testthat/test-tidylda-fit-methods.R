@@ -36,7 +36,11 @@ test_that("can fit lda models without error", {
   # make sure that likelihood is correct since calc_likelihood = TRUE
   expect_s3_class(lda$log_likelihood, "tbl_df")
   
-  expect_equal(ncol(lda$log_likelihood), 2)
+  # Three columns as of 0.1.0: the plug-in likelihood gained the collapsed
+  # joint alongside it.
+  expect_named(
+    lda$log_likelihood, c("iteration", "log_likelihood", "log_joint")
+  )
   
   # The likelihood is evaluated every likelihood_every-th iteration (roadmap
   # D11), so the old assertion -- nrow == tail(iteration, 1) + 1 -- no longer

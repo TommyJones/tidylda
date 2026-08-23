@@ -362,16 +362,27 @@ Rcpp::List fit_lda_warp(
   std::vector<double> beta_denom(calc_likelihood ? K : 0);
   std::vector<double> log_likelihood;
 
-  double lgeta = 0.0, lgalpha = 0.0;
-  if (calc_likelihood && !freeze_topics) {
-    // Dirichlet log-normalizer, summed per topic: each topic now has its own
-    // prior over words, so this no longer factors into one term times K.
-    for (std::size_t k = 0; k < K; k++) {
-      for (std::size_t v = 0; v < V; v++) lgeta += lgamma(eta.at(v, k));
-      lgeta -= lgamma(eta.bar(k));
+  // lgamma of each prior entry, for the collapsed joint below. Precomputed
+  // because the joint subtracts one of these per nonzero count, and under a
+  // scalar prior (D20) there is exactly one distinct value to compute.
+  std::vector<double> lg_alpha(calc_likelihood ? K : 0);
+  std::vector<double> lg_eta((calc_likelihood && !freeze_topics)
+                                 ? (eta.is_scalar() ? K : V * K)
+                                 : 0);
+  if (calc_likelihood) {
+    for (std::size_t k = 0; k < K; k++) lg_alpha[k] = lgamma(alpha[k]);
+    if (!freeze_topics) {
+      if (eta.is_scalar()) {
+        const float* e = eta.column(0);
+        for (std::size_t k = 0; k < K; k++) lg_eta[k] = lgamma(static_cast<double>(e[k]));
+      } else {
+        for (std::size_t v = 0; v < V; v++) {
+          const float* e = eta.column(v);
+          for (std::size_t k = 0; k < K; k++)
+            lg_eta[v * K + k] = lgamma(static_cast<double>(e[k]));
+        }
+      }
     }
-    for (std::size_t k = 0; k < K; k++) lgalpha += lgamma(alpha[k]);
-    lgalpha = (lgalpha - lgamma(alpha_bar)) * static_cast<double>(D);
   }
 
   std::vector<double> prob(K);  // used only for the one-time frozen build below
@@ -631,22 +642,36 @@ Rcpp::List fit_lda_warp(
         beta_denom[k] = static_cast<double>(Ck[k]) + eta.bar(k);
       }
 
-      double lp_eta = 0.0;
+      // The word half of the collapsed joint (see the block comment below):
+      //
+      //   sum_k [ sum_v lgamma(Cv[v][k] + eta) - lgamma(Ck[k] + eta_bar[k]) ]
+      //        + sum_k [ lgamma(eta_bar[k]) - sum_v lgamma(eta) ]
+      //
+      // accumulated in the form where the two sums over v cancel term by term
+      // wherever the count is zero, since lgamma(0 + eta) - lgamma(eta) = 0.
+      // Only nonzero counts reach lgamma, which is the expensive part.
+      double joint_w = 0.0;
+      const bool eta_scalar = eta.is_scalar();
       for (std::size_t v = 0; v < V; v++) {
-        const float* ev = eta.column(v);
-        const int*   cv = &Cv[v * K];
-        double*      bp = &beta_prob[v * K];
+        const float*  ev = eta.column(v);
+        const double* lg = eta_scalar ? lg_eta.data() : &lg_eta[v * K];
+        const int*    cv = &Cv[v * K];
+        double*       bp = &beta_prob[v * K];
         for (std::size_t k = 0; k < K; k++) {
           const double e = static_cast<double>(ev[k]);
-          const double p = (static_cast<double>(cv[k]) + e) / beta_denom[k];
-          bp[k] = p;
-          lp_eta += (e - 1.0) * std::log(p);
+          const double c = static_cast<double>(cv[k]);
+          bp[k] = (c + e) / beta_denom[k];
+          if (cv[k] != 0) joint_w += lgamma(c + e) - lg[k];
         }
       }
-      lp_eta += lgeta;
+      for (std::size_t k = 0; k < K; k++) {
+        joint_w += lgamma(eta.bar(k)) - lgamma(beta_denom[k]);
+      }
 
-      double lp_alpha = 0.0;
+      double joint_d = 0.0;
       double lpd = 0.0;
+
+      const double lg_alpha_bar = lgamma(alpha_bar);
 
       for (std::size_t d = 0; d < D; d++) {
         const int* Cd_d = &Cd[d * K];
@@ -655,8 +680,10 @@ Rcpp::List fit_lda_warp(
         for (std::size_t k = 0; k < K; k++) denom += Cd_d[k] + alpha[k];
         for (std::size_t k = 0; k < K; k++) {
           theta_prob[k] = (Cd_d[k] + alpha[k]) / denom;
-          lp_alpha += (alpha[k] - 1.0) * std::log(theta_prob[k]);
+          // Document half of the collapsed joint, same cancellation as above.
+          if (Cd_d[k] != 0) joint_d += lgamma(Cd_d[k] + alpha[k]) - lg_alpha[k];
         }
+        joint_d += lg_alpha_bar - lgamma(denom);
 
         // Design notes section 7, mitigation 1: take the inner sum once per
         // distinct (d, v) pair rather than once per token occurrence, giving
@@ -678,11 +705,33 @@ Rcpp::List fit_lda_warp(
           i = j;
         }
       }
-      lp_alpha += lgalpha;
-
+      // Row 3 is the COLLAPSED JOINT, log p(w, z | alpha, eta), with theta and
+      // Phi analytically integrated out:
+      //
+      //   sum_d [ sum_k lgamma(Cd[d][k] + alpha_k) - lgamma(n_d + alpha_bar) ]
+      //     + D [ lgamma(alpha_bar) - sum_k lgamma(alpha_k) ]
+      //   + sum_k [ sum_v lgamma(Cv[v][k] + eta_kv) - lgamma(Ck[k] + eta_bar_k) ]
+      //     + sum_k [ lgamma(eta_bar_k) - sum_v lgamma(eta_kv) ]
+      //
+      // This replaced a plug-in quantity -- row 2 plus Dirichlet log-densities
+      // evaluated at theta_hat and beta_hat -- which was wrong twice over. It
+      // had a sign error on both normalizers, and even corrected it was a
+      // density, so it was unbounded above and routinely reported positive
+      // numbers that meant nothing.
+      //
+      // The joint is a probability MASS: integrating out theta and Phi leaves a
+      // discrete distribution over (w, z), so this is always <= 0. It is also
+      // the unnormalized log target of a collapsed sampler, which makes it the
+      // ordinary thing to watch for convergence, and marginalizing gives it an
+      // Occam factor that row 2 lacks.
+      //
+      // It conditions on z, so it is a within-model diagnostic. Comparing it
+      // ACROSS models is not valid -- that needs log p(w | alpha, eta) with z
+      // marginalized too, which is intractable and wants the held-out
+      // estimators of Wallach et al. (2009).
       log_likelihood.push_back(static_cast<double>(t));
       log_likelihood.push_back(lpd);
-      log_likelihood.push_back(lpd + lp_alpha + lp_eta);
+      log_likelihood.push_back(joint_d + joint_w);
     }
 
     if (verbose) progress.increment();

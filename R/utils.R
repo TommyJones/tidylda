@@ -498,9 +498,15 @@ counts_cv <- function(object) {
 #'   \code{call} is the result of \code{\link[base]{match.call}} called at the top
 #'     of \code{\link[tidylda]{tidylda}}
 #'
-#'   \code{log_likelihood} is a \code{\link[tibble]{tibble}} whose columns are
-#'     the iteration and log likelihood at that iteration. This slot is only populated
-#'     if \code{calc_likelihood = TRUE}
+#'   \code{log_likelihood} is a \code{\link[tibble]{tibble}} with three columns,
+#'     evaluated every \code{likelihood_every}-th iteration. \code{iteration} is
+#'     the iteration number. \code{log_likelihood} is
+#'     \eqn{P(tokens | \theta, \beta)}, the plug-in likelihood of the data under
+#'     the current parameter estimates. \code{log_joint} is
+#'     \eqn{P(tokens, topics | \alpha, \eta)}, the collapsed joint, with
+#'     \code{theta} and \code{beta} integrated out. See
+#'     \code{\link[tidylda]{tidylda}} for which to use when. This slot is only
+#'     populated if \code{calc_likelihood = TRUE}
 #'
 #'   \code{r2} is a numeric scalar resulting from a call to
 #'     \code{\link[mvrsquared]{calc_rsquared}}. This slot only populated if
@@ -627,9 +633,14 @@ new_tidylda <- function(
       })
     )
 
+    # Two quantities, and they answer different questions. `log_likelihood` is
+    # the plug-in P(data | parameters); `log_joint` is the collapsed joint
+    # P(data, assignments | priors), with theta and beta integrated out. See
+    # `?tidylda` for which to use when.
     log_likelihood <- as_tibble(data.frame(
       iteration = lda$log_likelihood[1, ],
-      log_likelihood = lda$log_likelihood[2, ]
+      log_likelihood = lda$log_likelihood[2, ],
+      log_joint = lda$log_likelihood[3, ]
     ))
     
     result <- list(

@@ -80,13 +80,12 @@ repository root.
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
 | **Current phase** | None. All scheduled phases are done. |
-| **Last completed** | **Phase 6.5: issue triage.** Two issues closed, six annotated against the 0.1.0 code. §6.5. |
+| **Last completed** | **Phase 6.6: the collapsed joint.** Replaces a sign-buggy plug-in density; surfaced as `log_joint`. §6.6. |
 | **In flight** | Nothing. |
 
-**Next action:** **Phase 6.6** (§6.6) -- delete the plug-in prior-inclusive
-likelihood, which has a sign error, and replace it with the collapsed joint. It
-closes issue 30, ships before 0.1.0 rather than after, and is cheaper than the
-metric it sits beside.
+**Next action:** **Phase 7** (§6.7), the $O(N)$ word proposal -- which ships in
+0.1.0 too, so its `NEWS.md` entry costs nothing extra. Profile at high $K$ first;
+the phase needs a measurement before it needs an implementation.
 
 Then release prep for 0.1.0: `cran-comments.md`, a reverse-dependency check, and
 submission. **Phase 7** (the $O(N)$ word proposal, §6.7) and **Phase 8** (memory
@@ -210,7 +209,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. §6.4 |
 | **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | **Done.** Ten issues read; 70 and 77 closed, six commented with status, 8/28/51 untouched. One open question surfaced: whether to surface the log posterior density (issue 30) |
-| **6.6** | Replace the plug-in prior-inclusive likelihood with the collapsed joint; delete the sign-buggy row 3 — see §6.6 | Small, additive, before the 0.1.0 release. Agrees with an independent R implementation; negative everywhere; no gate run |
+| **6.6** | Replace the plug-in prior-inclusive likelihood with the collapsed joint; delete the sign-buggy row 3 — see §6.6 | **Done.** Agrees with an independent R implementation to 6e-10 (scalar) and 8e-12 (matrix); negative in every case; surfaced as a `log_joint` column. No gate run |
 | **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.7 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
 | **8** | *Unscheduled.* Memory surgery for large corpora — see §6.8 | A separate project. Breaking, broadly |
 
@@ -1036,10 +1035,10 @@ Three properties make the third the right target:
   $K$. A plug-in likelihood is not: it improves monotonically as topics are added
   and cannot be used to choose $K$ at all.
 
-It is also **cheaper than what row 2 costs**. Terms where a count is zero
-collapse into the constant, so it evaluates over the nonzero counts alone --
-$O(\mathrm{nnz})$ against row 2's $O(\mathrm{nnz} \cdot K)$. On the model above:
-row 2 is $-64{,}132$, row 3 as computed is $+111{,}516$, the collapsed joint is
+It is also cheap, because terms where a count is zero collapse into the
+constant: $\log\Gamma(0 + \eta) - \log\Gamma(\eta) = 0$. So it evaluates
+$\log\Gamma$ over the **nonzero counts alone**. On the model above: row 2 is
+$-64{,}132$, row 3 as computed is $+111{,}516$, the collapsed joint is
 $-75{,}958$.
 
 Scheduled as **Phase 6.6** (§6.6), before the 0.1.0 release rather than after --
@@ -1047,7 +1046,7 @@ see that section for why.
 
 ---
 
-### 6.6 Phase 6.6 spec -- replace the prior-inclusive likelihood
+### 6.6 Phase 6.6 results -- replacing the prior-inclusive likelihood
 
 **Scheduled, and it belongs before the 0.1.0 release.** Three reasons, in order
 of weight:
@@ -1097,10 +1096,32 @@ $$+ \sum_k \left[ \sum_v \log\Gamma(C^v_{vk} + \eta_{kv}) - \log\Gamma(C_k + \ba
 - *It needs a synchronized joint sample*, exactly like row 2, so it goes inside
   the existing likelihood block after the $C^d$ rebuild -- not in a new pass.
 
-**Exit criterion.** The joint agrees with an independent R implementation to
-floating-point tolerance on a toy corpus, is negative on every corpus in the
-benchmark grid, and `devtools::check()` stays clean. **No gate run** -- the
-sampler is untouched, this is a read-only diagnostic.
+**Done, and it went as specified.** The joint agrees with an independent R
+implementation -- written from the algebra, in the *direct* form with the full
+constants, so agreeing also checks the cancellation rearrangement -- to
+$6\times10^{-10}$ relative under a scalar prior and $8\times10^{-12}$ under a
+matrix one. The residual is $\boldsymbol\eta$'s `float` storage (D5), not the
+rearrangement. Negative in every case tested, as a probability mass must be.
+Three cases cover scalar $\boldsymbol\eta$ with symmetric and asymmetric
+$\boldsymbol\alpha$, and a matrix prior. No gate run: the sampler is untouched
+and this is a read-only diagnostic.
+
+`lgeta` and `lgalpha` are **gone rather than corrected**. The cancelling form
+needs neither, since the two sums over $v$ that carried the sign error cancel
+term by term against the count sums. Deleting them was the surest way to
+guarantee the defect did not survive the edit, and it avoids the catastrophic
+cancellation the old form courted: at $K{=}10$, $V{=}5210$, $\eta{=}0.05$ the
+discarded constant was about $137{,}000$ nats against a result near
+$-76{,}000$.
+
+**Measured cost.** Both rows together are 6.8% of an iteration when evaluated
+every iteration ($D{=}100$, $V{=}5210$, $N{=}21{,}585$, $K{=}50$), so 0.68% at
+the default `likelihood_every = 10`. An earlier draft of this section claimed the
+joint was cheaper than row 2. That was never measured and the asymptotics do not
+support it cleanly -- $\mathrm{nnz}(C^v)$ itself grows with $K$, bounded by
+$\min(VK, N)$ -- so the claim is withdrawn rather than defended. What is
+measured is the combined block above, and that the nonzero form makes 4.2x fewer
+$\log\Gamma$ calls than the dense form on the verification corpus.
 
 **What this does not do.** The joint conditions on $z$, so it is a convergence
 diagnostic and a within-model quantity, not a model-comparison statistic. Proper
@@ -1352,7 +1373,9 @@ is rewritten wholesale at release-prep time; `CRAN-SUBMISSION` is generated by
 a **minor** bump, not the patch Phase 0 anticipated, because this release
 replaces the sampler, changes the `counts` contract and deprecates two
 arguments. `NEWS.md`'s Phase 0 entries live on under `0.1.0` as its bug-fix
-section.
+section. **0.1.0 has not shipped**, so everything through Phase 7 lands in it and
+`NEWS.md` edits cost nothing -- there is no released version whose notes are
+being rewritten.
 
 ---
 

@@ -385,3 +385,93 @@ test_that("tidylda() accepts threads without the stale batching warning", {
   )
   expect_s3_class(m, "tidylda")
 })
+
+
+test_that("initialization is identical at any thread count", {
+  # Phase 5.5 parallelized initialization by swapping R's RNG for D12's
+  # per-work-item generator. R's RNG is main-thread-only (roadmap section 5), so
+  # while initialization drew from it the O(N*K) setup could not be threaded --
+  # and it had become the Amdahl bottleneck, exceeding parallel sampling by 6x
+  # at K=200.
+  skip_on_cran()
+
+  d <- nih_sample_dtm[1:50, ]
+  k <- 8
+  al <- format_alpha(0.1, k)
+  et <- format_eta(0.05, k, ncol(d))
+  set.seed(5)
+  p <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
+                               threads = 1)
+
+  init <- function(th) {
+    set.seed(123)
+    fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
+                 eta_in = et$eta, iterations = 0, burnin = -1,
+                 calc_likelihood = FALSE, Beta_in = p$beta_initial,
+                 freeze_topics = FALSE, threads = as.integer(th), verbose = FALSE)
+  }
+
+  ref <- init(1)
+  for (th in c(2, 4, 8)) {
+    m <- init(th)
+    expect_identical(ref$Cd, m$Cd, info = paste("threads =", th))
+    expect_identical(ref$Cv, m$Cv, info = paste("threads =", th))
+    expect_identical(ref$Ck, m$Ck, info = paste("threads =", th))
+  }
+  expect_equal(sum(ref$Cd), sum(d))
+  expect_equal(sum(ref$Cv), sum(d))
+})
+
+
+test_that("initialization draws from the distribution it is supposed to", {
+  # Checked against ground truth rather than against the previous implementation.
+  # The target is known in closed form --
+  #   P(z = k | d, v) proportional to beta[k, v] * (Cd_start[d, k] + alpha[k])
+  # -- so the expected document-topic counts can be computed directly and
+  # compared with what the sampler produces. That would catch the old and new
+  # code being wrong in the same way, which diffing them against each other
+  # could not.
+  skip_on_cran()
+
+  d <- nih_sample_dtm[1:30, ]
+  k <- 5
+  al <- format_alpha(0.1, k)
+  et <- format_eta(0.05, k, ncol(d))
+  set.seed(5)
+  p <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
+                               threads = 1)
+
+  # Cd_start reaches C++ as an IntegerMatrix, so it is truncated there.
+  Cd0 <- floor(p$Cd_start)
+  dm <- as.matrix(d)
+
+  expected <- matrix(0, nrow(d), k)
+  for (i in seq_len(nrow(d))) {
+    nz <- which(dm[i, ] > 0)
+    w <- outer(rep(1, length(nz)), Cd0[i, ] + al$alpha) *
+      t(p$beta_initial[, nz, drop = FALSE])
+    expected[i, ] <- colSums(dm[i, nz] * (w / rowSums(w)))
+  }
+
+  reps <- 200
+  realized <- matrix(0, nrow(d), k)
+  for (r in seq_len(reps)) {
+    set.seed(2000 + r)
+    realized <- realized + fit_lda_warp(
+      dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha, eta_in = et$eta,
+      iterations = 0, burnin = -1, calc_likelihood = FALSE,
+      Beta_in = p$beta_initial, freeze_topics = FALSE, threads = 1L,
+      verbose = FALSE)$Cd
+  }
+  realized <- realized / reps
+
+  # Totals are exact -- every token is assigned exactly once.
+  expect_equal(sum(realized), sum(d))
+  expect_equal(sum(expected), sum(d), tolerance = 1e-8)
+
+  # A Poisson standard error overstates the true multinomial variance, so these
+  # z-scores are conservative; anything beyond 5 would be a real discrepancy.
+  z <- (realized - expected) / sqrt(pmax(expected, 1e-9) / reps)
+  expect_lt(max(abs(z)), 5)
+  expect_gt(cor(as.vector(expected), as.vector(realized)), 0.999)
+})

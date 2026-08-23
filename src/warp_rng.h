@@ -107,7 +107,14 @@ private:
 
 // Which pass a work item belongs to. Part of the seed so that document 7 in the
 // doc pass and word 7 in the word pass never share a stream.
-enum class Pass : uint64_t { doc = 0, word = 1 };
+//
+// `init` exists for the same reason and is not decorative: initialization runs
+// once, conceptually at iteration 0, and the doc pass at iteration 0 already
+// claims work_item_rng(master, 0, Pass::doc, d). Without a separate value the
+// two would share a stream, so a token's starting topic and its very first
+// proposal would be driven by the same uniform -- a correlation with no reason
+// to exist and no obvious symptom.
+enum class Pass : uint64_t { doc = 0, word = 1, init = 2 };
 
 
 // The work-item seed of D12.

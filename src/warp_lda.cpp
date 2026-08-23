@@ -136,6 +136,35 @@ Rcpp::List fit_lda_warp(
   }
 
   // =========================================================================
+  // Parallel scaffolding (Phases 5 and 5.5)
+  // =========================================================================
+  // Both the initialization and the two sampling passes partition cleanly on
+  // their own index. Chunk count is sized for load balance only: more chunks
+  // than threads lets the pool even out documents and words of very different
+  // lengths, which matters because word frequencies are Zipfian.
+  const std::size_t n_chunks =
+      std::max<std::size_t>(1, std::min<std::size_t>(std::max(D, V), threads * 4));
+
+  auto chunk_lo = [&](std::size_t total, std::size_t c) { return (total * c) / n_chunks; };
+  auto chunk_hi = [&](std::size_t total, std::size_t c) { return (total * (c + 1)) / n_chunks; };
+
+  std::unique_ptr<RcppThread::ThreadPool> pool;
+  if (threads > 1) pool.reset(new RcppThread::ThreadPool(threads));
+
+  auto run_parallel = [&](auto&& body) {
+    if (pool) {
+      pool->parallelFor(0, static_cast<int>(n_chunks), body);
+      pool->wait();
+    } else {
+      for (std::size_t c = 0; c < n_chunks; c++) body(static_cast<int>(c));
+    }
+  };
+
+  // Drawn on the main thread so set.seed() governs the whole run, and drawn
+  // here because initialization now needs it too (Phase 5.5).
+  const uint64_t master = draw_master_seed();
+
+  // =========================================================================
   // Initialization (D16): build the token structure and sample each token's
   // starting topic, in one walk of the sparse DTM.
   //
@@ -153,12 +182,25 @@ Rcpp::List fit_lda_warp(
   // document, and tokens are visited documents-ascending then words-ascending.
   // Changing any of that changes which random numbers each token consumes.
   //
-  // One uniform per token, on the main thread, so set.seed() governs. That is a
-  // fixed consumption per token, unlike the R::rexp() this used to draw --- R's
-  // exponential generator consumes a variable number of uniforms, which made
-  // the stream position after initialization depend on the data.
+  // One uniform per token, drawn from the work item's own stream (D12) rather
+  // than R's. That is what makes this parallel: R's RNG is main-thread-only
+  // (section 5 invariant), so as long as initialization drew from it, it could
+  // not be threaded -- and being O(N*K) and serial it capped total speedup near
+  // 2x at K=200 however well the sampler scaled.
+  //
+  // Pass::init keeps this off the doc pass's iteration-0 stream. Sharing it
+  // would drive a token's starting topic and its first proposal from the same
+  // uniform.
   // =========================================================================
   const arma::sp_mat dtm = dtm_in.t();   // V x D: a column is now a document
+
+  // Raw CSC arrays rather than iterators. arma's sparse iterators can trigger
+  // lazy synchronization, which is not something to invoke from several threads
+  // at once; after an explicit sync these are plain reads.
+  dtm.sync();
+  const arma::uword* col_ptr = dtm.col_ptrs;
+  const arma::uword* row_idx = dtm.row_indices;
+  const double*      val     = dtm.values;
 
   auto Cd0  = mat_to_vec(Cd_start, true);   // Cd0[d][k]
   auto Beta = mat_to_vec(Beta_in, true);    // Beta[k][v]
@@ -166,43 +208,58 @@ Rcpp::List fit_lda_warp(
   double sum_alpha = 0.0;
   for (std::size_t k = 0; k < K; k++) sum_alpha += alpha_in[k];
 
-  const std::size_t N = static_cast<std::size_t>(arma::accu(dtm));
+  // Document lengths, then the CSR layout. O(nnz) and serial, but memory-bound
+  // and roughly K times cheaper than the sampling it precedes. finalize()'s
+  // counting sort below is the other serial piece; both are the next candidates
+  // if initialization ever shows up in a profile again.
+  std::vector<token_t> doc_len(D, 0);
+  std::size_t N = 0;
+  for (std::size_t d = 0; d < D; d++) {
+    double nd = 0.0;
+    for (arma::uword p = col_ptr[d]; p < col_ptr[d + 1]; p++) nd += val[p];
+    doc_len[d] = static_cast<token_t>(nd);
+    N += doc_len[d];
+  }
 
   Corpus corpus(D, V, N, mh_steps);
+  corpus.begin_build(doc_len);
+
   {
-    // Both hoisted out of the per-token loop, so initialization allocates
-    // nothing per token.
-    std::vector<double> qz(K);
-    std::vector<double> scratch(K);
+    // Per-chunk buffers, so nothing is allocated per token or shared.
+    std::vector<std::vector<double>> qz_buf(n_chunks, std::vector<double>(K));
+    std::vector<std::vector<double>> sc_buf(n_chunks, std::vector<double>(K));
 
-    for (std::size_t d = 0; d < D; d++) {
-      // Document length from the column's nonzeros. create_lexicon() scanned the
-      // entire vocabulary with dtm(v, d), a binary search per probe, making this
-      // O(V log nnz) per document (design notes section 9).
-      double nd = 0.0;
-      for (auto it = dtm.begin_col(d); it != dtm.end_col(d); ++it) nd += (*it);
+    run_parallel([&](int c) {
+      std::vector<double>& qz = qz_buf[c];
+      std::vector<double>& scratch = sc_buf[c];
 
-      const double denom_term = std::log(nd + sum_alpha - 1.0);
+      for (std::size_t d = chunk_lo(D, c); d < chunk_hi(D, c); d++) {
+        // Each document owns a disjoint slot range, so the fill needs no
+        // coordination at all.
+        Xoshiro256pp rng = work_item_rng(master, 0, Pass::init, d);
+        token_t at = corpus.doc_begin(d);
 
-      for (auto it = dtm.begin_col(d); it != dtm.end_col(d); ++it) {
-        const std::size_t v = it.row();
-        const std::size_t count = static_cast<std::size_t>(*it);
-        if (count == 0) continue;
+        const double denom_term =
+            std::log(static_cast<double>(doc_len[d]) + sum_alpha - 1.0);
 
-        for (std::size_t k = 0; k < K; k++) {
-          qz[k] = std::log(Beta[k][v]) +
-                  std::log(Cd0[d][k] + alpha_in[k]) - denom_term;
-        }
+        for (arma::uword pp = col_ptr[d]; pp < col_ptr[d + 1]; pp++) {
+          const std::size_t v = row_idx[pp];
+          const std::size_t count = static_cast<std::size_t>(val[pp]);
+          if (count == 0) continue;
 
-        for (std::size_t i = 0; i < count; i++) {
-          corpus.add(static_cast<word_t>(v),
-                     static_cast<topic_t>(
-                         sample_log_weights(qz, R::unif_rand(), scratch)));
+          for (std::size_t k = 0; k < K; k++) {
+            qz[k] = std::log(Beta[k][v]) +
+                    std::log(Cd0[d][k] + alpha_in[k]) - denom_term;
+          }
+
+          for (std::size_t i = 0; i < count; i++) {
+            corpus.set_token(at++, static_cast<word_t>(v),
+                             static_cast<topic_t>(
+                                 sample_log_weights(qz, rng.unif(), scratch)));
+          }
         }
       }
-      corpus.end_doc();
-      Rcpp::checkUserInterrupt();
-    }
+    });
     corpus.finalize();
   }
 
@@ -234,6 +291,7 @@ Rcpp::List fit_lda_warp(
   // that transpose in Phase 6.
   std::vector<int> Cd(D * K, 0);
   std::vector<int> Cv(freeze_topics ? 0 : V * K, 0);
+
   // Derive all three count views from the topics just sampled.
   //
   // Ck is the one that MUST be built here: it is never rebuilt during a pass,
@@ -257,6 +315,38 @@ Rcpp::List fit_lda_warp(
   const bool averaging = (burnin > -1);
   std::vector<long> Cd_sum(averaging ? D * K : 0, 0);
   std::vector<long> Cv_sum((averaging && !freeze_topics) ? V * K : 0, 0);
+
+  // C_k is READ-ONLY within a sampling pass. Each chunk accumulates its own
+  // delta and the deltas are summed in afterwards. Three consequences, all
+  // wanted:
+  //
+  //   * every work item sees the same C_k however chunks land on threads;
+  //   * integer addition is associative and exact, so merge order is irrelevant;
+  //   * a work item's delta contribution depends only on its own state and the
+  //     snapshot, so even the CHUNK COUNT cannot change the result.
+  //
+  // Results therefore do not depend on `threads`, which is what D12 asks for.
+  //
+  // ATOMICS WOULD NOT DO. They remove the race but leave what each work item
+  // READS dependent on interleaving, so results would drift with thread count --
+  // exactly what D12 forbids. The requirement is determinism, not just safety.
+  struct Scratch {
+    std::vector<double> prob;      // q_w construction buffer
+    AliasTable          alias;     // per-word proposal table
+    std::vector<long>   ck_delta;  // this chunk's contribution to C_k
+    void reset(std::size_t k) { prob.assign(k, 0.0); ck_delta.assign(k, 0); }
+    void clear_delta() { std::fill(ck_delta.begin(), ck_delta.end(), 0); }
+  };
+
+  std::vector<Scratch> scratch(n_chunks);
+  for (auto& sc : scratch) sc.reset(K);
+
+  auto run_chunks = [&](auto&& body) {
+    for (auto& sc : scratch) sc.clear_delta();
+    run_parallel(body);
+    for (const auto& sc : scratch)
+      for (std::size_t k = 0; k < K; k++) Ck[k] += sc.ck_delta[k];
+  };
 
   // ---- likelihood scratch ----
   std::vector<double> beta_prob((calc_likelihood && !freeze_topics) ? V * K : 0);  // word-major
@@ -297,67 +387,6 @@ Rcpp::List fit_lda_warp(
     }
   }
 
-  // =========================================================================
-  // Parallel scaffolding (Phase 5)
-  // =========================================================================
-  // Both passes partition cleanly on their own index -- the doc pass owns
-  // disjoint slices of Cd and of each document's tokens, the word pass the same
-  // for Cv and each word's tokens, and eta and the alias tables are read-only.
-  // C_k is the sole exception: it is read by every acceptance test and written
-  // by every acceptance.
-  //
-  // ATOMICS WOULD NOT DO. They remove the race but leave what each work item
-  // READS dependent on interleaving, so results would drift with thread count --
-  // exactly what D12 forbids. The requirement is determinism, not just safety.
-  //
-  // So C_k is READ-ONLY within a pass. Each chunk accumulates its own delta and
-  // the deltas are summed in afterwards. Three consequences, all wanted:
-  //
-  //   * every work item sees the same C_k however chunks land on threads;
-  //   * integer addition is associative and exact, so merge order is irrelevant;
-  //   * a work item's delta contribution depends only on its own state and the
-  //     snapshot, so even the CHUNK COUNT cannot change the result -- it is free
-  //     to be tuned for load balance.
-  //
-  // Results therefore do not depend on `threads`, which is what D12 asks for.
-  // They DO differ from the pre-Phase-5 engine, at every thread count including
-  // one, because C_k now goes stale within a pass. That is measured by the gate,
-  // not assumed.
-  struct Scratch {
-    std::vector<double> prob;      // q_w construction buffer
-    AliasTable          alias;     // per-word proposal table
-    std::vector<long>   ck_delta;  // this chunk's contribution to C_k
-    void reset(std::size_t k) { prob.assign(k, 0.0); ck_delta.assign(k, 0); }
-    void clear_delta() { std::fill(ck_delta.begin(), ck_delta.end(), 0); }
-  };
-
-  // Chunk count is sized for load balance only. More chunks than threads lets
-  // the pool even out documents and words of very different lengths.
-  const std::size_t n_chunks =
-      std::max<std::size_t>(1, std::min<std::size_t>(std::max(D, V), threads * 4));
-
-  std::vector<Scratch> scratch(n_chunks);
-  for (auto& sc : scratch) sc.reset(K);
-
-  auto chunk_lo = [&](std::size_t total, std::size_t c) { return (total * c) / n_chunks; };
-  auto chunk_hi = [&](std::size_t total, std::size_t c) { return (total * (c + 1)) / n_chunks; };
-
-  std::unique_ptr<RcppThread::ThreadPool> pool;
-  if (threads > 1) pool.reset(new RcppThread::ThreadPool(threads));
-
-  auto run_chunks = [&](auto&& body) {
-    for (auto& sc : scratch) sc.clear_delta();
-    if (pool) {
-      pool->parallelFor(0, static_cast<int>(n_chunks), body);
-      pool->wait();
-    } else {
-      for (std::size_t c = 0; c < n_chunks; c++) body(static_cast<int>(c));
-    }
-    for (const auto& sc : scratch)
-      for (std::size_t k = 0; k < K; k++) Ck[k] += sc.ck_delta[k];
-  };
-
-  const uint64_t master = draw_master_seed();
   Progress progress(iterations, verbose);
 
   // =========================================================================

@@ -57,8 +57,8 @@ public:
   // Usage, in document order:
   //
   //   Corpus c(n_docs, n_words, n_tokens, mh_steps);
-  //   for each document:  for each token: c.add(word, topic);
-  //                       c.end_doc();
+  //   c.begin_build(doc_lengths);
+  //   (in parallel, per document d)  c.set_token(i, word, topic);
   //   c.finalize();
   //
   // Tokens must arrive with a document's words in ASCENDING order. That is free:
@@ -74,15 +74,25 @@ public:
         n_words_(n_words),
         n_tokens_(n_tokens),
         mh_steps_(mh_steps),
-        stride_(1 + mh_steps),
-        at_(0),
-        docs_closed_(0) {
+        stride_(1 + mh_steps) {
     z_.assign(n_tokens_ * stride_, 0);
     word_of_.resize(n_tokens_);
     csr_.assign(n_docs_ + 1, 0);
   }
 
-  // Append one token to the document currently being built.
+  // Lay out the document boundaries, given each document's token count.
+  //
+  // Doing this before any token is written is what makes the fill parallel:
+  // every document's slot range is known up front, so documents write into
+  // disjoint regions and need no coordination. The previous append-only
+  // interface could not be threaded at all.
+  void begin_build(const std::vector<token_t>& doc_lengths) {
+    csr_[0] = 0;
+    for (std::size_t d = 0; d < n_docs_; d++) csr_[d + 1] = csr_[d] + doc_lengths[d];
+  }
+
+  // Write one token slot. Callable in any order, from any thread, provided no
+  // two callers target the same slot.
   //
   // Every pending proposal starts equal to old_z. An acceptance ratio is a valid
   // MH step only if the proposal came from the matching proposal distribution,
@@ -90,17 +100,10 @@ public:
   // gets resolved as a proposal it never was, partly discarding the informed
   // initialization (D8). Equal values make the first resolve a no-op via the skip
   // in the accept loops.
-  void add(word_t w, topic_t k) {
-    word_of_[at_] = w;
-    topic_t* z = &z_[at_ * stride_];
+  void set_token(token_t i, word_t w, topic_t k) {
+    word_of_[i] = w;
+    topic_t* z = &z_[i * stride_];
     for (std::size_t m = 0; m < stride_; m++) z[m] = k;
-    at_++;
-  }
-
-  // Close the current document. Call once per document, including empty ones.
-  void end_doc() {
-    docs_closed_++;
-    csr_[docs_closed_] = at_;
   }
 
   // Build the word-major view. Call once, after the last end_doc().
@@ -138,8 +141,6 @@ public:
 
 private:
   std::size_t n_docs_, n_words_, n_tokens_, mh_steps_, stride_;
-  token_t at_;             // next token slot to fill
-  std::size_t docs_closed_; // documents ended so far
 
   std::vector<topic_t> z_;          // n_tokens * (1 + mh_steps)
   std::vector<word_t>  word_of_;    // n_tokens

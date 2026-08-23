@@ -79,47 +79,52 @@ repository root.
 | **Last updated** | 2026-08-23 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 5.5 -- parallelize initialization |
-| **Last completed** | **Phase 5: RcppThread parallelism.** Bit-identical at 1/2/4/8/16 threads; both gates pass. 6.3. |
+| **Current phase** | Phase 6 -- cleanup, documentation, CRAN preparation |
+| **Last completed** | **Phase 5.5: parallel initialization.** End-to-end 7.6-7.8x on 12 physical cores, flat in $K$. 6.3. |
 | **In flight** | Nothing. |
 
-**Next action:** Phase 5.5. Initialization is O(N*K) and single-threaded, so it
-caps total speedup near 2x at $K=200$ however well the sampler scales. Swap
-`R::unif_rand()` for `work_item_rng(master, 0, Pass::doc, d)` and parallelize
-the document loop. 6.3 explains why this can skip the full gate and what to
-verify instead. Then Phase 6.
+**Next action:** Phase 6. It is the last scheduled phase before release prep, and
+it is mostly deletion and documentation rather than new engine work.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
-`fit_lda_warp()`, which initializes, samples, and now threads. `fit_lda_c()`,
-`create_lexicon()` and all of `src/sample.h` have no callers; all three go in
-Phase 6.
+`fit_lda_warp()`, which initializes, samples and threads. The engine is
+statistically validated under both priors and reproducible under `set.seed()`
+independent of thread count.
 
-**What Phases 2 through 5 settled:**
+**What the whole project delivered, Phases 2 through 5.5:**
 
-- **Statistically sound under both priors**, at every phase boundary: scalar
-  8/8, matrix 8/8 unpaired and 8/8 paired.
-- **Reproducible under `set.seed()` independent of thread count** (D12) -- the
-  hard half of Phase 5's exit criterion, achieved structurally rather than by
-  argument. See section 7 open question 1.
-- **warp is ~3x faster than Gibbs single-threaded** at equal quality, and the
-  sampler parallelizes at 59-68% (about 78% clock-adjusted) for 7.8x more on 12
-  physical cores.
-- **Four pre-existing defects fixed**: `theta` under asymmetric `alpha` (NEWS
-  0.0.8), an unstable `std::sort` shuffling exchangeable tokens, a per-token
+- **Statistically sound at every phase boundary**: scalar prior 8/8, matrix
+  prior 8/8 unpaired and 8/8 paired.
+- **About 3x faster than collapsed Gibbs single-threaded** at equal quality,
+  and a further 7.6-7.8x on 12 physical cores -- roughly 23x end to end.
+- **Reproducible under `set.seed()` at any thread count** (D12), achieved
+  structurally rather than by argument.
+- **Five pre-existing defects fixed**: `theta` under asymmetric `alpha`, an
+  unstable `std::sort` shuffling exchangeable tokens, a per-token
   $O(K\log K)$ sort in initialization, and two false statements in
   `tidylda()`'s documentation.
-- **D9, D14, D20 revised; D12/D13 and D16 delivered.**
+- **D9, D14 and D20 revised on evidence; D12, D13 and D16 delivered; open
+  questions 1 and 3 closed.**
 
-**Three things Phase 6 must not forget:**
+**What Phase 6 must do:**
 
 1. **Delete `fit_lda_c()`, `create_lexicon()` and `src/sample.h`.** All three are
    uncalled. `sample.h` also has an out-of-bounds read at `log_sample_one()`'s
-   `q[k - 1]` when `k = 0`. One test uses `create_lexicon()` as a reference and
-   must be retired or re-pointed deliberately.
-2. **D17** (sparse column-major counts) and **D20** (scalar eta fast path), plus
-   the `counts` documentation gap.
-3. **One tLDA cell is knowingly underpowered** -- small/$K{=}50$ coherence,
-   about 10 core-hours to close if a future run has budget.
+   `q[k - 1]` when `k = 0`. `test-cpp_funs.R` exercises `fit_lda_c()` and one
+   warp test uses `create_lexicon()` as a reference; both must be retired or
+   re-pointed deliberately, not left to fail.
+2. **D17** (sparse column-major `counts`) and its four consumers, **D20**
+   (scalar eta fast path), and the `counts` documentation gap.
+3. **`predict(method = "gibbs")` is a misnomer** -- the string is public API so
+   it stays, but the documentation should stop calling it Gibbs.
+4. **`optimize_alpha`** is accepted and ignored with a once-per-session warning;
+   make that a formal deprecation.
+5. **Re-render the PDFs.** Both `.md` files pass
+   `warp-planning/check-markdown.py`, but neither has been rendered on a machine
+   with pandoc since the fixes.
+
+**Known and knowingly accepted:** one tLDA cell is underpowered -- small/$K{=}50$
+coherence, about 10 core-hours to close if a future run has budget.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -211,7 +216,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **4** | Fuse initialization into the engine; eliminate the R round trip | **Done.** One C++ entry point; `Docs`/`Zd` never materialized, so per-token marshalling drops from 16 bytes to zero. **Exit criterion revised** from "identical results to Phase 3" to "identical *initial state*" — see §6.3 |
 | **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | **Done.** Initialization 7.9x faster at $K{=}10$, 11.8x at $K{=}50$; gate re-run covers Phases 4 and 4.5 together. §6.3 |
 | **5** | RcppThread parallelism | **Done.** Bit-identical at 1/2/4/8/16 threads; both gates pass; sampler efficiency 59-68% (about 78% clock-adjusted), 7.8x on 12 physical cores. §6.3 |
-| **5.5** | Parallelize initialization | Init is O(N*K) and single-threaded, capping total speedup near 2x at $K=200$ regardless of how well the sampler scales. Swap `R::unif_rand()` for D12's per-work-item generator and parallelize the document loop. **Can largely skip the full gate** -- see the verification note below |
+| **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
 | **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
 
@@ -810,6 +815,66 @@ equalled threads. Keep chunk count several times thread count. The one hard
 floor is that a single word cannot be split, capping useful parallelism at the
 reciprocal of the most frequent word's share -- measured at about 110 threads on
 the medium corpus, and rising with vocabulary size.
+
+#### Phase 5.5 — parallel initialization
+
+**Complete.** Initialization now draws from D12's per-work-item generator rather
+than R's, which is what allowed it to be threaded: R's RNG is main-thread-only
+(section 5), so while initialization used it the O(N*K) setup stayed serial and
+capped total speedup regardless of how well the sampler scaled.
+
+| $K$ | init 1 thread | init 12 threads | speedup |
+|---|---|---|---|
+| 10 | 0.90 s | 0.27 s | 3.4x |
+| 50 | 3.64 s | 0.59 s | 6.1x |
+| 200 | 17.23 s | 1.95 s | **8.8x** |
+
+Efficiency rises with $K$ because the remaining serial work -- one O(nnz) pass
+for document lengths and `finalize()`'s O(N) counting sort -- is a smaller share
+when there is more per-token work to divide. Those two are now the largest
+serial pieces of initialization and are the next candidates if it ever shows up
+in a profile again.
+
+**End to end, 2.15M tokens, 12 physical cores:**
+
+| $K$ | 1 thread | 12 threads | speedup | efficiency |
+|---|---|---|---|---|
+| 10 | 76.81 s | 10.09 s | 7.61x | 63% |
+| 50 | 86.93 s | 11.10 s | 7.83x | 65% |
+| 200 | 117.54 s | 15.30 s | 7.68x | 64% |
+
+Flat in $K$, and matching the sampler's own efficiency -- initialization is no
+longer a separate bottleneck. At $K = 200$ the old serial init would have made
+the 12-thread total about 30.3 s, or 3.9x; it is now 7.7x.
+
+**`Pass::init` was added to the RNG enum, and it is not decorative.**
+Initialization runs conceptually at iteration 0, and the doc pass at iteration 0
+already claims `work_item_rng(master, 0, Pass::doc, d)`. Sharing that stream
+would have driven a token's starting topic and its very first proposal from the
+same uniform -- a correlation with no reason to exist and no obvious symptom.
+
+`Corpus` gained `begin_build()` / `set_token()` in place of the append-only
+`add()` / `end_doc()`. Prefix-summing the document lengths first means every
+document's slot range is known before any token is written, so documents fill
+disjoint regions and need no coordination. The sparse matrix is read through raw
+`col_ptrs` / `row_indices` / `values` after an explicit `sync()`, because arma's
+sparse iterators can trigger lazy synchronization, which is not safe to invoke
+from several threads at once.
+
+**Verified without the full gate, deliberately.** Phase 4.5 replaced the
+initialization *algorithm* and was gated because an algorithm can carry a bias.
+This changed only the *source of the uniform*, with `sample_log_weights()`
+untouched -- same distribution, different draw. That is variation the existing
+baseline already characterizes, since it carries 100 seeds per cell at $K = 10$,
+each with a different initial assignment. What was checked instead:
+
+1. **Thread-count invariance** -- identical `Cd`, `Cv`, `Ck` at 1, 2, 4, 8 and
+   16 threads. The only genuinely new risk.
+2. **The draw matches its analytic expectation**, not the old code. The target
+   is closed-form, so $E[C^d_{dk}] = \\sum_v n_{dv}\\,p(k \\mid d,v)$ is
+   computable directly: correlation 0.999992 over 400 replications, per-cell
+   z-scores with max 1.38 and none beyond 4. This is stronger than diffing two
+   implementations, which could agree while both being wrong.
 
 #### Notes for later phases
 

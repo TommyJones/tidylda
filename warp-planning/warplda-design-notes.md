@@ -287,6 +287,14 @@ When the $VK$ term actually bites — roughly when $VK \gtrsim N$:
 **Decision: ship the $O(VK)$ approach. Revisit only if profiling at high $K$
 shows it dominating.**
 
+*Amended after D20.* The memory objection above assumes a matrix
+$\boldsymbol\eta$, and so assumes $V$ word-specific tables. With a **scalar**
+$\boldsymbol\eta$ the dense prior part is the same for every word, so the
+$O(N)$ split needs exactly one shared table of length $K$ -- which is what the
+paper does, and costs nothing. The rejection therefore holds only for the tLDA
+prior, and D20 established that most models are not transfer models. Roadmap
+§6.6 schedules this as Phase 7, splitting on `eta.is_scalar()`.
+
 > **Implementation requirement.** The word-proposal construction must carry a
 > comment recording that this is the $O(VK)$ formulation, that the $O(N)$
 > alternative exists via the sparse/dense split with precomputed per-column

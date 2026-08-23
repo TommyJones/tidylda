@@ -80,11 +80,18 @@ repository root.
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
 | **Current phase** | None. All scheduled phases are done. |
-| **Last completed** | **Phase 6: cleanup, documentation, CRAN preparation.** Old engine deleted, D17 and D20 landed, documentation rewritten, version 0.1.0. 6.5. |
+| **Last completed** | **Phase 6: cleanup, documentation, CRAN preparation.** Old engine deleted, D17 and D20 landed, documentation rewritten, version 0.1.0. §6.4. |
 | **In flight** | Nothing. |
 
-**Next action:** release prep for 0.1.0 -- `cran-comments.md`, a reverse-dependency
-check, and submission. Phase 7 (6.4) remains unscheduled.
+**Next action:** **Phase 6.5** -- triage the ten open GitHub issues against the
+0.1.0 code (§6.5). It is small and belongs before release rather than after, since
+a tracker still listing solved problems misleads users at exactly the moment new
+ones arrive.
+
+Then release prep for 0.1.0: `cran-comments.md`, a reverse-dependency check, and
+submission. **Phase 7** (the $O(N)$ word proposal, §6.6) and **Phase 8** (memory
+surgery, §6.7) are both unscheduled; Phase 7 is the cheaper of the two and should
+land first.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
 `fit_lda_warp()`, which initializes, samples and threads. The engine is
@@ -201,8 +208,10 @@ Settled. See §1 rule 3 before changing any of these.
 | **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | **Done.** Initialization 7.9x faster at $K{=}10$, 11.8x at $K{=}50$; gate re-run covers Phases 4 and 4.5 together. §6.3 |
 | **5** | RcppThread parallelism | **Done.** Bit-identical at 1/2/4/8/16 threads; both gates pass; sampler efficiency 59-68% (about 78% clock-adjusted), 7.8x on 12 physical cores. §6.3 |
 | **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
-| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. 6.5 |
-| **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
+| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. §6.4 |
+| **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | Small. Every open issue read and either closed with a reason or confirmed still live |
+| **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.6 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
+| **8** | *Unscheduled.* Memory surgery for large corpora — see §6.7 | A separate project. Breaking, broadly |
 
 **The `counts` documentation gap is closed.** `new_tidylda()`'s `@return` now
 documents the slot, in its final sparse topics-in-columns form, with a note that
@@ -864,53 +873,7 @@ each with a different initial assignment. What was checked instead:
 - The reference lives at `ignore/text2vec/` (pinned `0b31bdd8`, `.gitignore`d,
   not vendored per D2).
 
-### 6.4 Phase 7 sketch — memory surgery for large corpora
-
-**Unscheduled, and deliberately separate.** Recorded here so the reasoning is not
-lost, not because it is next.
-
-**Why it exists.** The point of this project is not only speed; it is to make
-models on much larger corpora feasible. warpLDA addresses the *time* cost. It
-does not address the fact that a fitted `tidylda` object is
-$O(KV + DK)$ dense, and the $DK$ term grows with the corpus:
-
-| Slot | Size | $K{=}500$, $V{=}10^5$, $D{=}10^4$ | same, $D{=}10^6$ |
-|---|---|---|---|
-| `beta`, `lambda`, `eta`, `counts$Cv` | $8KV$ each | 400 MB each | 400 MB each |
-| `theta`, `counts$Cd` | $8DK$ each | 40 MB each | **4 GB each** |
-
-D17 is a constant-factor improvement against this — it sparsifies two of the six
-slots. It does not change the asymptotics, because `beta`, `lambda` and `theta`
-stay dense.
-
-**The design.** Store only what cannot be recomputed: the sparse counts, dense
-$\boldsymbol\eta$, and $\boldsymbol\alpha$. Drop `beta`, `theta` and `lambda`
-as stored matrices and derive them on demand:
-
-$$\beta \propto C^v + \boldsymbol\eta, \qquad \theta \propto C^d + \boldsymbol\alpha, \qquad \lambda \text{ from Bayes' rule}$$
-
-That removes the dense $DK$ term entirely — the term that grows with corpus
-size — leaving $O(\text{nnz}(C^d) + \text{nnz}(C^v) + KV)$.
-
-**Why it is a separate project.** It is breaking, and broadly so. `beta`,
-`theta` and `lambda` are read by `summarize_topics()`, `print()`, `glance()`,
-`tidy()`, `augment()`, `predict(method = "dot")` (via `lambda`), and
-`refit()` (via `beta`, when constructing $\boldsymbol\eta^{(t)}$). Every one of
-those becomes a computation rather than a lookup.
-
-**One design question worth holding onto.** An S3 `$.tidylda` method or an active
-binding could compute these on access and preserve `model$beta` syntax, making
-the change non-breaking at the call site. The cost is that a user writing
-`model$beta` inside a loop silently pays a full recomputation each time, which
-argues for memoisation, which reintroduces the memory. Not resolved; just worth
-not rediscovering from scratch.
-
-**Prerequisites.** D17 (sparse counts) and D20 (scalar $\boldsymbol\eta$ fast
-path) both point this direction and should land first.
-
----
-
-### 6.5 Phase 6 results -- cleanup, documentation, release preparation
+### 6.4 Phase 6 results -- cleanup, documentation, release preparation
 
 No gate run. Nothing in this phase moves the sampler: A deletes dead code, B
 changes only the container the counts are returned in, and C is bit-identical to
@@ -994,6 +957,146 @@ lead, with the four Phase 0 entries preserved as its bug-fix section.
 local `-mno-omit-leaf-frame-pointer` NOTE. The spelling NOTE is gone --
 `inst/WORDLIST` gained the new terms. Vignettes rebuild, which they had not been
 doing here before: pandoc is present, just not on `PATH` (§8).
+
+---
+
+### 6.5 Phase 6.5 sketch -- retire the issues this project closed
+
+**Small, and worth doing before release.** Ten issues are open on GitHub, several
+of which describe problems this project either fixed outright or made moot. An
+issue tracker that still lists solved problems misleads users about what the
+package does and costs the maintainer attention on every triage pass.
+
+The point of the phase is a **decision on each one, recorded in the issue
+thread**, not a bulk close. Three categories, and the middle one is where the
+judgment is:
+
+**Fixed or made moot -- close with a pointer to the commit:**
+
+| # | Title | Disposition |
+|---|---|---|
+| 70 | `recover_counts_from_probs` gives incorrect counts | The function is deleted (§6.4). The bug cannot recur |
+| 77 | Parallel predictions | `predict(method = "mh")` threads through `fit_lda_warp()` as of Phase 3, capped at the document count. Verify against the issue's actual ask before closing |
+| 30 | Nail down that log likelihood calculation | Phase 0 fixed the normalizer, D11 fixes the evaluation interval and states what the number is. Confirm the issue wanted the calculation settled rather than a different estimand |
+
+**Changed status, needs a decision rather than a close:**
+
+| # | Title | What changed |
+|---|---|---|
+| 34 | optimize alpha using fixed point iteration | D7 removed `optimize_alpha` and 0.1.0 deprecates the argument. The issue is now a question about whether to ever implement it properly, on a fixed-$\boldsymbol\alpha$ engine that D19's alias table assumes. Answer it or close it as "won't do" -- do not leave it implying the argument still works |
+| 78 | Explore speeding up training with stochastic batches | The motivation was speed, and warpLDA plus threading delivered roughly 23x. Minibatch LDA is still a real and separate idea, so this is *not* automatically obsolete -- but it should be re-scoped against the new baseline or closed. Note that the abandoned batched implementation it may have been referring to was deleted in Phase 6 |
+
+**Untouched by this project** -- 8, 28, 51, 63, 68. Leave them alone.
+
+**Exit criterion.** Every open issue has been read against the 0.1.0 code and is
+either closed with a reason, or left open having been confirmed still live.
+
+---
+
+### 6.6 Phase 7 sketch -- the $O(N)$ word proposal
+
+**Unscheduled but wanted, and cheaper than the design notes suggest.** The word
+pass builds a dense $K$-length proposal vector and alias table for every word
+type, every iteration (`warp_lda.cpp:572-581`). That is the $O(VK)$ formulation
+D15 accepted. The paper's $O(N)$ alternative splits $q_w$ into a sparse count
+part and a dense prior part:
+
+$$q_w(k) \;\propto\; \underbrace{C^v_{wk}}_{\text{at most } \min(n_w, K) \text{ nonzeros}} \;+\; \underbrace{\eta_{kw}}_{\text{fixed for the whole run}}$$
+
+Draw from the mixture: with probability proportional to $\sum_k C^v_{wk}$ take
+the sparse part in $O(\mathrm{nnz})$, otherwise take one alias draw from a
+precomputed table over the prior part. The count part is rebuilt per word per
+iteration but only over its nonzeros; the prior part is built once, because
+$\boldsymbol\eta$ is fixed.
+
+**Why this is worth reopening now.** The design notes rejected it on memory: the
+prior part is $\boldsymbol\eta$'s column for $w$, which is word-specific, so
+$V$ alias tables at roughly $2\times$ the size of $\boldsymbol\eta$ -- about
+400 MB at $V = 10^5$, $K = 500$. **That reasoning was written before D20.** With a
+scalar $\boldsymbol\eta$ the prior part is identical for every word, so it needs
+**exactly one shared table of length $K$** -- which is what the paper actually
+does. The memory objection applies only to the tLDA matrix prior, and D20 already
+established that most models are not transfer models.
+
+So the phase splits along the prior, which the engine already knows at
+construction (`eta.is_scalar()`):
+
+| Prior | Prior part | Extra memory | Verdict |
+|---|---|---|---|
+| Scalar | one shared table over $\eta \mathbf{1}_K$ | $O(K)$ | Take it |
+| Matrix (tLDA) | $V$ tables, one per $\boldsymbol\eta$ column | $\approx 2\lvert\boldsymbol\eta\rvert$ | Keep the $O(VK)$ path, or gate on a threshold |
+
+That is a real fork in the hot loop, but it is the same shape as D9's
+`freeze_topics` flag: loop-invariant, chosen once per run, and D9 measured that
+branch as free at R's actual optimization flags.
+
+**When it pays.** The $VK$ term bites when $VK \gtrsim N$ -- design notes' table
+puts that at roughly $V = 2\times10^5$, $K = 1000$, $N = 10^7$, where the current
+formulation is about $20\times$ off ideal. At the benchmark corpora's scale it
+buys little, so **this phase needs a profile at high $K$ before it needs an
+implementation.** Measure first; the design notes' "revisit only if profiling at
+high $K$ shows it dominating" still governs.
+
+**It is not free of verification.** It changes what the sampler draws and in what
+order, so results move and the **full gate applies** -- both the scalar and the
+matrix arm, exactly as Phases 2 through 5 ran it. It is non-breaking at the
+*API*, which is what distinguishes it from Phase 8; it is not verifiable by diff,
+which is what distinguished Phase 6.
+
+**Prerequisite.** None. It is independent of Phase 8 and should land first, since
+Phase 8 changes what is stored and this changes only how a draw is made. Note
+though that the two pull against each other under a matrix prior: Phase 7 would
+*add* permanent memory proportional to $\boldsymbol\eta$ in exactly the case
+Phase 8 is trying to shrink. Another reason to take the scalar path only, absent
+a profile that argues otherwise.
+
+---
+
+### 6.7 Phase 8 sketch — memory surgery for large corpora
+
+**Unscheduled, and deliberately separate.** Recorded here so the reasoning is not
+lost, not because it is next.
+
+**Why it exists.** The point of this project is not only speed; it is to make
+models on much larger corpora feasible. warpLDA addresses the *time* cost. It
+does not address the fact that a fitted `tidylda` object is
+$O(KV + DK)$ dense, and the $DK$ term grows with the corpus:
+
+| Slot | Size | $K{=}500$, $V{=}10^5$, $D{=}10^4$ | same, $D{=}10^6$ |
+|---|---|---|---|
+| `beta`, `lambda`, `eta`, `counts$Cv` | $8KV$ each | 400 MB each | 400 MB each |
+| `theta`, `counts$Cd` | $8DK$ each | 40 MB each | **4 GB each** |
+
+D17 is a constant-factor improvement against this — it sparsifies two of the six
+slots. It does not change the asymptotics, because `beta`, `lambda` and `theta`
+stay dense.
+
+**The design.** Store only what cannot be recomputed: the sparse counts, dense
+$\boldsymbol\eta$, and $\boldsymbol\alpha$. Drop `beta`, `theta` and `lambda`
+as stored matrices and derive them on demand:
+
+$$\beta \propto C^v + \boldsymbol\eta, \qquad \theta \propto C^d + \boldsymbol\alpha, \qquad \lambda \text{ from Bayes' rule}$$
+
+That removes the dense $DK$ term entirely — the term that grows with corpus
+size — leaving $O(\text{nnz}(C^d) + \text{nnz}(C^v) + KV)$.
+
+**Why it is a separate project.** It is breaking, and broadly so. `beta`,
+`theta` and `lambda` are read by `summarize_topics()`, `print()`, `glance()`,
+`tidy()`, `augment()`, `predict(method = "dot")` (via `lambda`), and
+`refit()` (via `beta`, when constructing $\boldsymbol\eta^{(t)}$). Every one of
+those becomes a computation rather than a lookup.
+
+**One design question worth holding onto.** An S3 `$.tidylda` method or an active
+binding could compute these on access and preserve `model$beta` syntax, making
+the change non-breaking at the call site. The cost is that a user writing
+`model$beta` inside a loop silently pays a full recomputation each time, which
+argues for memoisation, which reintroduces the memory. Not resolved; just worth
+not rediscovering from scratch.
+
+**Prerequisites.** D17 (sparse counts) and D20 (scalar $\boldsymbol\eta$ fast
+path) both point this direction and landed in Phase 6. Phase 7 (§6.6) should also
+go first: it is independent, cheaper, and under a matrix prior the two pull in
+opposite directions on memory.
 
 ---
 

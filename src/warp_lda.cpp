@@ -567,13 +567,22 @@ Rcpp::List fit_lda_warp(
       // D15: this is the O(V*K) formulation -- a dense pass over all K topics
       // for every word type, every iteration. The O(N) alternative from the
       // warpLDA paper splits q_w into a sparse count part (C_word has at most
-      // min(n_w, K) nonzeros) plus a dense prior part served by a shared table.
-      // Under tLDA that dense part is eta's column for w, which is word-
-      // specific, so recovering O(1) means precomputing V alias tables over
-      // eta's columns. They would be built once, since eta is fixed, but cost
-      // roughly 2x the size of eta in permanent memory -- about 400MB at
-      // V = 1e5, K = 500, on top of eta itself. Accepted as-is for now; revisit
-      // if profiling at high K shows this dominating.
+      // min(n_w, K) nonzeros) plus a dense prior part served by a precomputed
+      // table, built once because eta is fixed.
+      //
+      // What that table costs depends entirely on the prior, and the two cases
+      // are not close:
+      //
+      //   scalar eta -- the prior part is the same for every word, so it is ONE
+      //     shared table of length K. This is what the paper does, and it is
+      //     essentially free.
+      //   matrix eta (tLDA) -- the prior part is eta's column for w, so it is V
+      //     tables, roughly 2x the size of eta in permanent memory: about 400MB
+      //     at V = 1e5, K = 500, on top of eta itself.
+      //
+      // Accepted as-is for now, in both cases. Roadmap 6.6 schedules the split
+      // as Phase 7 and wants a profile at high K before an implementation --
+      // the V*K term only bites when V*K >~ N.
       if (!freeze_topics) {
         for (std::size_t k = 0; k < K; k++)
           sc.prob[k] = Cv_w[k] + static_cast<double>(eta_w[k]);

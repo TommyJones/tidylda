@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{format_alpha}
 \alias{format_alpha}
-\title{Format \code{alpha} For Input into \code{fit_lda_c}}
+\title{Format \code{alpha} for input into the sampler}
 \usage{
 format_alpha(alpha, k)
 }
@@ -20,8 +20,8 @@ Returns a list with two elements: \code{alpha} and \code{alpha_class}.
   "vector".
 }
 \description{
-There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
-  sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
+There are a bunch of ways users could format \code{alpha} but the C++
+  sampler in \code{\link[tidylda]{fit_lda_warp}} only takes it one way. This function does the
   appropriate formatting. It also returns errors if the user input a malformatted
   \code{alpha}.
 }

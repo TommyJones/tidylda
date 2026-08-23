@@ -30,7 +30,7 @@ commonly-used classes such as \code{\link[base]{matrix}},
 
 \item{k}{Integer number of topics.}
 
-\item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
+\item{iterations}{Integer number of sampling iterations to run.}
 
 \item{burnin}{Integer number of burnin iterations. If \code{burnin} is greater than -1,
 the resulting "beta" and "theta" matrices are an average over all iterations
@@ -43,8 +43,9 @@ for topics over documents.}
 or numeric matrix with \code{k} rows and \code{ncol(data)} columns.
 This is the prior for words over topics.}
 
-\item{optimize_alpha}{Logical. Do you want to optimize alpha every iteration?
-Defaults to \code{FALSE}. See 'details' below for more information.}
+\item{optimize_alpha}{Deprecated as of version 0.1.0 and ignored. Accepted
+so that existing calls keep working; passing \code{TRUE} warns once
+per session. See 'details' below.}
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
 Useful for assessing convergence. Defaults to \code{TRUE}.}
@@ -65,11 +66,16 @@ Defaults to \code{TRUE}.}
 Returns an S3 object of class \code{tidylda}. See \code{\link[tidylda]{new_tidylda}}.
 }
 \description{
-Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling.
+Fit a Latent Dirichlet Allocation topic model using warpLDA, a
+  Metropolis-Hastings sampler.
 }
 \details{
-This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
-  written using the excellent Rcpp package. Some implementation notes follow:
+Fitting uses **warpLDA** (Chen et al.,
+  \url{https://arxiv.org/abs/1510.08628}), a Metropolis-Hastings sampler that
+  alternates document-ordered and word-ordered passes over the corpus so that
+  each pass touches only a small, cache-resident working set. It replaces the
+  collapsed Gibbs sampler used through version 0.0.7, and is written in Rcpp
+  and parallelized with RcppThread. Some implementation notes follow:
 
   Topic-token and topic-document assignments are not initialized based on a
   uniform-random sampling, as is common. Instead, topic-token probabilities
@@ -77,8 +83,8 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   with \code{eta} as its parameter. The same is done for topic-document
   probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
   function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
-  a single Gibbs iteration to initialize assignments of tokens to topics and
-  topics to documents.
+  a single sampling iteration to initialize assignments of tokens to topics
+  and topics to documents.
 
   When you use burn-in iterations (i.e. \code{burnin = TRUE}), the resulting
   \code{beta} and \code{theta} matrices are calculated by averaging over every
@@ -87,10 +93,10 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   only. Ideally, you'd burn in every iteration before convergence, then average
   over the chain after its converged (and thus every observation is independent).
 
-  \code{optimize_alpha} is no longer implemented and is ignored. It rescaled
-  \code{alpha} by topic size each iteration, standing in for fixed-point
-  estimation that was never written. \code{alpha} is now fixed for the whole
-  run.
+  \code{optimize_alpha} is deprecated as of version 0.1.0 and is ignored. It
+  rescaled \code{alpha} by topic size each iteration, standing in for
+  fixed-point estimation that was never written. \code{alpha} is now fixed
+  for the whole run. The argument will be removed in a future release.
 
   The log likelihood calculation is the same that can be found on page 9 of
   \url{https://arxiv.org/pdf/1510.08628.pdf}, and \code{eta} may be a scalar,
@@ -126,9 +132,9 @@ m <- tidylda(
 
 str(m)
 
-# predict on held-out documents using gibbs sampling "fold in"
+# predict on held-out documents using Metropolis-Hastings "fold in"
 p1 <- predict(m, nih_sample_dtm[21:100, ],
-  method = "gibbs",
+  method = "mh",
   iterations = 200, burnin = 175
 )
 

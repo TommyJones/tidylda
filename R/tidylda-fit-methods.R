@@ -1,5 +1,6 @@
 #' Fit a Latent Dirichlet Allocation topic model
-#' @description Fit a Latent Dirichlet Allocation topic model using collapsed Gibbs sampling.
+#' @description Fit a Latent Dirichlet Allocation topic model using warpLDA, a
+#'   Metropolis-Hastings sampler.
 #' @param data A document term matrix or term co-occurrence matrix. The preferred
 #'   class is a \code{\link[Matrix]{dgCMatrix-class}}. However there is support
 #'   for any \code{\link[Matrix]{Matrix-class}} object as well as several other
@@ -7,7 +8,7 @@
 #'   \code{\link[quanteda]{dfm}}, \code{\link[tm]{DocumentTermMatrix}}, and
 #'   \code{\link[slam]{simple_triplet_matrix}}
 #' @param k Integer number of topics.
-#' @param iterations Integer number of iterations for the Gibbs sampler to run.
+#' @param iterations Integer number of sampling iterations to run.
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
 #'        the resulting "beta" and "theta" matrices are an average over all iterations
 #'        greater than \code{burnin}.
@@ -16,8 +17,9 @@
 #' @param eta Numeric scalar, numeric vector of length \code{ncol(data)},
 #'        or numeric matrix with \code{k} rows and \code{ncol(data)} columns.
 #'        This is the prior for words over topics.
-#' @param optimize_alpha Logical. Do you want to optimize alpha every iteration?
-#'        Defaults to \code{FALSE}. See 'details' below for more information.
+#' @param optimize_alpha Deprecated as of version 0.1.0 and ignored. Accepted
+#'        so that existing calls keep working; passing \code{TRUE} warns once
+#'        per session. See 'details' below.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{TRUE}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
@@ -28,8 +30,12 @@
 #'        Defaults to \code{TRUE}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class \code{tidylda}. See \code{\link[tidylda]{new_tidylda}}.
-#' @details This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
-#'   written using the excellent Rcpp package. Some implementation notes follow:
+#' @details Fitting uses **warpLDA** (Chen et al.,
+#'   \url{https://arxiv.org/abs/1510.08628}), a Metropolis-Hastings sampler that
+#'   alternates document-ordered and word-ordered passes over the corpus so that
+#'   each pass touches only a small, cache-resident working set. It replaces the
+#'   collapsed Gibbs sampler used through version 0.0.7, and is written in Rcpp
+#'   and parallelized with RcppThread. Some implementation notes follow:
 #'
 #'   Topic-token and topic-document assignments are not initialized based on a
 #'   uniform-random sampling, as is common. Instead, topic-token probabilities
@@ -37,8 +43,8 @@
 #'   with \code{eta} as its parameter. The same is done for topic-document
 #'   probabilities (i.e. \code{theta}) using \code{alpha}. Then an internal
 #'   function is called (\code{\link[tidylda]{initialize_topic_counts}}) to run
-#'   a single Gibbs iteration to initialize assignments of tokens to topics and
-#'   topics to documents.
+#'   a single sampling iteration to initialize assignments of tokens to topics
+#'   and topics to documents.
 #'
 #'   When you use burn-in iterations (i.e. \code{burnin = TRUE}), the resulting
 #'   \code{beta} and \code{theta} matrices are calculated by averaging over every
@@ -47,10 +53,10 @@
 #'   only. Ideally, you'd burn in every iteration before convergence, then average
 #'   over the chain after its converged (and thus every observation is independent).
 #'
-#'   \code{optimize_alpha} is no longer implemented and is ignored. It rescaled
-#'   \code{alpha} by topic size each iteration, standing in for fixed-point
-#'   estimation that was never written. \code{alpha} is now fixed for the whole
-#'   run.
+#'   \code{optimize_alpha} is deprecated as of version 0.1.0 and is ignored. It
+#'   rescaled \code{alpha} by topic size each iteration, standing in for
+#'   fixed-point estimation that was never written. \code{alpha} is now fixed
+#'   for the whole run. The argument will be removed in a future release.
 #'
 #'   The log likelihood calculation is the same that can be found on page 9 of
 #'   \url{https://arxiv.org/pdf/1510.08628.pdf}, and \code{eta} may be a scalar,
@@ -86,9 +92,9 @@
 #'
 #' str(m)
 #'
-#' # predict on held-out documents using gibbs sampling "fold in"
+#' # predict on held-out documents using Metropolis-Hastings "fold in"
 #' p1 <- predict(m, nih_sample_dtm[21:100, ],
-#'   method = "gibbs",
+#'   method = "mh",
 #'   iterations = 200, burnin = 175
 #' )
 #'
@@ -227,14 +233,15 @@ tidylda_bridge <- function(
   # no longer does anything, and silently ignoring it would be worse than saying
   # so. Fixing alpha is also what lets D19's alias table be built just once.
   # Warned once per session rather than per call: this is informational, and a
-  # loop of fits should not produce a wall of identical warnings. Phase 6 turns
-  # it into a formal deprecation during the documentation and CRAN pass.
+  # loop of fits should not produce a wall of identical warnings. Documented as
+  # deprecated as of 0.1.0; the argument itself goes in a later release.
   if (isTRUE(optimize_alpha)) {
     rlang::warn(
       paste0(
-        "optimize_alpha is no longer implemented and is being ignored.\n",
+        "optimize_alpha is deprecated as of tidylda 0.1.0 and is ignored.\n",
         "  It rescaled alpha by topic size as a stand-in for fixed-point\n",
-        "  estimation that was never written; alpha is now fixed for the run."
+        "  estimation that was never written; alpha is now fixed for the run.\n",
+        "  The argument will be removed in a future release."
       ),
       .frequency = "once",
       .frequency_id = "tidylda_optimize_alpha_removed"
@@ -267,7 +274,7 @@ tidylda_bridge <- function(
     threads <- as.integer(max(floor(threads), 1)) # prevent any decimal inputs
   
   # The old warning here -- that fewer than 100 documents per thread gives "a
-  # poor fit" -- described the abandoned batched Gibbs implementation, where the
+  # poor fit" -- described an abandoned batched implementation, where the
   # partition genuinely changed the model. Under D12 the warpLDA engine seeds
   # every work item from its own index, so results are identical at any thread
   # count and the only thing `threads` buys or costs is wall clock. Nothing to
@@ -294,7 +301,7 @@ tidylda_bridge <- function(
     dtm_in = dtm,
     Cd_start = counts$Cd_start,
     alpha_in = alpha$alpha,
-    eta_in = eta$eta,
+    eta_in = as.matrix(eta$eta), # 1 x 1 when scalar; the engine detects it (D20)
     iterations = iterations,
     burnin = burnin,
     calc_likelihood = calc_likelihood,

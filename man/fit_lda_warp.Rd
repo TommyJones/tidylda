@@ -52,7 +52,9 @@ thread count (D12), so this trades wall clock for cores and nothing else}
 \item{verbose}{bool, show a progress bar?}
 }
 \value{
-Returns a list with the same names as \code{fit_lda_c}.
+Returns a list of counts and diagnostics. \code{Cd}, \code{Cd_mean}
+  and \code{Cd_sum} are documents by topics; \code{Cv}, \code{Cv_mean} and
+  \code{Cv_sum} are words by topics (D17).
 }
 \description{
 Metropolis-Hastings replacement for \code{fit_lda_c}. Phase 2:

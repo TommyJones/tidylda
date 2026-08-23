@@ -119,17 +119,20 @@ posterior.tidylda <- function(
     )
     
     # extract dirichlet parameters for beta
-    dir_par <- x$counts$Cv[which, ] + eta$eta[which, ]
+    #
+    # Cv is words-by-topics (D17), so a topic is a COLUMN -- and the result is
+    # already words-by-topics, which is what generate_sample() wants. The
+    # trailing t() this used to need is gone. counts_cv() transposes a model
+    # saved by an earlier version.
+    eta_mat <- eta_matrix(eta, nrow(x$beta), ncol(x$beta))
+    dir_par <- counts_cv(x)[, which] + t(eta_mat[which, , drop = FALSE])
     
     if (length(which) == 1) {
-      dir_par <- matrix(dir_par, nrow = 1)
+      dir_par <- matrix(dir_par, ncol = 1)
     }
     
-    
-    rownames(dir_par) <- rownames(x$beta)[which]
-    colnames(dir_par) <- colnames(x$beta)
-    
-    dir_par <- t(dir_par)
+    colnames(dir_par) <- rownames(x$beta)[which]
+    rownames(dir_par) <- colnames(x$beta)
   }
   
   # sample

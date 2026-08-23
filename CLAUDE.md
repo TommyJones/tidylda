@@ -2,7 +2,7 @@
 
 An R package implementing Latent Dirichlet Allocation with tidyverse
 conventions, plus tLDA — transfer learning via a matrix prior over words in
-topics. Fitting is done with a collapsed Gibbs sampler in Rcpp.
+topics. Fitting is done with a warpLDA Metropolis-Hastings sampler in Rcpp.
 
 ## The `warp` branch
 
@@ -25,8 +25,10 @@ needs reopening, change it and record why in the same edit.
 
 ## Building and testing
 
-Pandoc is not installed here, so vignette building fails and aborts a normal
-check. Use:
+Pandoc ships with RStudio Server here but is not on the default `PATH`, so
+vignette building fails and aborts a normal check unless you point at it:
+`RSTUDIO_PANDOC=/usr/lib/rstudio-server/bin/quarto/bin/tools/x86_64`. For
+routine checks, skip vignettes:
 
 ```r
 devtools::check("/home/tommy/tidylda", document = FALSE, vignettes = FALSE)

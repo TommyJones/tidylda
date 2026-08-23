@@ -19,7 +19,7 @@ new_tidylda(
 )
 }
 \arguments{
-\item{lda}{list output of \code{\link[tidylda]{fit_lda_c}}}
+\item{lda}{list output of \code{\link[tidylda]{fit_lda_warp}}}
 
 \item{dtm}{a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}}
 
@@ -32,15 +32,15 @@ or update)? Defaults to \code{FALSE}}
 
 \item{eta}{output of \code{\link[tidylda]{format_eta}}}
 
-\item{optimize_alpha}{did you optimize \code{alpha} when making a call to
-\code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
-argument is ignored.}
+\item{optimize_alpha}{deprecated and ignored, retained so that callers
+passing it keep working. If \code{is_prediction = TRUE}, this argument is
+ignored.}
 
 \item{calc_r2}{did the user want to calculate R-squared when calculating the
 the model? If \code{is_prediction = TRUE}, this argument is ignored.}
 
 \item{calc_likelihood}{did you calculate the log likelihood when making a call
-to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
+to \code{\link[tidylda]{fit_lda_warp}}?  If \code{is_prediction = TRUE}, this
 argument is ignored.}
 
 \item{call}{the result of calling \code{\link[base]{match.call}} at the top of
@@ -61,14 +61,22 @@ Returns an S3 object of class \code{tidylda} with the following slots:
     P(topic|token), calculated using Bayes's rule.
     See \code{\link[tidylda]{calc_lambda}}.
 
-  \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
-    is \code{FALSE}, \code{alpha} is what the user passed when calling
-    \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE},
-    \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
-    call to \code{\link[tidylda]{fit_lda_c}}.
+  \code{alpha} is the prior for topics over documents. It is what the user
+    passed when calling \code{\link[tidylda]{tidylda}}, formatted as a
+    \code{k}-length numeric vector; the sampler does not modify it.
 
   \code{eta} is the prior for tokens over topics. This is what the user passed
-    when calling \code{\link[tidylda]{tidylda}}.
+    when calling \code{\link[tidylda]{tidylda}}: a numeric scalar stays a
+    scalar, and a matrix prior is a \code{k} by \code{ncol(dtm)} matrix.
+
+  \code{counts} is a list of two sparse matrices of class
+    \code{\link[Matrix]{dgCMatrix-class}} holding the token-topic counts the
+    sampler ended on. \code{Cd} is documents by topics; \code{Cv} is tokens
+    by topics. Both are topics-in-columns, so \code{Cd} aligns with
+    \code{theta} and \code{Cv} with \code{t(beta)}. If burn-in iterations
+    were used these are averages over the post-burn-in iterations, and are
+    therefore not integers. NOTE: as of version 0.1.0 \code{Cv} is tokens by
+    topics; it was topics by tokens previously.
 
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
 
@@ -86,7 +94,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
 \description{
 Since all three of \code{\link[tidylda]{tidylda}},
   \code{\link[tidylda]{refit.tidylda}}, and
-  \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
+  \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_warp}},
   we need a way to format the resulting posteriors and other user-facing
   objects consistently. This function does that.
 }

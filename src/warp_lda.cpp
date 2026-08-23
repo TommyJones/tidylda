@@ -107,7 +107,9 @@ uint64_t draw_master_seed() {
 //' @param threads int, number of worker threads. Results are identical at any
 //'   thread count (D12), so this trades wall clock for cores and nothing else
 //' @param verbose bool, show a progress bar?
-//' @return Returns a list with the same names as \code{fit_lda_c}.
+//' @return Returns a list of counts and diagnostics. \code{Cd}, \code{Cd_mean}
+//'   and \code{Cd_sum} are documents by topics; \code{Cv}, \code{Cv_mean} and
+//'   \code{Cv_sum} are words by topics (D17).
 // [[Rcpp::export]]
 Rcpp::List fit_lda_warp(
     const arma::sp_mat&                           dtm_in,
@@ -270,7 +272,13 @@ Rcpp::List fit_lda_warp(
 
   // eta and its per-topic vocabulary sums. Unused when topics are frozen, so
   // skip building them: at K=500, V=1e5 that is 200MB not allocated.
-  const Eta eta = freeze_topics ? Eta(nullptr, 0, 0) : Eta(eta_in.begin(), K, V);
+  // D20: a 1 x 1 eta_in means the user passed a scalar, and format_eta() did not
+  // materialize K x V for it. Scalar mode holds one K-length array instead.
+  const bool eta_is_scalar = (eta_in.nrow() == 1 && eta_in.ncol() == 1);
+  const Eta eta =
+      freeze_topics   ? Eta(nullptr, 0, 0)
+      : eta_is_scalar ? Eta(static_cast<double>(eta_in(0, 0)), K, V)
+                      : Eta(eta_in.begin(), K, V);
 
   // With topics frozen the word-proposal is q_w(k) ~ beta_hat[k][v], fixed for
   // the whole run. Same column-major reasoning as eta: R's K x V matrix already
@@ -693,19 +701,24 @@ Rcpp::List fit_lda_warp(
   for (std::size_t d = 0; d < D; d++)
     for (std::size_t k = 0; k < K; k++) Cd_out(d, k) = Cd[d * K + k];
 
-  // Frozen topics never build C^v, so it goes out empty rather than as a
-  // zero matrix that could be mistaken for a real count.
-  // new_tidylda(is_prediction = TRUE) reads only Cd/Cd_mean and alpha.
-  IntegerMatrix Cv_out(freeze_topics ? 0 : K, freeze_topics ? 0 : V);
+  // D17: C^v goes out as V x K, the orientation the engine already holds it in.
+  // The K x V transpose this used to do was a stopgap for the old R contract;
+  // R's consumers were rewritten in Phase 6 to match instead. dgCMatrix is
+  // compressed-sparse-column, so V x K stores each word's topic counts
+  // contiguously -- which is what Phase 7's on-demand beta would want.
+  //
+  // Frozen topics never build C^v, so it goes out empty rather than as a zero
+  // matrix that could be mistaken for a real count.
+  IntegerMatrix Cv_out(freeze_topics ? 0 : V, freeze_topics ? 0 : K);
   if (!freeze_topics)
     for (std::size_t v = 0; v < V; v++)
-      for (std::size_t k = 0; k < K; k++) Cv_out(k, v) = Cv[v * K + k];
+      for (std::size_t k = 0; k < K; k++) Cv_out(v, k) = Cv[v * K + k];
 
   NumericMatrix Cd_mean(averaging ? D : 0, averaging ? K : 0);
   const bool cv_out = averaging && !freeze_topics;
-  NumericMatrix Cv_mean(cv_out ? K : 0, cv_out ? V : 0);
+  NumericMatrix Cv_mean(cv_out ? V : 0, cv_out ? K : 0);
   IntegerMatrix Cd_sum_out(averaging ? D : 0, averaging ? K : 0);
-  IntegerMatrix Cv_sum_out(cv_out ? K : 0, cv_out ? V : 0);
+  IntegerMatrix Cv_sum_out(cv_out ? V : 0, cv_out ? K : 0);
 
   if (averaging) {
     const double n_post = static_cast<double>(iterations - burnin);
@@ -718,8 +731,8 @@ Rcpp::List fit_lda_warp(
     if (cv_out) {
       for (std::size_t v = 0; v < V; v++) {
         for (std::size_t k = 0; k < K; k++) {
-          Cv_mean(k, v)    = static_cast<double>(Cv_sum[v * K + k]) / n_post;
-          Cv_sum_out(k, v) = static_cast<int>(Cv_sum[v * K + k]);
+          Cv_mean(v, k)    = static_cast<double>(Cv_sum[v * K + k]) / n_post;
+          Cv_sum_out(v, k) = static_cast<int>(Cv_sum[v * K + k]);
         }
       }
     }

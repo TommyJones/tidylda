@@ -79,19 +79,19 @@ repository root.
 | **Last updated** | 2026-08-23 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 6 -- cleanup, documentation, CRAN preparation |
-| **Last completed** | **Phase 5.5: parallel initialization.** End-to-end 7.6-7.8x on 12 physical cores, flat in $K$. 6.3. |
+| **Current phase** | None. All scheduled phases are done. |
+| **Last completed** | **Phase 6: cleanup, documentation, CRAN preparation.** Old engine deleted, D17 and D20 landed, documentation rewritten, version 0.1.0. 6.5. |
 | **In flight** | Nothing. |
 
-**Next action:** Phase 6. It is the last scheduled phase before release prep, and
-it is mostly deletion and documentation rather than new engine work.
+**Next action:** release prep for 0.1.0 -- `cran-comments.md`, a reverse-dependency
+check, and submission. Phase 7 (6.4) remains unscheduled.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
 `fit_lda_warp()`, which initializes, samples and threads. The engine is
 statistically validated under both priors and reproducible under `set.seed()`
 independent of thread count.
 
-**What the whole project delivered, Phases 2 through 5.5:**
+**What the whole project delivered, Phases 2 through 6:**
 
 - **Statistically sound at every phase boundary**: scalar prior 8/8, matrix
   prior 8/8 unpaired and 8/8 paired.
@@ -99,29 +99,13 @@ independent of thread count.
   and a further 7.6-7.8x on 12 physical cores -- roughly 23x end to end.
 - **Reproducible under `set.seed()` at any thread count** (D12), achieved
   structurally rather than by argument.
-- **Five pre-existing defects fixed**: `theta` under asymmetric `alpha`, an
+- **Six pre-existing defects fixed**: `theta` under asymmetric `alpha`, an
   unstable `std::sort` shuffling exchangeable tokens, a per-token
-  $O(K\log K)$ sort in initialization, and two false statements in
-  `tidylda()`'s documentation.
-- **D9, D14 and D20 revised on evidence; D12, D13 and D16 delivered; open
-  questions 1 and 3 closed.**
-
-**What Phase 6 must do:**
-
-1. **Delete `fit_lda_c()`, `create_lexicon()` and `src/sample.h`.** All three are
-   uncalled. `sample.h` also has an out-of-bounds read at `log_sample_one()`'s
-   `q[k - 1]` when `k = 0`. `test-cpp_funs.R` exercises `fit_lda_c()` and one
-   warp test uses `create_lexicon()` as a reference; both must be retired or
-   re-pointed deliberately, not left to fail.
-2. **D17** (sparse column-major `counts`) and its four consumers, **D20**
-   (scalar eta fast path), and the `counts` documentation gap.
-3. **`predict(method = "gibbs")` is a misnomer** -- the string is public API so
-   it stays, but the documentation should stop calling it Gibbs.
-4. **`optimize_alpha`** is accepted and ignored with a once-per-session warning;
-   make that a formal deprecation.
-5. **Re-render the PDFs.** Both `.md` files pass
-   `warp-planning/check-markdown.py`, but neither has been rendered on a machine
-   with pandoc since the fixes.
+  $O(K\log K)$ sort in initialization, two false statements in
+  `tidylda()`'s documentation, and a redundant validation in
+  `predict.tidylda()` that rejected valid `method` values.
+- **D9, D14 and D20 revised on evidence; D12, D13, D16, D17 and D20 delivered;
+  open questions 1 and 3 closed.**
 
 **Known and knowingly accepted:** one tLDA cell is underpowered -- small/$K{=}50$
 coherence, about 10 core-hours to close if a future run has budget.
@@ -185,10 +169,10 @@ Settled. See §1 rule 3 before changing any of these.
 | D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2x $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()`. **Done in Phase 4** | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them eliminates the R/C++ round trip and the 16-bytes-per-token marshalling. `create_lexicon()` is now uncalled by the package and survives only as a reference for one test; it goes with `fit_lda_c()` in Phase 6 | §11 |
-| D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Deferred to Phase 6**, after the engine works | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
+| D17 | Export $C^d$ and $C^v$ as **sparse** matrices in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Done in Phase 6.** | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
 | D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps x 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
-| D20 | Scalar fast path for $\boldsymbol\eta$ — **Phase 6** | A memory win in the common non-transfer case, but an optimization rather than a correctness requirement. *Corrected 2026-08-23: this row previously said Phase 4, contradicting the §6 table. Phase 6 is right — a scalar path computes with a `double` $\eta$ where the matrix path uses the `float`-rounded value (D5), so it moves results and cannot ride along with a refactor whose whole value is being verifiable without a benchmark run.* `format_eta()` keeps materializing $K \times V$ until then | §5.5 |
+| D20 | Scalar fast path for $\boldsymbol\eta$ — **done in Phase 6** | A memory win in the common non-transfer case, but an optimization rather than a correctness requirement. *Corrected 2026-08-23: this row previously said Phase 4, contradicting the §6 table. Phase 6 is right — a scalar path computes with a `double` $\eta$ where the matrix path uses the `float`-rounded value (D5), so it moves results and cannot ride along with a refactor whose whole value is being verifiable without a benchmark run.* In the event it was verified by diff after all: `Eta`'s scalar constructor rounds through `float` and *accumulates* $\bar\eta$ over $V$ additions rather than multiplying, which reproduces the matrix path bit for bit | §5.5 |
 
 ---
 
@@ -196,7 +180,7 @@ Settled. See §1 rule 3 before changing any of these.
 
 | Invariant | Enforced by / at risk in |
 |---|---|
-| `counts$Cd` and `counts$Cv` remain usable as Dirichlet parameters and may hold fractional post-burnin means. **Orientation changes in Phase 6** (D17): until then $C^v$ is $K \times V$ dense; after, $V \times K$ sparse. Whichever holds, `refit.tidylda.R:223`, `posterior.tidylda.R:100`/`:122` and `utils.R:642-646` must agree with it | `posterior.tidylda.R:100-133`, `refit.tidylda.R:223` |
+| `counts$Cd` and `counts$Cv` remain usable as Dirichlet parameters and may hold fractional post-burnin means. **As of 0.1.0** (D17) both are sparse and topics-in-columns: $C^d$ is $D \times K$, $C^v$ is $V \times K$. Every read goes through `counts_cv()`, which transposes pre-0.1.0 saved models | `posterior.tidylda.R:100-133`, `refit.tidylda.R:223` |
 | `set.seed()` reproducibility, including under parallelism — a CRAN requirement | D12, D13 |
 | Public API unchanged: `tidylda()`, `refit()`, `predict()`, `posterior()`, `tidy`/`augment`/`glance` | all of `R/` |
 | `refit`'s R-side vocabulary alignment and topic addition stay in R, untouched | `refit.tidylda.R:249-329` |
@@ -217,16 +201,12 @@ Settled. See §1 rule 3 before changing any of these.
 | **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | **Done.** Initialization 7.9x faster at $K{=}10$, 11.8x at $K{=}50$; gate re-run covers Phases 4 and 4.5 together. §6.3 |
 | **5** | RcppThread parallelism | **Done.** Bit-identical at 1/2/4/8/16 threads; both gates pass; sampler efficiency 59-68% (about 78% clock-adjusted), 7.8x on 12 physical cores. §6.3 |
 | **5.5** | Parallelize initialization | **Done.** Init 3.4x/6.1x/8.8x at $K=10/50/200$; end-to-end 7.6-7.8x on 12 physical cores and flat in $K$. Verified without the gate -- see 6.3 |
-| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
+| **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. 6.5 |
 | **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
 
-**Documentation gap to close in Phase 6.** `counts` is a real slot on the
-`tidylda` object but `new_tidylda()`'s `@return` never mentions it — it documents
-`beta`, `theta`, `lambda`, `alpha`, `eta`, `summary`, `call`, `log_likelihood`
-and `r2`, and stops. That is a documentation bug, not a deliberate signal that
-the slot is private, and it should be fixed. Do it **after** D17 settles the
-orientation, so the documentation describes the final sparse $V \times K$ form
-rather than the interim one.
+**The `counts` documentation gap is closed.** `new_tidylda()`'s `@return` now
+documents the slot, in its final sparse topics-in-columns form, with a note that
+$C^v$ changed orientation at 0.1.0.
 
 **Why this order.** The two historically risky things — statistical correctness
 of the modified sampler, and parallel correctness — are isolated into separate
@@ -930,6 +910,93 @@ path) both point this direction and should land first.
 
 ---
 
+### 6.5 Phase 6 results -- cleanup, documentation, release preparation
+
+No gate run. Nothing in this phase moves the sampler: A deletes dead code, B
+changes only the container the counts are returned in, and C is bit-identical to
+the matrix path by construction. Any difference here would be a bug, not a
+result to re-validate.
+
+**A. The old engine is gone.** `src/lda_gibbs2.cpp` (`fit_lda_c()`,
+`create_lexicon()`), `src/sample_int.h`, `src/sample.h` and
+`src/parallel_gibbs_utils.h` are deleted, along with `man/fit_lda_c.Rd` and
+`man/create_lexicon.Rd`. `src/matrix_conversions.h` stays -- `warp_lda.cpp` uses
+`mat_to_vec`. Eleven dangling `\link` targets in `R/utils.R` now point at
+`fit_lda_warp`.
+
+The two test files that depended on the old engine were rewritten rather than
+retired. `test-cpp_funs.R` now exercises `fit_lda_warp()`: token conservation
+across `Cd`, `Cv`, `Cd_mean` and `Cv_mean`, a finite log likelihood, and `alpha`
+unchanged -- which now tests D7's removal of `optimize_alpha` rather than its
+behaviour. `test-warp-engine.R`'s posterior-targeting test needed a reference
+sampler, so it got **an independent collapsed Gibbs sampler written in R**,
+about thirty lines over a deliberately tiny corpus. It shares no header, no RNG
+and no data structure with the engine, so it can catch a warpLDA bug that a
+C++-against-C++ comparison cannot, and it survives future engine changes. The
+two agree on corpus log likelihood to 0.15%.
+
+**B. D17 landed.** The engine emits $C^v$ as $V \times K$ and $C^d$ as
+$D \times K$, both sparse, with no transpose on output. Four consumers updated,
+per design notes §6.7. Every read goes through a new internal `counts_cv()`,
+which detects orientation against `nrow(object$beta)` and transposes a
+pre-0.1.0 saved model on the way in -- tidylda is on CRAN and those objects
+exist in the wild. `test-counts-contract.R` covers the orientation, the
+token-topic association through `posterior()`, and an old-format object round
+trip.
+
+One assertion in the first draft of that file was wrong and is worth recording:
+it required `colSums(Cd_mean) == colSums(Cv_mean)`. Per D10 the two are
+accumulated at different points in the iteration, so their topic marginals need
+not agree; the test now asserts row marginals and the grand total.
+
+**C. D20 landed.** `Eta` gained a scalar constructor that keeps one $K$-length
+array instead of materializing $K \times V$, and `format_eta()` no longer
+expands a scalar prior. Verified bit-identical to the matrix path on `beta`,
+`theta`, `counts` and `log_likelihood`. At the test scale ($K{=}6$, $V{=}5210$)
+the `eta` slot drops from 594.6 Kb to 56 bytes.
+
+Two details make the bit-identity hold, both of which failed on the first
+attempt. $\bar\eta$ is **accumulated** over $V$ additions rather than computed
+as `v * eta`, because the matrix constructor reaches it by addition and the two
+do not land on the same bits: 260.50000000002495 against 260.5. And the scalar
+is **rounded through `float`**, matching D5's storage for the matrix path, so a
+scalar fit and a matrix fit describing the identical model agree exactly.
+Downstream, `new_tidylda()` tests `length(lda$eta) == 1` rather than
+`is.matrix()`, since a scalar prior now returns from the engine as a 1x1 matrix.
+
+**D. Documentation.** The sampler is named: **warpLDA**, with the arXiv 1510.08628
+citation, once each in `DESCRIPTION`, the package-level doc, `README.md` and
+`tidylda()`'s `@details`; "Metropolis-Hastings" thereafter. `predict()`'s
+`method` argument is now `c("mh", "dot", "gibbs")` -- `"mh"` is the default,
+`"gibbs"` still works and warns once per session. `optimize_alpha` is documented
+as deprecated in both `tidylda()` and `refit.tidylda()`.
+
+Three further defects surfaced during the read-through, none of them in the
+engine:
+
+- `predict.tidylda()` carried a redundant `stop("method must be one of 'gibbs'
+  or 'dot'")` *after* `match.arg()` had already validated and normalized the
+  argument -- so it rejected the new `"mh"`. Removed.
+- `predict()`'s `threads` was documented as "currently ignored; only
+  single-threaded prediction is implemented". It has been passed through to
+  `fit_lda_warp()` since Phase 3.
+- `vignettes/tidylda-intro.Rmd`'s YAML header ended
+  `%\VignetteEncoding{UTF-8}---` on one line, gluing the closing fence onto the
+  encoding directive.
+
+`recover_counts_from_probs()` is deleted, along with its man page and the
+commented-out call site that recorded it as returning wrong counts.
+
+**E. Release checks.** `DESCRIPTION` is at `0.1.0` with a rewritten Description
+field. `NEWS.md`'s top section is retitled and reorganized so the breaking items
+lead, with the four Phase 0 entries preserved as its bug-fix section.
+`devtools::check(vignettes = TRUE)` is clean: 0 errors, 0 warnings, and only the
+local `-mno-omit-leaf-frame-pointer` NOTE. The spelling NOTE is gone --
+`inst/WORDLIST` gained the new terms. Vignettes rebuild, which they had not been
+doing here before: pandoc is present, just not on `PATH` (§8).
+
+---
+
 ## 7. Open questions
 
 1. ~~**Work partitioning for parallelism.**~~ **Resolved in Phase 5.** Both
@@ -972,9 +1039,8 @@ path) both point this direction and should land first.
    1.3 s of work per iteration. Streaming $C^v$ and eta is the same story at
    scale: about 400 MB per iteration, or 20 ms, against seconds of compute.
 
-   **Report per-core and as-shipped numbers separately.** Gibbs stays
-   single-threaded -- its batch loop is broken (design notes 9b) and Phase 6
-   deletes it -- so any parallel comparison is parallel-warp against
+   **Report per-core and as-shipped numbers separately.** The Gibbs baseline
+   was single-threaded, so any parallel comparison is parallel-warp against
    serial-Gibbs. That is the number users experience and is worth publishing,
    but it is not a per-core comparison of samplers and should not be presented
    as one.
@@ -1059,8 +1125,11 @@ but `git remote -v` may still *display* an https URL. That is expected.
 
 **Release conventions.** `NEWS.md` is prepended per version; `cran-comments.md`
 is rewritten wholesale at release-prep time; `CRAN-SUBMISSION` is generated by
-`devtools` and never hand-edited. `DESCRIPTION` stays at `0.0.7.999` until
-release prep. NEWS already carries a `0.0.8` section from Phase 0.
+`devtools` and never hand-edited. `DESCRIPTION` reads `0.1.0` as of Phase 6 --
+a **minor** bump, not the patch Phase 0 anticipated, because this release
+replaces the sampler, changes the `counts` contract and deprecates two
+arguments. `NEWS.md`'s Phase 0 entries live on under `0.1.0` as its bug-fix
+section.
 
 ---
 

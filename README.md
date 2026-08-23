@@ -29,6 +29,12 @@ In addition this implementation of LDA allows you to:
 - apply LDA in a transfer-learning paradigm, updating a model’s
   parameters with additional data (or additional iterations)
 
+Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al., 2016), a
+Metropolis-Hastings sampler that alternates document-ordered and word-ordered
+passes so each pass touches only a small, cache-resident working set. It
+replaced the collapsed Gibbs sampler in version 0.1.0 and is multithreaded, with
+results that do not depend on the number of threads.
+
 ## Installation
 
 You can install the latest CRAN release with:
@@ -288,20 +294,21 @@ augmented_docs
 #> # ℹ 4,556 more rows
 
 ### predictions on held out data ---
-# two methods: gibbs is cleaner and more technically correct in the bayesian sense
-p_gibbs <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
+# two methods: mh (Metropolis-Hastings) is cleaner and more technically
+# correct in the bayesian sense
+p_mh <- predict(lda, new_data = d2[1, ], iterations = 100, burnin = 75)
 
 # dot is faster, less prone to error (e.g. underflow), noisier, and frequentist
 p_dot <- predict(lda, new_data = d2[1, ], method = "dot")
 
 # pull both together into a plot to compare
-tibble(topic = 1:ncol(p_gibbs), gibbs = p_gibbs[1,], dot = p_dot[1, ]) %>%
-  pivot_longer(cols = gibbs:dot, names_to = "type") %>%
+tibble(topic = 1:ncol(p_mh), mh = p_mh[1,], dot = p_dot[1, ]) %>%
+  pivot_longer(cols = mh:dot, names_to = "type") %>%
   ggplot() + 
   geom_bar(mapping = aes(x = topic, y = value, group = type, fill = type), 
            stat = "identity", position="dodge") +
   scale_x_continuous(breaks = 1:10, labels = 1:10) + 
-  ggtitle("Gibbs predictions vs. dot product predictions")
+  ggtitle("Metropolis-Hastings predictions vs. dot product predictions")
 ```
 
 <img src="man/figures/README-example-2.png" width="100%" />

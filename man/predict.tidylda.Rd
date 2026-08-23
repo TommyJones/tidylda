@@ -8,7 +8,7 @@
   object,
   new_data,
   type = c("prob", "class", "distribution"),
-  method = c("gibbs", "dot"),
+  method = c("mh", "dot", "gibbs"),
   iterations = NULL,
   burnin = -1,
   no_common_tokens = c("default", "zero", "uniform"),
@@ -26,13 +26,14 @@
 
 \item{type}{one of "prob", "class", or "distribution". Defaults to "prob".}
 
-\item{method}{one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
+\item{method}{one of either "mh" or "dot". If "mh", the model's
+Metropolis-Hastings sampler is used
 and \code{iterations} must be specified.}
 
-\item{iterations}{If \code{method = "gibbs"}, an integer number of iterations
-for the Gibbs sampler to run. A future version may include automatic stopping criteria.}
+\item{iterations}{If \code{method = "mh"}, an integer number of sampling
+iterations to run. A future version may include automatic stopping criteria.}
 
-\item{burnin}{If \code{method = "gibbs"}, an integer number of burnin iterations.
+\item{burnin}{If \code{method = "mh"}, an integer number of burnin iterations.
 If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 are an average over all iterations greater than \code{burnin}.
 Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.}
@@ -44,14 +45,16 @@ or "\code{uniform}". See 'details', below for explanation of behavior.}
 \item{times}{Integer, number of samples to draw if \code{type = "distribution"}.
 Ignored if \code{type} is "class" or "prob". Defaults to 100.}
 
-\item{threads}{Number of parallel threads, defaults to 1. Note: currently
-ignored; only single-threaded prediction is implemented.}
+\item{threads}{Number of parallel threads, defaults to 1. Used when
+\code{method = "mh"} and capped at the number of documents in
+\code{new_data}. Results are identical at any thread count. Ignored when
+\code{method = "dot"}.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
-Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.}
+Only active if \code{method = "mh"}. Defaults to \code{TRUE}.}
 
 \item{mh_steps}{Integer. Metropolis-Hastings proposals per token per pass
-when \code{method = "gibbs"}. Defaults to 1.}
+when \code{method = "mh"}. Defaults to 1.}
 
 \item{...}{Additional arguments, currently unused}
 }
@@ -97,9 +100,9 @@ m <- tidylda(
 
 str(m)
 
-# predict on held-out documents using gibbs sampling "fold in"
+# predict on held-out documents using Metropolis-Hastings "fold in"
 p1 <- predict(m, nih_sample_dtm[21:100, ],
-  method = "gibbs",
+  method = "mh",
   iterations = 200, burnin = 175
 )
 
@@ -111,14 +114,14 @@ barplot(rbind(p1[1, ], p2[1, ]), beside = TRUE, col = c("red", "blue"))
 
 # predict classes on held out documents
 p3 <- predict(m, nih_sample_dtm[21:100, ],
-  method = "gibbs",
+  method = "mh",
   type = "class",
   iterations = 100, burnin = 75
 )
 
 # predict distribution on held out documents
 p4 <- predict(m, nih_sample_dtm[21:100, ],
-  method = "gibbs",
+  method = "mh",
   type = "distribution",
   iterations = 100, burnin = 75,
   times = 10

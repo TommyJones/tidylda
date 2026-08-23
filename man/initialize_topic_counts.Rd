@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{initialize_topic_counts}
 \alias{initialize_topic_counts}
-\title{Initialize topic counts for gibbs sampling}
+\title{Prepare the priors the sampler initializes from}
 \usage{
 initialize_topic_counts(
   dtm,
@@ -63,12 +63,17 @@ Returns a list with two elements, both of which the engine consumes
 }
 \description{
 Implementing seeded (or guided) LDA models and transfer learning means that
-  we can't initialize topics with a uniform-random start. This function prepares
-  data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
-  Gibbs iteration to populate topic counts (and other objects) used during the
-  main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that
-  you aren't using fancy seeding or transfer learning, this makes a random
-  initialization by sampling from Dirichlet distributions parameterized by
-  priors \code{alpha} and \code{eta}.
+  we can't initialize topics with a uniform-random start. This function
+  prepares the two matrices the sampler needs in order to draw an informed
+  starting assignment: \code{beta_initial}, giving P(token|topic), and
+  \code{Cd_start}, the expected number of tokens each topic accounts for in
+  each document. In the event that you aren't using fancy seeding or transfer
+  learning, this makes a random initialization by sampling from Dirichlet
+  distributions parameterized by priors \code{alpha} and \code{eta}.
+
+  The per-token work of building the token structure and sampling each
+  token's starting topic happens inside
+  \code{\link[tidylda]{fit_lda_warp}}, so nothing proportional to the token
+  count crosses the R/C++ boundary.
 }
 \keyword{internal}

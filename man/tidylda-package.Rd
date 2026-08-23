@@ -9,6 +9,13 @@ Implements an algorithm for Latent Dirichlet Allocation (LDA)
   using style conventions from the 'tidyverse' and specifically 'tidymodels'.
   Also implements several novel features for LDA such as guided models and
   transfer learning.
+
+  Fitting uses warpLDA (Chen et al., 2016,
+  \doi{10.48550/arXiv.1510.08628}), a Metropolis-Hastings sampler that
+  alternates document-ordered and word-ordered passes over the corpus so that
+  each pass touches only a small, cache-resident working set. It replaced the
+  collapsed Gibbs sampler in version 0.1.0. Sampling is multithreaded via the
+  \code{threads} argument and results do not depend on the thread count.
 }
 \seealso{
 Useful links:

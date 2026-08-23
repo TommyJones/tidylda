@@ -23,13 +23,13 @@ run_warp <- function(s, seed = 42, ...) {
   set.seed(seed)
   args <- list(
     dtm_in = dtm, Cd_start = s$counts$Cd_start, alpha_in = s$alpha$alpha,
-    eta_in = s$eta$eta, iterations = 30, burnin = 10,
+    eta_in = as.matrix(s$eta$eta), iterations = 30, burnin = 10,
     calc_likelihood = TRUE, Beta_in = s$counts$beta_initial, verbose = FALSE
   )
   do.call(fit_lda_warp, utils::modifyList(args, list(...)))
 }
 
-test_that("output contract matches fit_lda_c", {
+test_that("the output contract is what new_tidylda expects", {
   s <- setup()
   m <- run_warp(s)
 
@@ -39,12 +39,17 @@ test_that("output contract matches fit_lda_c", {
       "log_likelihood", "alpha", "eta")
   )
 
-  # Cd is documents x topics; Cv is topics x words. new_tidylda() and
-  # posterior.tidylda() both depend on these orientations (roadmap section 5).
+  # These orientations are a contract: new_tidylda() and posterior.tidylda()
+  # both index them directly (roadmap section 5). They were inherited from
+  # fit_lda_c(), which Phase 6 deleted, so this test is now the only thing
+  # holding them fixed.
+  # Both are <major> by topics since D17: Cd documents-by-topics, Cv
+  # words-by-topics. The engine no longer transposes Cv on output; new_tidylda()
+  # does it once when forming the public, topics-by-words `beta`.
   expect_equal(dim(m$Cd), c(nrow(dtm), s$k))
-  expect_equal(dim(m$Cv), c(s$k, s$v))
+  expect_equal(dim(m$Cv), c(s$v, s$k))
   expect_equal(dim(m$Cd_mean), c(nrow(dtm), s$k))
-  expect_equal(dim(m$Cv_mean), c(s$k, s$v))
+  expect_equal(dim(m$Cv_mean), c(s$v, s$k))
   expect_equal(nrow(m$log_likelihood), 3)
 })
 
@@ -61,7 +66,7 @@ test_that("token counts are conserved and the marginals agree", {
 
   # Ck is the topic marginal of both matrices.
   expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
-  expect_equal(as.numeric(m$Ck), unname(rowSums(m$Cv)))
+  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cv)))
 
   # Document lengths are fixed, so the posterior mean over topics recovers them.
   expect_equal(unname(rowSums(m$Cd_mean)), unname(Matrix::rowSums(dtm)))
@@ -201,7 +206,7 @@ test_that("predict() runs on the warp engine and returns a distribution", {
   m <- tidylda(data = dtm, k = 5, iterations = 40, burnin = 10,
                calc_likelihood = FALSE, verbose = FALSE)
 
-  p <- predict(m, nih_sample_dtm[51:70, ], method = "gibbs",
+  p <- predict(m, nih_sample_dtm[51:70, ], method = "mh",
                iterations = 40, burnin = 10, verbose = FALSE)
 
   expect_equal(nrow(p), 20)
@@ -227,42 +232,80 @@ test_that("theta reflects an asymmetric alpha", {
 })
 
 
+# A textbook collapsed Gibbs sampler, written independently of the engine: no
+# shared headers, no shared RNG, no shared data structures. Deliberately slow
+# and obvious. This replaced a comparison against the package's own fit_lda_c(),
+# which Phase 6 deleted -- and it is the stronger check, because a C++ reference
+# sharing headers with the engine could agree with it for the wrong reason.
+reference_gibbs <- function(dtm, k, alpha, eta, iterations, seed) {
+  set.seed(seed)
+  D <- nrow(dtm); V <- ncol(dtm)
+  docs <- lapply(seq_len(D), function(d) rep(seq_len(V), times = dtm[d, ]))
+  z <- lapply(docs, function(w) sample.int(k, length(w), replace = TRUE))
+
+  Cd <- matrix(0, D, k); Cv <- matrix(0, k, V); Ck <- numeric(k)
+  for (d in seq_len(D)) for (i in seq_along(docs[[d]])) {
+    kk <- z[[d]][i]; v <- docs[[d]][i]
+    Cd[d, kk] <- Cd[d, kk] + 1; Cv[kk, v] <- Cv[kk, v] + 1; Ck[kk] <- Ck[kk] + 1
+  }
+  for (it in seq_len(iterations)) {
+    for (d in seq_len(D)) for (i in seq_along(docs[[d]])) {
+      v <- docs[[d]][i]; old <- z[[d]][i]
+      Cd[d, old] <- Cd[d, old] - 1
+      Cv[old, v] <- Cv[old, v] - 1
+      Ck[old]    <- Ck[old] - 1
+      # The collapsed conditional. Note the normalizer is Ck + V*eta -- a sum
+      # over the VOCABULARY, which is the term text2vec's reference gets wrong.
+      p <- ((Cv[, v] + eta) / (Ck + V * eta)) * (Cd[d, ] + alpha)
+      new <- sample.int(k, 1, prob = p)
+      z[[d]][i] <- new
+      Cd[d, new] <- Cd[d, new] + 1
+      Cv[new, v] <- Cv[new, v] + 1
+      Ck[new]    <- Ck[new] + 1
+    }
+  }
+  list(Cd = Cd, Cv = Cv, Ck = Ck, docs = docs)
+}
+
+# Log probability of the corpus under the model. Invariant to topic relabelling,
+# which beta and theta are not -- two samplers will land on different topic
+# orderings, so they cannot be compared elementwise.
+reference_loglik <- function(Cd, Cv, docs, alpha, eta) {
+  theta <- Cd + rep(alpha, each = nrow(Cd)); theta <- theta / rowSums(theta)
+  beta <- Cv + eta; beta <- beta / rowSums(beta)
+  total <- 0
+  for (d in seq_along(docs)) {
+    for (v in docs[[d]]) total <- total + log(sum(theta[d, ] * beta[, v]))
+  }
+  total
+}
+
+
 test_that("the sampler targets the LDA posterior, not merely a stationary one", {
   # A wrong eta_bar or a mis-derived acceptance ratio still yields a valid MCMC
-  # chain -- it just converges somewhere else. Comparing against the collapsed
-  # Gibbs sampler on the same data, from the same initialization, run long
-  # enough that both have settled, is what distinguishes those two cases.
+  # chain -- it just converges somewhere else. Comparing against an independent
+  # collapsed Gibbs sampler, run long enough that both have settled, is what
+  # distinguishes those two cases.
   skip_on_cran()
 
-  s <- setup(k = 5, seed = 3)
+  d <- nih_sample_dtm[1:15, ]
+  d <- d[, Matrix::colSums(d) > 0]
+  d <- d[, order(Matrix::colSums(d), decreasing = TRUE)[1:40]]
+  d <- d[Matrix::rowSums(d) > 0, ]
+  k <- 3; a <- 0.1; e <- 0.05
 
-  # Gibbs still needs the lexicon; the warp engine builds its own.
-  lex <- create_lexicon(Cd_in = s$counts$Cd_start,
-                        Beta_in = s$counts$beta_initial,
-                        dtm_in = dtm, alpha = s$alpha$alpha,
-                        freeze_topics = FALSE)
-
-  set.seed(11)
-  g <- fit_lda_c(
-    Docs = lex$Docs, Zd_in = lex$Zd, Cd_in = lex$Cd, Cv_in = lex$Cv,
-    Ck_in = lex$Ck, alpha_in = s$alpha$alpha,
-    eta_in = s$eta$eta, iterations = 400, burnin = 100, optimize_alpha = FALSE,
-    calc_likelihood = TRUE, Beta_in = s$counts$beta_initial,
-    freeze_topics = FALSE, threads = 1, verbose = FALSE
-  )
+  ref <- reference_gibbs(d, k, a, e, iterations = 300, seed = 11)
+  ll_ref <- reference_loglik(ref$Cd, ref$Cv, ref$docs, a, e)
 
   set.seed(11)
-  w <- run_warp(s, seed = 11, iterations = 2000, burnin = 500,
-                calc_likelihood = TRUE, likelihood_every = 1)
+  m <- tidylda(d, k = k, iterations = 3000, burnin = -1, alpha = a, eta = e,
+               calc_likelihood = TRUE, verbose = FALSE)
+  ll_engine <- tail(m$log_likelihood$log_likelihood, 1)
 
-  g_ll <- g$log_likelihood[2, ncol(g$log_likelihood)]
-  w_ll <- w$log_likelihood[2, ncol(w$log_likelihood)]
-
-  # Both should land on the same plateau. The tolerance is loose because these
-  # are two independent chains, but it is far tighter than the gap a wrong
-  # target would produce -- porting the reference's beta_bar = K * eta instead
-  # of V * eta moves this by orders of magnitude more than 2%.
-  expect_lt(abs(w_ll - g_ll) / abs(g_ll), 0.02)
+  # Loose, because these are two independent chains on a small corpus -- but far
+  # tighter than a wrong target would produce. Porting text2vec's
+  # beta_bar = K * eta instead of V * eta moves this by orders of magnitude more.
+  expect_lt(abs(ll_engine - ll_ref) / abs(ll_ref), 0.02)
 })
 
 
@@ -320,7 +363,7 @@ test_that("initialization is reproducible under set.seed", {
     p <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha,
                                  eta = et$eta, threads = 1)
     fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
-                 eta_in = et$eta, iterations = 0, burnin = -1,
+                 eta_in = as.matrix(et$eta), iterations = 0, burnin = -1,
                  calc_likelihood = FALSE, Beta_in = p$beta_initial,
                  freeze_topics = FALSE, verbose = FALSE)$Cd
   }
@@ -349,7 +392,7 @@ test_that("results are identical at any thread count (D12)", {
   run <- function(th) {
     set.seed(77)
     fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
-                 eta_in = et$eta, iterations = 40, burnin = 15,
+                 eta_in = as.matrix(et$eta), iterations = 40, burnin = 15,
                  calc_likelihood = TRUE, Beta_in = p$beta_initial,
                  freeze_topics = FALSE, likelihood_every = 5, mh_steps = 1L,
                  threads = as.integer(th), verbose = FALSE)
@@ -406,7 +449,7 @@ test_that("initialization is identical at any thread count", {
   init <- function(th) {
     set.seed(123)
     fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
-                 eta_in = et$eta, iterations = 0, burnin = -1,
+                 eta_in = as.matrix(et$eta), iterations = 0, burnin = -1,
                  calc_likelihood = FALSE, Beta_in = p$beta_initial,
                  freeze_topics = FALSE, threads = as.integer(th), verbose = FALSE)
   }
@@ -458,7 +501,7 @@ test_that("initialization draws from the distribution it is supposed to", {
   for (r in seq_len(reps)) {
     set.seed(2000 + r)
     realized <- realized + fit_lda_warp(
-      dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha, eta_in = et$eta,
+      dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha, eta_in = as.matrix(et$eta),
       iterations = 0, burnin = -1, calc_likelihood = FALSE,
       Beta_in = p$beta_initial, freeze_topics = FALSE, threads = 1L,
       verbose = FALSE)$Cd

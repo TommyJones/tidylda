@@ -71,11 +71,11 @@ convert_dtm <- function(dtm) {
   out
 }
 
-#' Format \code{eta} For Input into \code{fit_lda_c}
+#' Format \code{eta} for input into the sampler
 #' @keywords internal
 #' @description
-#'   There are a bunch of ways users could format \code{eta} but the C++ Gibbs
-#'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
+#'   There are a bunch of ways users could format \code{eta} but the C++
+#'   sampler in \code{\link[tidylda]{fit_lda_warp}} only takes it one way. This function does the
 #'   appropriate formatting. It also returns errors if the user input a malformatted
 #'   \code{eta}.
 #' @param eta the prior for words over topics. Can be a numeric scalar, numeric
@@ -98,7 +98,11 @@ format_eta <- function(eta, k, Nv) {
   
   if (length(eta) == 1) { # if eta is a scalar
     
-    eta <- matrix(eta, nrow = k, ncol = Nv)
+    # D20: left as a scalar rather than materialized to k by Nv. At k = 500 and
+    # Nv = 1e5 that matrix is 400 MB to hold one repeated number, and the engine
+    # would then keep a 200 MB float copy of it. Consumers that genuinely need
+    # the matrix call eta_matrix(); the sampler and most of the R side do not.
+    eta <- as.numeric(eta)
     
     eta_class <- "scalar"
   } else if (is.vector(eta)) { # if eta is a vector
@@ -136,11 +140,30 @@ format_eta <- function(eta, k, Nv) {
   )
 }
 
-#' Format \code{alpha} For Input into \code{fit_lda_c}
+#' Materialize \code{eta} as a topics-by-tokens matrix
 #' @keywords internal
 #' @description
-#'   There are a bunch of ways users could format \code{alpha} but the C++ Gibbs
-#'   sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
+#'   Since D20, \code{\link[tidylda]{format_eta}} leaves a scalar prior as a
+#'   scalar rather than expanding it to \code{k} by \code{Nv}. Call this where a
+#'   full matrix is genuinely required. Most call sites do not need one --
+#'   arithmetic against a scalar recycles correctly, and the sampler takes the
+#'   scalar directly.
+#' @param eta a list as returned by \code{\link[tidylda]{format_eta}}
+#' @param k the number of topics
+#' @param Nv the size of the vocabulary
+#' @return a numeric matrix with \code{k} rows and \code{Nv} columns.
+eta_matrix <- function(eta, k, Nv) {
+  if (is.matrix(eta$eta)) {
+    return(eta$eta)
+  }
+  matrix(eta$eta, nrow = k, ncol = Nv)
+}
+
+#' Format \code{alpha} for input into the sampler
+#' @keywords internal
+#' @description
+#'   There are a bunch of ways users could format \code{alpha} but the C++
+#'   sampler in \code{\link[tidylda]{fit_lda_warp}} only takes it one way. This function does the
 #'   appropriate formatting. It also returns errors if the user input a malformatted
 #'   \code{alpha}.
 #' @param alpha the prior for topics over documents. Can be a numeric scalar or
@@ -174,166 +197,23 @@ format_alpha <- function(alpha, k) {
   )
 }
 
-#' Get Count Matrices from Beta or Theta (and Priors)
-#' @keywords internal
-#' @description
-#'   This function is a core component of \code{\link[tidylda]{initialize_topic_counts}}.
-#'   See details, below.
-#' @param prob_matrix a numeric \code{beta} or \code{theta} matrix
-#' @param prior_matrix a matrix of same dimension as \code{prob_matrix} whose 
-#'   entries represent the relevant prior (\code{alpha} or \code{eta})
-#' @param total_vector a vector of token counts of length \code{ncol(prob_matrix)}
-#' @return Returns a matrix corresponding to the number of times each topic sampled
-#'   for each document (\code{Cd}) or for each token (\code{Cv}) depending on
-#'   whether or not \code{prob_matrix}/\code{prior_matrix} corresponds to
-#'   \code{theta}/\code{alpha} or \code{beta}/\code{eta} respectively.
-#' @details 
-#'   This function uses a probability matrix (theta or beta), its prior (alpha or
-#'   eta, respectively), and a vector of counts to simulate what the the Cd or
-#'   Cv matrix would be at the end of a Gibbs run that resulted in that probability
-#'   matrix.
-#'   
-#'   For example, theta is calculated from a matrix of counts, Cd, and a prior,
-#'   alpha. Specifically, the i,j entry of theta is given by
-#'   
-#'   \code{(Cd[i, j] + alpha[i, j]) / sum(Cd[, j] + alpha[, j])}
-#'   
-#'   Similarly, beta comes from
-#'   
-#'   \code{(Cv[i, j] + eta[i, j]) / sum(Cv[, j] + eta[, j])}
-#'   
-#'   (The above are written to be general with respect to alpha and eta being
-#'   matrices. They could also be vectors or scalars.)
-#'   
-#'   So, this function uses the above formulas to try and reconstruct Cd or Cv
-#'   from theta and alpha or beta and eta, respectively. As of this writing,
-#'   this method is experimental. In the future, there will be a paper with
-#'   more technical details cited here.
-#'   
-#'   The priors must be matrices for the purposes of the function. This is to
-#'   support topic seeding and model updates. The former requires eta to be a 
-#'   matrix. The latter may require eta to be a matrix. Here, alpha is also
-#'   required to be a matrix for compatibility.
-#'   
-#'   All that said, for now \code{\link[tidylda]{initialize_topic_counts}} only
-#'   uses this function to calculate Cd.
-recover_counts_from_probs <- function(prob_matrix, prior_matrix, total_vector) {
-  # prob_matrix is D X k
-  # prior_matrix is D X k
-  # total_vector is of length D
-  
-  # first, we have to get the denominator
-  denom <- total_vector + (ncol(prior_matrix) * prior_matrix)
-  
-  # then, multiply probabilities by the denominator 
-  count_matrix <- prob_matrix * denom # pointwise multiplication
-  
-  # subtract the prior to get what the counts *should* be
-  count_matrix <- count_matrix - prior_matrix
-  
-  # reconcile the counts so that they're integers and line up to the right totals
-  count_matrix <- apply(count_matrix, 1, function(x){
-    
-    tot <- sum(x)
-    
-    round_x <- round(x)
-    
-    remainder <- round(tot - sum(round_x))
-    
-    if (remainder == 0) {
-      
-      return(round_x)
-      
-    } else if (remainder > 0) { # we need to add some
-      
-      sample_prob <- x
-      
-      sample_prob[sample_prob < 0] <- 0
-      
-      # account for length of x
-      # no need to sample 1 object, can do deterministically
-      if (length(x) == 1) {
-        idx <- 1
-      } else {
-        idx <- 
-          try({
-            sample(seq_along(x), remainder, replace = TRUE, prob = sample_prob)
-          })
-        
-        if (inherits(x = idx, what = "try-error")) {
-          stop("Something went wrong allocating counts.\n",
-               "This is a low level error. Please contact the 'tidylda' maintainer.\n",
-               "Error occured while adding some counts.\n",
-               "remainder = ", remainder, "\n",
-               "length(x) = ", length(x), "\n",
-               "length(sample_prob) = ", length(sample_prob))
-        }
-        
-      }
-      
-      
-      round_x[idx] <- round_x[idx] + 1
-      
-      return(round_x)
-      
-    } else { # we need to take some away
-      
-      sample_prob <- x[round_x > 0]
-      
-      sample_prob[sample_prob < 0] <- 0
-      
-      sample_from <- seq_along(x)[round_x > 0]
-      
-      sample_size <- -1 * remainder
-      
-      # have to accommodate tokens that are out of bounds. 
-      # if number of tokens is 1 then do it deterministically
-      if (length(sample_from) == 1) {
-        
-        idx <- sample_from
-        
-      } else {
-        
-        idx <- 
-          try({
-            sample(x = sample_from, size = sample_size, replace = TRUE, prob = sample_prob)
-          })
-        
-        if (inherits(x = idx, what = "try-error")) {
-          stop("Something went wrong allocating counts.\n",
-               "This is a low level error. Please contact the 'tidylda' maintainer.\n",
-               "Error occured while subtracting some counts.\n",
-               "remainder = ", remainder, "\n",
-               "sample_size = ", sample_size, "\n",
-               "length(sample_from) = ", length(sample_from), "\n",
-               "length(sample_prob) = ", length(sample_prob))
-        }
-      }
-      
-      round_x[idx] <- round_x[idx] - 1
-      
-      return(round_x)
-    }
-    
-  })
-  
-  count_matrix <- t(count_matrix)
-  
-  
-  count_matrix
-}
 
-#' Initialize topic counts for gibbs sampling
+#' Prepare the priors the sampler initializes from
 #' @keywords internal
 #' @description
 #'   Implementing seeded (or guided) LDA models and transfer learning means that
-#'   we can't initialize topics with a uniform-random start. This function prepares
-#'   data and then calls a C++ function, \code{\link[tidylda]{create_lexicon}}, that runs a single
-#'   Gibbs iteration to populate topic counts (and other objects) used during the
-#'   main Gibbs sampling run of \code{\link[tidylda]{fit_lda_c}}. In the event that
-#'   you aren't using fancy seeding or transfer learning, this makes a random
-#'   initialization by sampling from Dirichlet distributions parameterized by
-#'   priors \code{alpha} and \code{eta}.
+#'   we can't initialize topics with a uniform-random start. This function
+#'   prepares the two matrices the sampler needs in order to draw an informed
+#'   starting assignment: \code{beta_initial}, giving P(token|topic), and
+#'   \code{Cd_start}, the expected number of tokens each topic accounts for in
+#'   each document. In the event that you aren't using fancy seeding or transfer
+#'   learning, this makes a random initialization by sampling from Dirichlet
+#'   distributions parameterized by priors \code{alpha} and \code{eta}.
+#'
+#'   The per-token work of building the token structure and sampling each
+#'   token's starting topic happens inside
+#'   \code{\link[tidylda]{fit_lda_warp}}, so nothing proportional to the token
+#'   count crosses the R/C++ boundary.
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}.
 #' @param k the number of topics
 #' @param alpha the numeric vector prior for topics over documents as formatted
@@ -395,10 +275,21 @@ initialize_topic_counts <- function(
   if (is.null(beta_initial)) {
     # beta_initial <- gtools::rdirichlet(n = k, alpha = eta)
     
-    beta_initial <- apply(eta, 1, function(x) {
-      gtools::rdirichlet(n = 1, alpha = x) + 
-        .Machine$double.eps # avoid underflow
-    })
+    # One rdirichlet call per topic, in topic order. Kept as a loop rather than a
+    # single rdirichlet(n = k, ...) so the RNG is consumed exactly as before --
+    # and written to accept a scalar eta without materializing k by Nv (D20).
+    eta_rows <- if (is.matrix(eta)) {
+      lapply(seq_len(nrow(eta)), function(i) eta[i, ])
+    } else {
+      rep(list(rep(eta, ncol(dtm))), k)
+    }
+
+    beta_initial <- vapply(
+      eta_rows,
+      function(x) as.numeric(gtools::rdirichlet(n = 1, alpha = x)) +
+        .Machine$double.eps, # avoid underflow
+      numeric(ncol(dtm))
+    )
     
     beta_initial <- t(beta_initial)
   }
@@ -411,29 +302,10 @@ initialize_topic_counts <- function(
       .Machine$double.eps # avoid underflow
   }
   
-  # initialize Cd by calling recover_counts_from_probs
-  # we don't need to initialize Cv because we can use the probabilities in beta,
-  # along with our sampled Cd to do a single Gibbs iteration to populate all three
-  # of Cd, Ck, and Cv
+  # Cd_start is the expected number of tokens each topic accounts for in each
+  # document. Cv is not needed here: the engine derives it from the initial
+  # assignment it samples.
   
-  # format alpha to be a matrix to feed into recover_counts_from_probs
-  alph <- matrix(0, nrow = ncol(theta_initial), ncol = nrow(theta_initial))
-  
-  alph <- alpha + alph
-  
-  alph <- t(alph)
-  
-  # get Cd itself
-  # (note to future Tommy: consider a scalable version of this using future_map)
-  
-  # BELOW COMMENTED OUT BECAUSE recover_counts_from_probs RETURNS WRONG COUNTS
-  # HACK IS TO JUST DO THIS PROPORTIONAL TO theta
-  
-  # Cd_start <- recover_counts_from_probs(
-  #   prob_matrix = theta_initial,
-  #   prior_matrix = alph,
-  #   total_vector = Matrix::rowSums(dtm)
-  # )
   
   Cd_start <- theta_initial * Matrix::rowSums(dtm)
   
@@ -520,28 +392,73 @@ summarize_topics <- function(theta, beta, dtm) {
   summary
 }
 
+#' Read \code{counts$Cv} in the orientation this version expects
+#' @keywords internal
+#' @description
+#'   D17 changed the exported word-topic counts from topics-by-words to
+#'   words-by-topics, matching the orientation the engine holds them in. Models
+#'   fitted by earlier versions carry the old shape, and both
+#'   \code{\link[tidylda]{refit.tidylda}} and
+#'   \code{\link[tidylda]{posterior.tidylda}} index this matrix directly.
+#'
+#'   A wrong orientation on the transfer-learning path would corrupt
+#'   \eqn{\omega_k^{*(t)}} rather than fail loudly, so rather than trust a
+#'   length mismatch to error, detect the shape against \code{beta} -- which is
+#'   topics-by-words in every version -- and transpose an old object on read.
+#' @param object a \code{tidylda} object
+#' @return \code{object$counts$Cv} as a words-by-topics matrix.
+counts_cv <- function(object) {
+  cv <- object$counts$Cv
+
+  if (is.null(cv)) {
+    return(NULL)
+  }
+
+  k <- nrow(object$beta)
+
+  # Words by topics already: ncol matches the topic count.
+  if (ncol(cv) == k && nrow(cv) != k) {
+    return(cv)
+  }
+
+  # Old topics-by-words layout.
+  if (nrow(cv) == k && ncol(cv) != k) {
+    return(t(cv))
+  }
+
+  # Square, so the shape cannot disambiguate. Every version has stored Cv with
+  # one row per word after D17 and one row per topic before it; fall back on
+  # matching against the vocabulary instead.
+  if (!is.null(colnames(object$beta)) && !is.null(rownames(cv)) &&
+      identical(rownames(cv), colnames(object$beta))) {
+    return(cv)
+  }
+
+  t(cv)
+}
+
 #' Construct a new object of class \code{tidylda}
 #' @keywords internal
 #' @description
 #'   Since all three of \code{\link[tidylda]{tidylda}},
 #'   \code{\link[tidylda]{refit.tidylda}}, and
-#'   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_c}},
+#'   \code{\link[tidylda]{predict.tidylda}} call \code{\link[tidylda]{fit_lda_warp}},
 #'   we need a way to format the resulting posteriors and other user-facing
 #'   objects consistently. This function does that.
-#' @param lda list output of \code{\link[tidylda]{fit_lda_c}}
+#' @param lda list output of \code{\link[tidylda]{fit_lda_warp}}
 #' @param dtm a document term matrix or term co-occurrence matrix of class \code{dgCMatrix}
 #' @param burnin integer number of burnin iterations.
 #' @param is_prediction is this for a prediction (as opposed to initial fitting,
 #'   or update)? Defaults to \code{FALSE}
 #' @param alpha output of \code{\link[tidylda]{format_alpha}}
 #' @param eta output of \code{\link[tidylda]{format_eta}}
-#' @param optimize_alpha did you optimize \code{alpha} when making a call to
-#'   \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
-#'   argument is ignored.
+#' @param optimize_alpha deprecated and ignored, retained so that callers
+#'   passing it keep working. If \code{is_prediction = TRUE}, this argument is
+#'   ignored.
 #' @param calc_r2 did the user want to calculate R-squared when calculating the
 #'   the model? If \code{is_prediction = TRUE}, this argument is ignored.
 #' @param calc_likelihood did you calculate the log likelihood when making a call
-#'   to \code{\link[tidylda]{fit_lda_c}}?  If \code{is_prediction = TRUE}, this
+#'   to \code{\link[tidylda]{fit_lda_warp}}?  If \code{is_prediction = TRUE}, this
 #'   argument is ignored.
 #' @param call the result of calling \code{\link[base]{match.call}} at the top of
 #'   \code{\link[tidylda]{tidylda}}.
@@ -559,14 +476,22 @@ summarize_topics <- function(theta, beta, dtm) {
 #'     P(topic|token), calculated using Bayes's rule.
 #'     See \code{\link[tidylda]{calc_lambda}}.
 #'
-#'   \code{alpha} is the prior for topics over documents. If \code{optimize_alpha}
-#'     is \code{FALSE}, \code{alpha} is what the user passed when calling
-#'     \code{\link[tidylda]{tidylda}}. If \code{optimize_alpha} is \code{TRUE},
-#'     \code{alpha} is a numeric vector returned in the \code{alpha} slot from a
-#'     call to \code{\link[tidylda]{fit_lda_c}}.
+#'   \code{alpha} is the prior for topics over documents. It is what the user
+#'     passed when calling \code{\link[tidylda]{tidylda}}, formatted as a
+#'     \code{k}-length numeric vector; the sampler does not modify it.
 #'
 #'   \code{eta} is the prior for tokens over topics. This is what the user passed
-#'     when calling \code{\link[tidylda]{tidylda}}.
+#'     when calling \code{\link[tidylda]{tidylda}}: a numeric scalar stays a
+#'     scalar, and a matrix prior is a \code{k} by \code{ncol(dtm)} matrix.
+#'
+#'   \code{counts} is a list of two sparse matrices of class
+#'     \code{\link[Matrix]{dgCMatrix-class}} holding the token-topic counts the
+#'     sampler ended on. \code{Cd} is documents by topics; \code{Cv} is tokens
+#'     by topics. Both are topics-in-columns, so \code{Cd} aligns with
+#'     \code{theta} and \code{Cv} with \code{t(beta)}. If burn-in iterations
+#'     were used these are averages over the post-burn-in iterations, and are
+#'     therefore not integers. NOTE: as of version 0.1.0 \code{Cv} is tokens by
+#'     topics; it was topics by tokens previously.
 #'
 #'   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
 #'
@@ -634,13 +559,18 @@ new_tidylda <- function(
   
   if (!is_prediction) {
     ### format posteriors correctly ###
+    # The engine returns Cv words-by-topics (D17). `beta` stays topics-by-words
+    # for the public API, so the transpose happens here, once, rather than in
+    # the engine on every run.
     if (burnin > -1) { # if you used burnin iterations use Cd_mean etc.
-      beta <- lda$Cv_mean + lda$eta
       Cv <- lda$Cv_mean
     } else { # if you didn't use burnin use standard counts (Cd etc.)
-      beta <- lda$Cv + lda$eta
       Cv <- lda$Cv
     }
+
+    # A scalar prior arrives back as a 1 x 1 matrix (D20), so test length rather
+    # than class; recycling then handles it.
+    beta <- t(Cv) + if (length(lda$eta) == 1) as.numeric(lda$eta) else lda$eta
     
     beta <- beta / rowSums(beta)
     
@@ -660,13 +590,12 @@ new_tidylda <- function(
     )
     
     # eta
-    colnames(lda$eta) <- colnames(beta)
-    
     if (eta$eta_class == "scalar") {
-      eta_out <- lda$eta[1, 1]
+      eta_out <- as.numeric(lda$eta)[1]
     } else if (eta$eta_class == "vector") {
       eta_out <- lda$eta[1, ]
     } else if (eta$eta_class == "matrix") {
+      colnames(lda$eta) <- colnames(beta)
       eta_out <- lda$eta
     } else { # this should be impossible, but science is hard and I am dumb.
       eta_out <- lda$eta

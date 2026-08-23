@@ -512,9 +512,10 @@ $C^d$ as $D \times K$, $C^v$ as $V \times K$ — and the R consumers are rewritt
 to match. `dgCMatrix` is compressed-sparse-column, so this stores each word's
 topic counts contiguously, exactly as the word pass holds them.
 
-Deferred to **Phase 6**. It touches the R surface, not the sampler, and doing it
-before the engine stabilises would churn code twice. Until then the engine can
-transpose on output as a stopgap.
+Deferred to and delivered in **Phase 6**. It touches the R surface, not the
+sampler, so doing it before the engine stabilised would have churned code twice.
+An internal `counts_cv()` transposes pre-0.1.0 saved models on read, since those
+carry the old $K \times V$ orientation.
 
 ### Consumers that must change
 
@@ -768,8 +769,8 @@ New engine responsibilities:
 4. a `freeze_topics` specialization for prediction;
 5. per-pass post-burnin count accumulation (section 6.4);
 6. log-likelihood computation, evaluated at intervals — *not* thinned (section 7);
-7. export $C^d$ and $C^v$ (see §6.7) — transposing $C^v$ to topic-major as a
-   stopgap until Phase 6 replaces the contract with sparse $V \times K$ (D17).
+7. export $C^d$ and $C^v$ as sparse matrices in the engine's own orientation,
+   $D \times K$ and $V \times K$, with no transpose on output (see §6.7, D17).
 
 ## MH steps
 

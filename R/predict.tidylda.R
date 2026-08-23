@@ -4,11 +4,12 @@
 #' @param object a fitted object of class \code{tidylda}
 #' @param new_data a DTM or TCM of class \code{dgCMatrix} or a numeric vector
 #' @param type one of "prob", "class", or "distribution". Defaults to "prob".
-#' @param method one of either "gibbs" or "dot". If "gibbs" Gibbs sampling is used
+#' @param method one of either "mh" or "dot". If "mh", the model's
+#'        Metropolis-Hastings sampler is used
 #'        and \code{iterations} must be specified.
-#' @param iterations If \code{method = "gibbs"}, an integer number of iterations
-#'        for the Gibbs sampler to run. A future version may include automatic stopping criteria.
-#' @param burnin If \code{method = "gibbs"}, an integer number of burnin iterations.
+#' @param iterations If \code{method = "mh"}, an integer number of sampling
+#'        iterations to run. A future version may include automatic stopping criteria.
+#' @param burnin If \code{method = "mh"}, an integer number of burnin iterations.
 #'        If \code{burnin} is greater than -1, the entries of the resulting "theta" matrix
 #'        are an average over all iterations greater than \code{burnin}.
 #'        Behavior is the same as documented in \code{\link[tidylda]{tidylda}}.
@@ -17,12 +18,14 @@
 #'        or "\code{uniform}". See 'details', below for explanation of behavior. 
 #' @param times Integer, number of samples to draw if \code{type = "distribution"}.
 #'   Ignored if \code{type} is "class" or "prob". Defaults to 100.
-#' @param threads Number of parallel threads, defaults to 1. Note: currently
-#'   ignored; only single-threaded prediction is implemented.
+#' @param threads Number of parallel threads, defaults to 1. Used when
+#'   \code{method = "mh"} and capped at the number of documents in
+#'   \code{new_data}. Results are identical at any thread count. Ignored when
+#'   \code{method = "dot"}.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
-#'        Only active if \code{method = "gibbs"}. Defaults to \code{TRUE}.
+#'        Only active if \code{method = "mh"}. Defaults to \code{TRUE}.
 #' @param mh_steps Integer. Metropolis-Hastings proposals per token per pass
-#'        when \code{method = "gibbs"}. Defaults to 1.
+#'        when \code{method = "mh"}. Defaults to 1.
 #' @param ... Additional arguments, currently unused
 #' @return \code{type} gives different outputs depending on whether the user selects
 #'   "prob", "class", or "distribution". If "prob", the default, returns a
@@ -60,9 +63,9 @@
 #'
 #' str(m)
 #'
-#' # predict on held-out documents using gibbs sampling "fold in"
+#' # predict on held-out documents using Metropolis-Hastings "fold in"
 #' p1 <- predict(m, nih_sample_dtm[21:100, ],
-#'   method = "gibbs",
+#'   method = "mh",
 #'   iterations = 200, burnin = 175
 #' )
 #'
@@ -74,14 +77,14 @@
 #' 
 #' # predict classes on held out documents
 #' p3 <- predict(m, nih_sample_dtm[21:100, ],
-#'   method = "gibbs",
+#'   method = "mh",
 #'   type = "class",
 #'   iterations = 100, burnin = 75
 #' )
 #' 
 #' # predict distribution on held out documents
 #' p4 <- predict(m, nih_sample_dtm[21:100, ],
-#'   method = "gibbs",
+#'   method = "mh",
 #'   type = "distribution",
 #'   iterations = 100, burnin = 75,
 #'   times = 10
@@ -92,7 +95,7 @@ predict.tidylda <- function(
   object, 
   new_data, 
   type = c("prob", "class", "distribution"),
-  method = c("gibbs", "dot"),
+  method = c("mh", "dot", "gibbs"),
   iterations = NULL, 
   burnin = -1, 
   no_common_tokens = c("default", "zero", "uniform"),
@@ -124,7 +127,27 @@ predict.tidylda <- function(
     times <- round(times[1])
   }
   
-  if (method[1] == "gibbs") {
+  method <- match.arg(method)
+
+  # The sampler stopped being collapsed Gibbs in 0.1.0; it is now warpLDA's
+  # Metropolis-Hastings scheme. "gibbs" is kept working because it is public
+  # API, but it names something that no longer exists. Warned once per session
+  # rather than per call, so a loop of predictions does not produce a wall of
+  # identical warnings.
+  if (method == "gibbs") {
+    rlang::warn(
+      paste0(
+        'predict(method = "gibbs") is deprecated; use method = "mh".\n',
+        "  The sampler is warpLDA's Metropolis-Hastings scheme as of 0.1.0, not\n",
+        "  collapsed Gibbs. The behaviour is unchanged -- only the name is."
+      ),
+      .frequency = "once",
+      .frequency_id = "tidylda_predict_method_gibbs"
+    )
+    method <- "mh"
+  }
+
+  if (method == "mh") {
     if (is.null(iterations)) {
       stop("when using method 'gibbs' iterations must be specified.")
     }
@@ -137,9 +160,8 @@ predict.tidylda <- function(
   # handle dtm
   new_data <- convert_dtm(dtm = new_data)
 
-  if (sum(c("gibbs", "dot") %in% method) == 0) {
-    stop("method must be one of 'gibbs' or 'dot'")
-  }
+  # match.arg() above already rejected anything unrecognized, and normalized
+  # "gibbs" to "mh". This check was doing that job before match.arg was used.
 
   dtm_new_data <- new_data
 
@@ -150,18 +172,18 @@ predict.tidylda <- function(
   }
   
   # check threads against nrow(dtm_new_data)
-  # only matters if method = "gibbs"
+  # only matters if method = "mh"
   if (threads > 1)
     threads <- as.integer(max(floor(threads), 1)) # prevent any decimal inputs
   
-  if (method[1] == "gibbs" & threads > nrow(dtm_new_data)) {
+  if (method == "mh" & threads > nrow(dtm_new_data)) {
     message("User-supplied 'threads' argument greater than number of documents.\n",
             "Setting threads equal to number of documents.")
     threads <- as.integer(nrow(dtm_new_data))
   }
   
   ### Align vocabulary ----
-  # this is fancy because of how we do indexing in gibbs sampling
+  # this is fancy because of how we do indexing in the sampler
   vocab_original <- colnames(object$beta) # tokens in training set
 
   vocab_intersect <- intersect(vocab_original, colnames(dtm_new_data))
@@ -186,7 +208,7 @@ predict.tidylda <- function(
 
   ### Get predictions ----
 
-  if (method[1] == "dot") { # dot product method
+  if (method == "dot") { # dot product method
 
     result <- dtm_new_data[, vocab_original]
 
@@ -232,7 +254,7 @@ predict.tidylda <- function(
     } else { # means no_common_tokens == "uniform"
       result[bad_docs, ] <- 1 / ncol(object$theta)
     }
-  } else { # gibbs method
+  } else { # "mh" method
     # format inputs
 
     # get initial distribution with recursive call to "dot" method
@@ -265,7 +287,7 @@ predict.tidylda <- function(
       dtm_in = dtm_new_data,
       Cd_start = counts$Cd_start,
       alpha_in = alpha$alpha,
-      eta_in = eta$eta,   # ignored: freeze_topics = TRUE
+      eta_in = as.matrix(eta$eta), # ignored: freeze_topics = TRUE
       iterations = iterations,
       burnin = burnin,
       calc_likelihood = FALSE,

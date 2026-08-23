@@ -327,3 +327,61 @@ test_that("initialization is reproducible under set.seed", {
   expect_identical(init(21), init(21))
   expect_false(identical(init(21), init(22)))
 })
+
+
+test_that("results are identical at any thread count (D12)", {
+  # This is Phase 5's exit criterion and the reason C_k is snapshot within a
+  # pass rather than updated atomically. Atomics would remove the race but leave
+  # what each work item READS dependent on interleaving, so the answer would
+  # drift with thread count. Here every work item sees the same C_k however
+  # chunks land on threads, and the deltas merge by integer addition, which is
+  # associative and exact.
+  skip_on_cran()
+
+  d <- nih_sample_dtm[1:60, ]
+  k <- 6
+  al <- format_alpha(0.1, k)
+  et <- format_eta(0.05, k, ncol(d))
+  set.seed(3)
+  p <- initialize_topic_counts(dtm = d, k = k, alpha = al$alpha, eta = et$eta,
+                               threads = 1)
+
+  run <- function(th) {
+    set.seed(77)
+    fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
+                 eta_in = et$eta, iterations = 40, burnin = 15,
+                 calc_likelihood = TRUE, Beta_in = p$beta_initial,
+                 freeze_topics = FALSE, likelihood_every = 5, mh_steps = 1L,
+                 threads = as.integer(th), verbose = FALSE)
+  }
+
+  ref <- run(1)
+  for (th in c(2, 4, 8)) {
+    m <- run(th)
+    expect_identical(ref$Cd, m$Cd, info = paste("threads =", th))
+    expect_identical(ref$Cv, m$Cv, info = paste("threads =", th))
+    expect_identical(ref$Ck, m$Ck, info = paste("threads =", th))
+    expect_identical(ref$Cd_mean, m$Cd_mean, info = paste("threads =", th))
+    expect_identical(ref$log_likelihood, m$log_likelihood,
+                     info = paste("threads =", th))
+  }
+
+  # And the invariants must still hold when threaded.
+  m <- run(8)
+  expect_equal(sum(m$Cd), sum(d))
+  expect_equal(sum(m$Cv), sum(d))
+  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
+})
+
+
+test_that("tidylda() accepts threads without the stale batching warning", {
+  # The old warning -- fewer than 100 documents per thread gives "a poor fit" --
+  # described the abandoned batched Gibbs, where the partition changed the model.
+  # Under D12 it cannot, so the warning would now be false.
+  d <- nih_sample_dtm[1:40, ]
+  expect_no_warning(
+    m <- tidylda(d, k = 4, iterations = 20, burnin = 5, calc_likelihood = FALSE,
+                 threads = 4, verbose = FALSE)
+  )
+  expect_s3_class(m, "tidylda")
+})

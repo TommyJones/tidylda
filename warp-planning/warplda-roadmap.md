@@ -79,47 +79,47 @@ repository root.
 | **Last updated** | 2026-08-23 |
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
-| **Current phase** | Phase 5 -- RcppThread parallelism |
-| **Last completed** | **Phases 4 and 4.5: initialization fused into the engine (D16), and its per-token sort replaced.** Both gates pass. 6.3. |
+| **Current phase** | Phase 5.5 -- parallelize initialization |
+| **Last completed** | **Phase 5: RcppThread parallelism.** Bit-identical at 1/2/4/8/16 threads; both gates pass. 6.3. |
 | **In flight** | Nothing. |
 
-**Next action:** Phase 5. Read open question 1 in section 7 first -- it now
-carries a concrete candidate for the $C_k$ problem, the reason Phase 5's own
-exit criterion rules out the obvious alternative, and a warning that scaling
-measured on the medium corpus will flatter what happens at the corpus sizes this
-project exists to enable.
+**Next action:** Phase 5.5. Initialization is O(N*K) and single-threaded, so it
+caps total speedup near 2x at $K=200$ however well the sampler scales. Swap
+`R::unif_rand()` for `work_item_rng(master, 0, Pass::doc, d)` and parallelize
+the document loop. 6.3 explains why this can skip the full gate and what to
+verify instead. Then Phase 6.
 
 **Where things stand.** `tidylda()`, `refit()` and `predict()` all call
-`fit_lda_warp()`, which does its own initialization. `fit_lda_c()`,
+`fit_lda_warp()`, which initializes, samples, and now threads. `fit_lda_c()`,
 `create_lexicon()` and all of `src/sample.h` have no callers; all three go in
 Phase 6.
 
-**What Phases 2 through 4.5 settled:**
+**What Phases 2 through 5 settled:**
 
-- **Statistically sound under both priors.** Scalar 8/8; matrix 8/8 unpaired and
-  8/8 paired. Every difference is within a fraction of the margin.
-- **Iteration counts differ by engine**: Gibbs 200/50, warp 1200/300, because an
-  iteration is not the same unit of work to the two samplers.
-- **warp is ~3x faster over the main grid** at equal quality, 1.2x to 6.7x per
-  fit and growing in $K$; the matrix prior costs about 5%; initialization is
-  now 0.3% of a 1200-iteration fit.
-- **D9 revised** (runtime flag, on a measurement); **D12/D13 moved into Phase
-  2**; **D16 done**; **D20 corrected to Phase 6**.
-- **Three pre-existing defects fixed**: `theta` under asymmetric `alpha` (NEWS
-  0.0.8), a redundant unstable `std::sort` in the Phase 2 `Corpus` constructor,
-  and a per-token $O(K\log K)$ sort in the initialization sampler.
+- **Statistically sound under both priors**, at every phase boundary: scalar
+  8/8, matrix 8/8 unpaired and 8/8 paired.
+- **Reproducible under `set.seed()` independent of thread count** (D12) -- the
+  hard half of Phase 5's exit criterion, achieved structurally rather than by
+  argument. See section 7 open question 1.
+- **warp is ~3x faster than Gibbs single-threaded** at equal quality, and the
+  sampler parallelizes at 59-68% (about 78% clock-adjusted) for 7.8x more on 12
+  physical cores.
+- **Four pre-existing defects fixed**: `theta` under asymmetric `alpha` (NEWS
+  0.0.8), an unstable `std::sort` shuffling exchangeable tokens, a per-token
+  $O(K\log K)$ sort in initialization, and two false statements in
+  `tidylda()`'s documentation.
+- **D9, D14, D20 revised; D12/D13 and D16 delivered.**
 
-**Three things Phase 5 must not forget:**
+**Three things Phase 6 must not forget:**
 
-1. **$C_k$ is the only genuinely shared structure**, and D12's
-   thread-count-independence requirement is what makes it hard, not contention.
-   Section 7 open question 1 has the candidate solution and why the obvious one
-   is disqualified.
-2. **Gibbs stays single-threaded**, so any parallel comparison is parallel-warp
-   against serial-Gibbs. Report per-core and as-shipped numbers separately.
-3. **One tLDA cell is knowingly underpowered** -- small/K=50 coherence, mdd
-   0.00542 against a 0.00496 margin. If a future run has budget, 100 seeds
-   there closes it; roughly 10 core-hours.
+1. **Delete `fit_lda_c()`, `create_lexicon()` and `src/sample.h`.** All three are
+   uncalled. `sample.h` also has an out-of-bounds read at `log_sample_one()`'s
+   `q[k - 1]` when `k = 0`. One test uses `create_lexicon()` as a reference and
+   must be retired or re-pointed deliberately.
+2. **D17** (sparse column-major counts) and **D20** (scalar eta fast path), plus
+   the `counts` documentation gap.
+3. **One tLDA cell is knowingly underpowered** -- small/$K{=}50$ coherence,
+   about 10 core-hours to close if a future run has budget.
 
 **Background material already absorbed** — no need to re-read:
 `ignore/parallel-rng-notes.md` (folded into D12 and D13).
@@ -210,7 +210,8 @@ Settled. See §1 rule 3 before changing any of these.
 | **3** | Generalize to matrix $\boldsymbol\eta$ (tLDA); D9's `freeze_topics`; `refit()` and `predict()` onto the new engine | **Done.** Whole public API on warpLDA; `fit_lda_c()` has no callers. Gate passes under both a scalar and a matrix prior — §6.3 |
 | **4** | Fuse initialization into the engine; eliminate the R round trip | **Done.** One C++ entry point; `Docs`/`Zd` never materialized, so per-token marshalling drops from 16 bytes to zero. **Exit criterion revised** from "identical results to Phase 3" to "identical *initial state*" — see §6.3 |
 | **4.5** | Replace `lsamp_one()`'s per-token $O(K\log K)$ sort with a constant-work draw | **Done.** Initialization 7.9x faster at $K{=}10$, 11.8x at $K{=}50$; gate re-run covers Phases 4 and 4.5 together. §6.3 |
-| **5** | RcppThread parallelism | Parity holds; `set.seed()` gives identical results across *different* thread counts (D12) |
+| **5** | RcppThread parallelism | **Done.** Bit-identical at 1/2/4/8/16 threads; both gates pass; sampler efficiency 59-68% (about 78% clock-adjusted), 7.8x on 12 physical cores. §6.3 |
+| **5.5** | Parallelize initialization | Init is O(N*K) and single-threaded, capping total speedup near 2x at $K=200$ regardless of how well the sampler scales. Swap `R::unif_rand()` for D12's per-work-item generator and parallelize the document loop. **Can largely skip the full gate** -- see the verification note below |
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | `devtools::check()` clean; `posterior()` and `refit()` verified against the new orientation; `counts` documented (see below); the expiring comments in §7 rewritten; `man/` regenerated |
 | **7** | *Unscheduled.* Memory surgery for large corpora — see §6.4 | A separate project, after the engine lands |
 
@@ -430,7 +431,7 @@ on a 100-document corpus, has the *highest* mean coherence of the four (0.1637).
 (medium/$K{=}50$). The full 240-fit baseline is 8.7 core-hours, about 27 minutes
 of wall clock at 20 workers. Phase 2 must budget the same again for the warp arm.
 
-### 6.3 Phase 2 through 4.5 results — the warpLDA engine
+### 6.3 Phase 2 through 5 results — the warpLDA engine
 
 **Both phases complete and passing.** The engine is in `src/warp_rng.h`,
 `src/warp_alias.h`, `src/warp_corpus.h`, `src/warp_eta.h` and `src/warp_lda.cpp`.
@@ -723,6 +724,93 @@ known limitation rather than paid for.
 also reads `q[k - 1]` at `k = 0`, an out-of-bounds access. Not worth fixing —
 delete it in Phase 6 alongside `fit_lda_c()` and `create_lexicon()`.
 
+#### Phase 5 — RcppThread parallelism
+
+**Complete, and the exit criterion holds.** `set.seed()` gives **bit-identical**
+`Cd`, `Cv`, `Ck`, `Cd_mean` and log-likelihood curve at 1, 2, 4, 8 and 16
+threads. `threads` had been validated in `tidylda_bridge()` and then silently
+dropped since Phase 2; it now reaches the engine.
+
+Both gates pass: main grid 8/8, tLDA 8/8 unpaired and 8/8 paired.
+
+The design is in section 7 open question 1. In short: everything except $C_k$
+partitions disjointly, $C_k$ is read-only within a pass with per-chunk deltas
+merged afterwards, and that makes thread-count independence structural rather
+than argued.
+
+**Scaling of the sampler**, medium corpus, 12 physical cores:
+
+| threads | speedup | efficiency |
+|---|---|---|
+| 4 | 2.79x | 70% |
+| 8 | 5.31x | 66% |
+| 12 | 7.83x | 65% |
+| 24 | 6.44x | *slower than 12* |
+
+Efficiency is flat rather than decaying, which rules out both Amdahl and false
+sharing in the sampler -- either would worsen as threads are added. Most of the
+shortfall is the processor: all-core turbo is 3556 MHz against 4300 MHz
+single-core, so 17 points is clock the code cannot influence. Clock-adjusted
+efficiency is about 78%. Twenty-four threads is slower than twelve because the
+second SMT sibling on each core adds contention rather than throughput.
+
+**A measurement trap, recorded because it is easy to fall into.** The first pass
+at this reported efficiency *degrading* badly -- 56% down to 24% as the corpus
+grew, and 36% down to 13% as $K$ grew -- which looked like a hard scaling limit.
+It was an artifact. `fit_lda_warp()` does its own initialization, so timing the
+whole call includes a **single-threaded** O(N*K) setup, and Amdahl then operates
+on that rather than on the sampler. Timing initialization separately
+(`iterations = 0`) and subtracting:
+
+| $K$ | init, 1 thread | sampling 1t | sampling 12t | sampling efficiency |
+|---|---|---|---|---|
+| 10 | 0.98 s | 14.65 s | 1.89 s | 65% |
+| 50 | 3.65 s | 16.27 s | 2.01 s | 68% |
+| 200 | 16.97 s | 19.06 s | 2.68 s | 59% |
+
+The sampler is stable at 59-68% and does **not** degrade with $N$ or $K$. The
+lesson generalizes: do not time a function whose fixed setup cost scales with
+the same parameter you are varying.
+
+**What the trap was hiding is real, though, and becomes Phase 5.5.**
+Initialization is O(N*K) and single-threaded. At $K = 200$ it is already 17 s
+against 19 s of single-threaded sampling -- so perfect parallelism in the
+sampler would still cap total speedup near 2x. It is serial because it draws
+from R's RNG, which section 5's invariant confines to the main thread. D12's
+per-work-item generator is exactly the machinery needed to fix it.
+
+**Phase 5.5 can largely skip the full gate, and here is why.** Phase 4.5
+replaced the initialization *algorithm*, which could have carried a bias, so it
+was gated. Phase 5.5 changes only the *source of the uniform variate* --
+`R::unif_rand()` for the xoshiro stream validated in Phase 2 -- with
+`sample_log_weights()` untouched. Same distribution, different draw.
+
+That is a change the existing baseline already covers. It carries 100 seeds per
+cell at $K=10$, each with a different initial assignment, and its measured
+spread *is* the seed-to-seed population. A new init stream is another draw from
+that population, not a new condition.
+
+So verify the two things that are actually new, cheaply:
+
+1. **Identical across thread counts.** The only genuinely new risk, and the same
+   property Phase 5 established for the sampler.
+2. **The initialization distribution is unchanged.** Compare initial $C^d$ and
+   $C^v$ between the old and new generators over ~100 seeds using
+   `iterations = 0`, which costs about a second per run. This tests the claim
+   directly rather than through 1200 iterations of chain.
+
+Plus the existing informed-init and reproducibility tests and the full suite. If
+either check is equivocal, fall back to the gate.
+
+**Load imbalance was checked and is not a limiter.** The word pass splits over a
+Zipf-distributed vocabulary, so equal-index chunks are unequal in work by up to
+12x. That does not bind, because chunks are dynamically scheduled and there are
+four per thread: the ceiling at 48 chunks is 97-100%, against 30-44% if chunks
+equalled threads. Keep chunk count several times thread count. The one hard
+floor is that a single word cannot be split, capping useful parallelism at the
+reciprocal of the most frequent word's share -- measured at about 110 threads on
+the medium corpus, and rising with vocabulary size.
+
 #### Notes for later phases
 
 - `optimize_alpha` (D7) is accepted but ignored, with a once-per-session
@@ -779,59 +867,45 @@ path) both point this direction and should land first.
 
 ## 7. Open questions
 
-1. **Work partitioning for parallelism.** Phase 5. Most of this partitions
-   cleanly: split the doc pass by document and the $C^d$ writes are disjoint;
-   split the word pass by word and $C^v$ and the eta columns are disjoint. The
-   one genuinely shared structure is **$C_k$, a K-vector written on every
-   acceptance in both passes**.
+1. ~~**Work partitioning for parallelism.**~~ **Resolved in Phase 5.** Both
+   passes partition on their own index, and everything except $C_k$ is disjoint:
+   the doc pass owns slices of `Cd` and each document's tokens, the word pass the
+   same for `Cv` and each word's tokens, and eta and the alias tables are
+   read-only.
 
-   Phase 5's exit criterion -- identical results across thread counts (D12) --
-   constrains the fix more than performance does. Per-thread deltas merged at
-   pass end are the obvious approach and are ruled out by it: what a work item
-   sees would depend on the partition, hence on the thread count.
+   $C_k$ is read-only within a pass. Each chunk accumulates its own delta and the
+   deltas are summed in afterwards. That makes thread-count independence
+   structural rather than argued: every work item sees the same $C_k$ however
+   chunks land on threads; integer addition is associative and exact, so merge
+   order cannot matter; and a work item's contribution depends only on its own
+   state and the snapshot, so even the chunk count is free to be tuned for load
+   balance. Verified bit identical at 1, 2, 4, 8 and 16 threads.
 
-   **Candidate worth trying first: snapshot $C_k$ at the start of each pass and
-   apply accumulated deltas at the end.** Every work item then sees the same
-   value regardless of partitioning, so the result is deterministic and
-   thread-count-independent by construction, and the passes need no
-   synchronization at all. It changes results relative to today, since $C_k$
-   goes stale within a pass, so it needs its own gate run -- but deferring an
-   update within a pass is the same approximation warpLDA already makes
-   everywhere else.
+   Recorded because it cost effort to establish: **atomics do not solve this.**
+   They remove the race but leave what each work item *reads* dependent on
+   interleaving, so results would drift with thread count -- which is exactly
+   what D12 forbids. The requirement is determinism, not merely safety.
 
-   **Memory is NOT the limiter -- this was checked, not assumed.** An earlier
-   draft of this entry claimed the word pass becomes memory-bandwidth-bound at
-   large V*K. That is wrong and has been measured. Holding V = 6240 and K = 50
-   fixed and growing the corpus so the token array crosses the 19.3 MB L3:
+   **What limits scaling, measured.** Efficiency is roughly flat at 65-70% from
+   2 to 12 threads rather than decaying, which rules out both Amdahl and false
+   sharing -- either would worsen as threads are added. Most of the shortfall is
+   the processor: all-core turbo is 3556 MHz against 4300 MHz single-core, so 17
+   points of the gap is clock the code cannot influence. Clock-adjusted
+   efficiency is about 78%. Peak speedup is 7.8x on 12 physical cores; 24
+   threads is *slower* than 12, because the second SMT sibling on each core adds
+   contention rather than throughput.
 
-   | docs | N tokens | z_ array | ns/token/iteration |
-   |---|---|---|---|
-   | 4,000 | 766k | 3.1 MB | 250.3 |
-   | 8,000 | 1.53M | 6.1 MB | 223.8 |
-   | 16,000 | 3.02M | 12.1 MB | 218.3 |
-   | 32,000 | 6.00M | 24.0 MB | 218.4 |
-
-   Flat across the crossing. Two reasons the word pass's one scattered access
-   -- the CSC indirection `z_[csc_token_[i]]`, which the reference has too at
-   `LDA.hpp:102` -- costs so little:
-
-   - **It ascends.** `csc_token_` is built by a stable counting sort, so within
-     a word the token indices come out in increasing order. The pass makes V
-     ascending sparse sweeps through the token array, which prefetchers handle.
-     It is nothing like the random access into $C^v$ that collapsed Gibbs makes.
-   - **The traffic is small next to the arithmetic.** Even assuming every
-     scattered access misses, that is N*64 bytes per word pass -- about 380 MB
-     and 19 ms at 6M tokens, against roughly 1.3 s of actual work per iteration.
-
-   The same arithmetic applies to $C^v$ and eta: about 400 MB streamed per
-   iteration at V=1e5, K=500, or roughly 20 ms, against seconds of per-token
-   compute. Sequential and prefetch-friendly, and not close to binding.
-
-   **Where it does matter is parallelism**, because compute divides by thread
-   count and memory traffic does not. That moves streaming from around 1.5% of
-   an iteration to perhaps 10-25% at 16 threads -- worth measuring, but still
-   not dominant. Expect $C_k$ coordination, not bandwidth, to be what limits
-   scaling.
+   **Memory is not the limiter**, which was checked rather than assumed after an
+   earlier draft of this entry claimed otherwise. Holding V and K fixed and
+   growing the corpus until the token array crosses the 19.3 MB L3, per-token
+   cost is flat -- 250.3, 223.8, 218.3 and 218.4 ns at 3.1, 6.1, 12.1 and 24.0
+   MB. The word pass's one scattered access, the CSC indirection
+   `z_[csc_token_[i]]` that the reference also has at `LDA.hpp:102`, is cheap
+   because it *ascends* (the counting sort that builds `csc_token_` is stable, so
+   within a word the indices increase) and because even assuming every access
+   misses, N*64 bytes is about 380 MB and 19 ms at 6M tokens against roughly
+   1.3 s of work per iteration. Streaming $C^v$ and eta is the same story at
+   scale: about 400 MB per iteration, or 20 ms, against seconds of compute.
 
    **Report per-core and as-shipped numbers separately.** Gibbs stays
    single-threaded -- its batch loop is broken (design notes 9b) and Phase 6
@@ -848,17 +922,12 @@ path) both point this direction and should land first.
    remaining drift, with drift/jitter ratios of 1.6–7.1. Sampling every 10th
    iteration loses no real structure and yields a *cleaner* curve than every
    iteration does.
-3. **Two expiring doc comments**, both user-facing via `man/tidylda.Rd`, both
-   Phase 6:
-   - `R/tidylda-fit-methods.R:58-66` claims the log likelihood returns "positive
-     numbers, rather than the expected negative numbers." Measured pre-fix values
-     were $-36530 \rightarrow -33551$, so this describes neither current nor
-     pre-fix behavior. Most likely it once referred to row 3 of the likelihood
-     matrix (`lpd + lp_alpha + lp_eta`), which genuinely can be positive since a
-     Dirichlet log-*density* is unbounded above, and which `new_tidylda()` no
-     longer reads.
-   - `R/tidylda-fit-methods.R:68-69` states parallelism is not implemented.
-     Expires when Phase 5 lands.
+3. ~~**Two expiring doc comments.**~~ **Both retired in Phase 5.**
+   `R/tidylda-fit-methods.R`'s `@details` no longer claims the log likelihood
+   returns positive numbers (it never did for the value `new_tidylda()` surfaces,
+   which is `lpd` and negative), and no longer says parallelism is unimplemented.
+   The block now documents the likelihood evaluation interval, `threads`, and
+   that `optimize_alpha` is ignored. `man/tidylda.Rd` regenerated.
 
 ---
 

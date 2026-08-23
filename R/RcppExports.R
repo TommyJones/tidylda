@@ -114,10 +114,12 @@ fit_lda_c <- function(Docs, Zd_in, Cd_in, Cv_in, Ck_in, alpha_in, eta_in, iterat
 #' @param freeze_topics bool, hold topics fixed for prediction?
 #' @param Beta_in NumericMatrix, topics by words. The fitted beta, used only
 #'   when \code{freeze_topics = TRUE}
+#' @param threads int, number of worker threads. Results are identical at any
+#'   thread count (D12), so this trades wall clock for cores and nothing else
 #' @param verbose bool, show a progress bar?
 #' @return Returns a list with the same names as \code{fit_lda_c}.
-fit_lda_warp <- function(dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics = FALSE, likelihood_every = 10L, mh_steps = 1L, verbose = TRUE) {
-    .Call(`_tidylda_fit_lda_warp`, dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, verbose)
+fit_lda_warp <- function(dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics = FALSE, likelihood_every = 10L, mh_steps = 1L, threads = 1L, verbose = TRUE) {
+    .Call(`_tidylda_fit_lda_warp`, dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, threads, verbose)
 }
 
 # Register entry points for exported C++ functions

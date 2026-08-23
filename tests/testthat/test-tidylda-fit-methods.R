@@ -270,30 +270,36 @@ test_that("errors hit for malformed parameters", {
     return_data = "FALSE"
   ))
   
-  expect_error(tidylda(
+  # These two used to assert that `threads` above nrow(dtm) is an error and that
+  # fewer than 100 documents per thread warns of "a poor fit". Both described the
+  # abandoned batched Gibbs implementation, where the partition genuinely changed
+  # the model. The warpLDA engine seeds every work item from its own index
+  # (D12), so the result does not depend on the thread count at all, and the word
+  # pass parallelizes over the vocabulary rather than over documents. Neither
+  # condition is a problem now, and neither should complain.
+  expect_no_error(tidylda(
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, eta = 0.05,
-    optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE,
-    threads = nrow(d1) + 1
-  ), label = "threads > nrow(dtm)")
-  
-  expect_warning(tidylda(
+    threads = nrow(d1) + 1,
+    verbose = FALSE
+  ))
+
+  expect_no_warning(tidylda(
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, eta = 0.05,
-    optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE,
     threads = 2,
     verbose = FALSE
-  ), label = "nrow(dtm) / threads < 100")
+  ))
   
   # data doesn't have column names
   d3 <- d1

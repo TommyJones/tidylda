@@ -360,6 +360,7 @@ refit.tidylda <- function(
     freeze_topics = FALSE,
     likelihood_every = as.integer(likelihood_every),
     mh_steps = as.integer(mh_steps),
+    threads = as.integer(threads),
     verbose = verbose
   )
   

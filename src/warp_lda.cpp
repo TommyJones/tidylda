@@ -57,6 +57,8 @@
 
 #include <RcppArmadillo.h>
 #include <progress.hpp>
+#include <RcppThread.h>
+#include <memory>
 #include <vector>
 #include <cmath>
 
@@ -102,6 +104,8 @@ uint64_t draw_master_seed() {
 //' @param freeze_topics bool, hold topics fixed for prediction?
 //' @param Beta_in NumericMatrix, topics by words. The fitted beta, used only
 //'   when \code{freeze_topics = TRUE}
+//' @param threads int, number of worker threads. Results are identical at any
+//'   thread count (D12), so this trades wall clock for cores and nothing else
 //' @param verbose bool, show a progress bar?
 //' @return Returns a list with the same names as \code{fit_lda_c}.
 // [[Rcpp::export]]
@@ -117,6 +121,7 @@ Rcpp::List fit_lda_warp(
     const bool&                                   freeze_topics = false,
     const std::size_t&                            likelihood_every = 10,
     const std::size_t&                            mh_steps = 1,
+    const std::size_t&                            threads = 1,
     const bool&                                   verbose = true
 ) {
 
@@ -271,8 +276,7 @@ Rcpp::List fit_lda_warp(
     lgalpha = (lgalpha - lgamma(alpha_bar)) * static_cast<double>(D);
   }
 
-  std::vector<double> prob(K);  // hoisted out of the per-word loop
-  AliasTable word_alias;        // reused for every word, so no per-word alloc
+  std::vector<double> prob(K);  // used only for the one-time frozen build below
 
   // D9: with topics frozen, q_w(k) ~ beta_hat[k][v] does not change from one
   // iteration to the next, so its alias tables are built ONCE here rather than
@@ -293,6 +297,66 @@ Rcpp::List fit_lda_warp(
     }
   }
 
+  // =========================================================================
+  // Parallel scaffolding (Phase 5)
+  // =========================================================================
+  // Both passes partition cleanly on their own index -- the doc pass owns
+  // disjoint slices of Cd and of each document's tokens, the word pass the same
+  // for Cv and each word's tokens, and eta and the alias tables are read-only.
+  // C_k is the sole exception: it is read by every acceptance test and written
+  // by every acceptance.
+  //
+  // ATOMICS WOULD NOT DO. They remove the race but leave what each work item
+  // READS dependent on interleaving, so results would drift with thread count --
+  // exactly what D12 forbids. The requirement is determinism, not just safety.
+  //
+  // So C_k is READ-ONLY within a pass. Each chunk accumulates its own delta and
+  // the deltas are summed in afterwards. Three consequences, all wanted:
+  //
+  //   * every work item sees the same C_k however chunks land on threads;
+  //   * integer addition is associative and exact, so merge order is irrelevant;
+  //   * a work item's delta contribution depends only on its own state and the
+  //     snapshot, so even the CHUNK COUNT cannot change the result -- it is free
+  //     to be tuned for load balance.
+  //
+  // Results therefore do not depend on `threads`, which is what D12 asks for.
+  // They DO differ from the pre-Phase-5 engine, at every thread count including
+  // one, because C_k now goes stale within a pass. That is measured by the gate,
+  // not assumed.
+  struct Scratch {
+    std::vector<double> prob;      // q_w construction buffer
+    AliasTable          alias;     // per-word proposal table
+    std::vector<long>   ck_delta;  // this chunk's contribution to C_k
+    void reset(std::size_t k) { prob.assign(k, 0.0); ck_delta.assign(k, 0); }
+    void clear_delta() { std::fill(ck_delta.begin(), ck_delta.end(), 0); }
+  };
+
+  // Chunk count is sized for load balance only. More chunks than threads lets
+  // the pool even out documents and words of very different lengths.
+  const std::size_t n_chunks =
+      std::max<std::size_t>(1, std::min<std::size_t>(std::max(D, V), threads * 4));
+
+  std::vector<Scratch> scratch(n_chunks);
+  for (auto& sc : scratch) sc.reset(K);
+
+  auto chunk_lo = [&](std::size_t total, std::size_t c) { return (total * c) / n_chunks; };
+  auto chunk_hi = [&](std::size_t total, std::size_t c) { return (total * (c + 1)) / n_chunks; };
+
+  std::unique_ptr<RcppThread::ThreadPool> pool;
+  if (threads > 1) pool.reset(new RcppThread::ThreadPool(threads));
+
+  auto run_chunks = [&](auto&& body) {
+    for (auto& sc : scratch) sc.clear_delta();
+    if (pool) {
+      pool->parallelFor(0, static_cast<int>(n_chunks), body);
+      pool->wait();
+    } else {
+      for (std::size_t c = 0; c < n_chunks; c++) body(static_cast<int>(c));
+    }
+    for (const auto& sc : scratch)
+      for (std::size_t k = 0; k < K; k++) Ck[k] += sc.ck_delta[k];
+  };
+
   const uint64_t master = draw_master_seed();
   Progress progress(iterations, verbose);
 
@@ -306,7 +370,10 @@ Rcpp::List fit_lda_warp(
     // -----------------------------------------------------------------------
     // DOC PASS: resolve word-proposals, draw doc-proposals
     // -----------------------------------------------------------------------
-    for (std::size_t d = 0; d < D; d++) {
+    run_chunks([&](int c) {
+    Scratch& sc = scratch[c];
+    long* ck_delta = sc.ck_delta.data();
+    for (std::size_t d = chunk_lo(D, c); d < chunk_hi(D, c); d++) {
       Xoshiro256pp rng = work_item_rng(master, t, Pass::doc, d);
 
       const token_t begin = corpus.doc_begin(d);
@@ -348,8 +415,8 @@ Rcpp::List fit_lda_warp(
             Cd_d[k]--;
 
             if (!freeze_topics) {
-              Ck[kp]++;
-              Ck[k]--;
+              ck_delta[kp]++;
+              ck_delta[k]--;
             }
 
             corpus.old_z(i) = kp;
@@ -381,11 +448,15 @@ Rcpp::List fit_lda_warp(
         }
       }
     }
+    });
 
     // -----------------------------------------------------------------------
     // WORD PASS: resolve doc-proposals, draw word-proposals
     // -----------------------------------------------------------------------
-    for (std::size_t w = 0; w < V; w++) {
+    run_chunks([&](int c) {
+    Scratch& sc = scratch[c];
+    long* ck_delta = sc.ck_delta.data();
+    for (std::size_t w = chunk_lo(V, c); w < chunk_hi(V, c); w++) {
       Xoshiro256pp rng = work_item_rng(master, t, Pass::word, w);
 
       const token_t begin = corpus.word_begin(w);
@@ -439,8 +510,8 @@ Rcpp::List fit_lda_warp(
               Cv_w[kp]++;
               Cv_w[k]--;
 
-              Ck[kp]++;
-              Ck[k]--;
+              ck_delta[kp]++;
+              ck_delta[k]--;
             }
 
             corpus.old_z(tok) = kp;
@@ -468,10 +539,10 @@ Rcpp::List fit_lda_warp(
       // if profiling at high K shows this dominating.
       if (!freeze_topics) {
         for (std::size_t k = 0; k < K; k++)
-          prob[k] = Cv_w[k] + static_cast<double>(eta_w[k]);
-        word_alias.setup(prob);
+          sc.prob[k] = Cv_w[k] + static_cast<double>(eta_w[k]);
+        sc.alias.setup(sc.prob);
       }
-      const AliasTable& tbl = freeze_topics ? frozen_alias[w] : word_alias;
+      const AliasTable& tbl = freeze_topics ? frozen_alias[w] : sc.alias;
 
       for (token_t i = begin; i < end; i++) {
         const token_t tok = corpus.word_token(i);
@@ -481,6 +552,7 @@ Rcpp::List fit_lda_warp(
         }
       }
     }
+    });
 
     // -----------------------------------------------------------------------
     // Log likelihood (D11)
@@ -568,7 +640,7 @@ Rcpp::List fit_lda_warp(
     }
 
     if (verbose) progress.increment();
-    Rcpp::checkUserInterrupt();
+    RcppThread::checkUserInterrupt();  // main thread only, between iterations
   }
 
   // =========================================================================

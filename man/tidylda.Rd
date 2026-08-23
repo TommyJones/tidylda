@@ -87,26 +87,31 @@ This function calls a collapsed Gibbs sampler for Latent Dirichlet Allocation
   only. Ideally, you'd burn in every iteration before convergence, then average
   over the chain after its converged (and thus every observation is independent).
 
-  If you set \code{optimize_alpha} to \code{TRUE}, then each element of \code{alpha}
-  is proportional to the number of times each topic has be sampled that iteration
-  averaged with the value of \code{alpha} from the previous iteration. This lets
-  you start with a symmetric \code{alpha} and drift into an asymmetric one.
-  However, (a) this probably means that convergence will take longer to happen
-  or convergence may not happen at all. And (b) I make no guarantees that doing this
-  will give you any benefit or that it won't hurt your model. Caveat emptor!
+  \code{optimize_alpha} is no longer implemented and is ignored. It rescaled
+  \code{alpha} by topic size each iteration, standing in for fixed-point
+  estimation that was never written. \code{alpha} is now fixed for the whole
+  run.
 
   The log likelihood calculation is the same that can be found on page 9 of
-  \url{https://arxiv.org/pdf/1510.08628.pdf}. The only difference is that the
-  version in \code{\link[tidylda]{tidylda}} allows \code{eta} to be a
-  vector or matrix. (Vector used in this function, matrix used for model
-  updates in \code{\link[tidylda]{refit.tidylda}}. At present, the
-  log likelihood function appears to be ok for assessing convergence. i.e. It
-  has the right shape. However, it is, as of this writing, returning positive
-  numbers, rather than the expected negative numbers. Looking into that, but
-  in the meantime caveat emptor once again.
-  
-  Parallelism, is not currently implemented. The \code{threads} argument is a
-  placeholder for planned enhancements.
+  \url{https://arxiv.org/pdf/1510.08628.pdf}, and \code{eta} may be a scalar,
+  a vector, or a matrix in any of \code{\link[tidylda]{tidylda}},
+  \code{\link[tidylda]{refit.tidylda}} and
+  \code{\link[tidylda]{predict.tidylda}}. The reported value is the log
+  probability of the corpus under the model, excluding the priors, and is
+  negative as expected.
+
+  It is evaluated every tenth iteration by default rather than every
+  iteration. This is not thinning: the chain advances every iteration and
+  every post-burn-in iteration still contributes to the posterior means. Only
+  the diagnostic, which feeds nothing the sampler uses, is computed less
+  often. Pass \code{likelihood_every = 1} to recover a value per iteration.
+
+  \code{threads} sets the number of worker threads. Results are identical at
+  any thread count, so it trades wall clock for cores and nothing else; a
+  model fitted under \code{set.seed()} is reproducible whether it was fitted
+  on one thread or twenty. It defaults to 1, so that \code{tidylda} never
+  takes cores it was not asked for -- which matters when fitting many models
+  inside your own parallel loop.
 }
 \examples{
 # load some data

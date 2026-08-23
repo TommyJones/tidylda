@@ -16,6 +16,7 @@ fit_lda_warp(
   freeze_topics = FALSE,
   likelihood_every = 10L,
   mh_steps = 1L,
+  threads = 1L,
   verbose = TRUE
 )
 }
@@ -44,6 +45,9 @@ when \code{freeze_topics = TRUE}}
 \item{likelihood_every}{int, evaluate the likelihood every n-th iteration}
 
 \item{mh_steps}{int, Metropolis-Hastings proposals per token per pass}
+
+\item{threads}{int, number of worker threads. Results are identical at any
+thread count (D12), so this trades wall clock for cores and nothing else}
 
 \item{verbose}{bool, show a progress bar?}
 }

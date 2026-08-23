@@ -102,8 +102,8 @@ RcppExport SEXP _tidylda_fit_lda_c(SEXP DocsSEXP, SEXP Zd_inSEXP, SEXP Cd_inSEXP
     return rcpp_result_gen;
 }
 // fit_lda_warp
-Rcpp::List fit_lda_warp(const arma::sp_mat& dtm_in, const IntegerMatrix& Cd_start, const std::vector<double>& alpha_in, const NumericMatrix& eta_in, const std::size_t& iterations, const int& burnin, const bool& calc_likelihood, const NumericMatrix& Beta_in, const bool& freeze_topics, const std::size_t& likelihood_every, const std::size_t& mh_steps, const bool& verbose);
-RcppExport SEXP _tidylda_fit_lda_warp(SEXP dtm_inSEXP, SEXP Cd_startSEXP, SEXP alpha_inSEXP, SEXP eta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP calc_likelihoodSEXP, SEXP Beta_inSEXP, SEXP freeze_topicsSEXP, SEXP likelihood_everySEXP, SEXP mh_stepsSEXP, SEXP verboseSEXP) {
+Rcpp::List fit_lda_warp(const arma::sp_mat& dtm_in, const IntegerMatrix& Cd_start, const std::vector<double>& alpha_in, const NumericMatrix& eta_in, const std::size_t& iterations, const int& burnin, const bool& calc_likelihood, const NumericMatrix& Beta_in, const bool& freeze_topics, const std::size_t& likelihood_every, const std::size_t& mh_steps, const std::size_t& threads, const bool& verbose);
+RcppExport SEXP _tidylda_fit_lda_warp(SEXP dtm_inSEXP, SEXP Cd_startSEXP, SEXP alpha_inSEXP, SEXP eta_inSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP calc_likelihoodSEXP, SEXP Beta_inSEXP, SEXP freeze_topicsSEXP, SEXP likelihood_everySEXP, SEXP mh_stepsSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -118,8 +118,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool& >::type freeze_topics(freeze_topicsSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type likelihood_every(likelihood_everySEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type mh_steps(mh_stepsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< const bool& >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_lda_warp(dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, verbose));
+    rcpp_result_gen = Rcpp::wrap(fit_lda_warp(dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -145,7 +146,7 @@ RcppExport SEXP _tidylda_RcppExport_registerCCallable() {
 static const R_CallMethodDef CallEntries[] = {
     {"_tidylda_create_lexicon", (DL_FUNC) &_tidylda_create_lexicon, 5},
     {"_tidylda_fit_lda_c", (DL_FUNC) &_tidylda_fit_lda_c, 15},
-    {"_tidylda_fit_lda_warp", (DL_FUNC) &_tidylda_fit_lda_warp, 12},
+    {"_tidylda_fit_lda_warp", (DL_FUNC) &_tidylda_fit_lda_warp, 13},
     {"_tidylda_RcppExport_registerCCallable", (DL_FUNC) &_tidylda_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

@@ -272,6 +272,7 @@ predict.tidylda <- function(
       Beta_in = counts$beta_initial,
       freeze_topics = TRUE,
       mh_steps = as.integer(mh_steps),
+      threads = as.integer(threads),
       verbose = verbose
     )
     

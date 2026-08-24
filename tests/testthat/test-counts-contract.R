@@ -26,7 +26,7 @@ test_that("counts are stored major-by-topics, beta and theta unchanged", {
   # Marginals tie each matrix to the axis it is indexed by, which pins the
   # orientation rather than merely the shape.
   expect_equal(unname(rowSums(m$counts$Cd)), unname(Matrix::rowSums(d)))
-  expect_equal(unname(rowSums(m$counts$Cv)), unname(Matrix::colSums(d)))
+  expect_equal(unname(Matrix::rowSums(m$counts$Cv)), unname(Matrix::colSums(d)))
 
   # Totals are exact in both. Note the per-TOPIC marginals are not required to
   # agree between them: D10 accumulates Cd during the doc pass and Cv during the
@@ -103,8 +103,11 @@ test_that("models saved with the old counts orientation still work", {
   # tidylda is on CRAN, so saved models carry the pre-D17 topics-by-words Cv.
   # refit() reads it on the tLDA critical path, where a wrong per-topic weight
   # would corrupt eta rather than error.
+  # Matrix::t() because a 0.1.0 Cv is a dgCMatrix; the pre-0.1.0 object this
+  # simulates was a dense base matrix, so coerce back to match what those models
+  # actually contain.
   old <- m
-  old$counts$Cv <- t(m$counts$Cv)
+  old$counts$Cv <- as.matrix(Matrix::t(m$counts$Cv))
 
   expect_equal(dim(old$counts$Cv), c(4, ncol(d)))
   expect_equal(dim(counts_cv(old)), dim(m$counts$Cv))
@@ -128,6 +131,19 @@ test_that("Cv is labelled with the model's vocabulary and topics", {
 })
 
 
+test_that("Cv is sparse and Cd is dense", {
+  # Cv is sparse enough to be worth storing that way (7.7% nonzero without
+  # burn-in, 23.2% with it); Cd is not (38.4% and 81.3%), and at the latter a
+  # dgCMatrix would be LARGER than the dense form. Measured, not assumed.
+  expect_s4_class(m$counts$Cv, "dgCMatrix")
+  expect_true(is.matrix(m$counts$Cd))
+
+  # Sparsity must not have cost anything: same values, same totals.
+  expect_equal(sum(m$counts$Cv), sum(d))
+  expect_equal(unname(Matrix::rowSums(m$counts$Cv)), unname(Matrix::colSums(d)))
+})
+
+
 test_that("counts_cv() gets the square case right in both directions", {
   # k == nrow(Cv) == ncol(Cv) is the one shape that cannot disambiguate itself,
   # so counts_cv() falls back on the labels. Before 0.1.0 gave Cv dimnames that
@@ -140,7 +156,11 @@ test_that("counts_cv() gets the square case right in both directions", {
   )
 
   # Current layout: tokens by topics, labelled. Must come back untouched.
-  current <- matrix(1:16, nrow = 4, dimnames = list(vocab, paste0("t", 1:4)))
+  # Sparse, as a 0.1.0 model actually stores it.
+  current <- Matrix::Matrix(
+    matrix(1:16, nrow = 4, dimnames = list(vocab, paste0("t", 1:4))),
+    sparse = TRUE
+  )
   fake$counts <- list(Cv = current)
   expect_equal(counts_cv(fake), current)
 

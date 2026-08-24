@@ -39,10 +39,20 @@
 There is exactly one, and it fails silently rather than raising an error, so it is worth
 a moment even if you do not think you use `counts`.
 
-* **`counts$Cv` changed orientation.** It was topics by tokens and is now tokens
-    by topics. `counts$Cd` was already documents by topics and is unaffected.
-    Both are now labelled: `counts$Cv` has tokens as rownames and topics as
-    colnames, matching `beta` and `theta`.
+* **`counts$Cv` changed orientation, and is now sparse.** It was a dense
+    topics-by-tokens matrix and is now a tokens-by-topics `dgCMatrix`. It is also
+    labelled, with tokens as rownames and topics as colnames, matching `beta` and
+    `theta`. `counts$Cd` is unchanged: still documents by topics, still dense.
+
+    Sparse storage shrinks it about 3x, which is roughly 19% off a whole fitted
+    model at k = 200 on a 4,400-token vocabulary, and more as the vocabulary
+    grows. `counts$Cd` was measured too and left dense deliberately: at 38-81%
+    nonzero, a sparse form would save nothing and can cost 20%.
+
+    Being a `Matrix` object rather than a base matrix, `counts$Cv` needs
+    `Matrix::rowSums()` rather than `rowSums()`, and `as.matrix()` before
+    anything that insists on a base matrix such as `as.data.frame()`. Indexing,
+    arithmetic and `Matrix::t()` all work as before.
 
     This means `model$counts$Cv[k, ]` used to give topic `k`'s counts over words
     and now gives word `k`'s counts over topics. It will not error and the

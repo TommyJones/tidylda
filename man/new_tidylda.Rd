@@ -70,13 +70,19 @@ Returns an S3 object of class \code{tidylda} with the following slots:
     scalar, and a matrix prior is a \code{k} by \code{ncol(dtm)} matrix.
 
   \code{counts} is a list of two matrices holding the token-topic counts the
-    sampler ended on. \code{Cd} is documents by topics; \code{Cv} is tokens
-    by topics. Both are topics-in-columns, so \code{Cd} aligns with
-    \code{theta} and \code{Cv} with \code{t(beta)}. \code{Cv} is labelled
-    with the model's vocabulary and topic names. If burn-in iterations were
-    used these are averages over the post-burn-in iterations, and are
-    therefore not integers. NOTE: as of version 0.1.0 \code{Cv} is tokens by
-    topics; it was topics by tokens previously.
+    sampler ended on. \code{Cd} is a dense matrix of documents by topics.
+    \code{Cv} is a sparse \code{\link[Matrix]{dgCMatrix-class}} of tokens by
+    topics, labelled with the model's vocabulary and topic names. Both are
+    topics-in-columns, so \code{Cd} aligns with \code{theta} and \code{Cv}
+    with \code{t(beta)}. If burn-in iterations were used these are averages
+    over the post-burn-in iterations, and are therefore not integers.
+
+    \code{Cd} is deliberately dense: it is 38-81 percent nonzero, where a
+    sparse form saves nothing and can cost 20 percent. \code{Cv} is 8-23
+    percent nonzero and roughly 3 times smaller sparse.
+
+    NOTE: as of version 0.1.0 \code{Cv} is tokens by topics and sparse; it was
+    topics by tokens and dense previously.
 
   \code{summary} is the result of a call to \code{\link[tidylda]{summarize_topics}}
 

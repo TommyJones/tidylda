@@ -126,7 +126,13 @@ posterior.tidylda <- function(
     # trailing t() this used to need is gone. counts_cv() transposes a model
     # saved by an earlier version.
     eta_mat <- eta_matrix(eta, nrow(x$beta), ncol(x$beta))
-    dir_par <- counts_cv(x)[, which] + t(eta_mat[which, , drop = FALSE])
+
+    # as.matrix() because Cv is a dgCMatrix and eta is a base matrix: Matrix
+    # promotes sparse + dense to a DENSE Matrix (dgeMatrix), not to a sparse one.
+    # Everything downstream --- the matrix() reshape just below, the dimnames
+    # assignments, and generate_sample()'s as.data.frame() --- wants a base
+    # matrix, and a dgeMatrix satisfies none of them.
+    dir_par <- as.matrix(counts_cv(x)[, which] + t(eta_mat[which, , drop = FALSE]))
     
     if (length(which) == 1) {
       dir_par <- matrix(dir_par, ncol = 1)

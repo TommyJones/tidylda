@@ -229,7 +229,7 @@ refit.tidylda <- function(
   if (! is.na(prior_weight)) {
     # Cv is words-by-topics (D17), so the per-topic total is a column sum.
     # counts_cv() transposes a model saved by an earlier version.
-    w_star <- colSums(counts_cv(object)) +
+    w_star <- Matrix::colSums(counts_cv(object)) +
       rowSums(eta_matrix(eta, nrow(object$beta), ncol(object$beta)))
     
     eta$eta <- prior_weight * w_star * object$beta

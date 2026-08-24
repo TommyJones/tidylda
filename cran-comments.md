@@ -27,9 +27,18 @@ User-visible changes:
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
 
-The local Ubuntu check reports one additional NOTE that does not appear on any
+win-builder reports the usual incoming NOTE identifying the maintainer:
+
+> checking CRAN incoming feasibility ... NOTE
+> Maintainer: 'Tommy Jones <jones.thos.w@gmail.com>'
+
+An earlier submission of this version also flagged 'warpLDA' as a possibly
+misspelled word in DESCRIPTION. It is the name of the sampling algorithm and is
+now single-quoted, alongside 'tidyverse' and 'tidymodels' in the same field.
+
+The local Ubuntu check reports one further NOTE that does not appear on any
 other platform:
 
 > checking compilation flags used ... NOTE

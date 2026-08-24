@@ -22,11 +22,11 @@ Authors@R:
            )
     )
 Description: Implements an algorithm for Latent Dirichlet
-    Allocation (LDA), Blei et at. (2003) <https://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf>,
+    Allocation (LDA), Blei et al. (2003) <https://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf>,
     using style conventions from the 'tidyverse',
     Wickham et al. (2019)<doi:10.21105/joss.01686>,
     and 'tidymodels', Kuhn et al.<https://tidymodels.github.io/model-implementation-principles/>.
-    Fitting is done via warpLDA, a Metropolis-Hastings sampler,
+    Fitting is done via 'warpLDA', a Metropolis-Hastings sampler,
     Chen et al. (2016) <doi:10.48550/arXiv.1510.08628>.
     Also implements several novel features for LDA such as guided models and
     transfer learning.

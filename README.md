@@ -6,8 +6,6 @@
 <!-- badges: start -->
 
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06800/status.svg)](https://doi.org/10.21105/joss.06800)
-[![Codecov test
-coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tommyjones/tidylda/branch/main)
 [![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
@@ -29,11 +27,12 @@ In addition this implementation of LDA allows you to:
 - apply LDA in a transfer-learning paradigm, updating a model’s
   parameters with additional data (or additional iterations)
 
-Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al., 2016), a
-Metropolis-Hastings sampler that alternates document-ordered and word-ordered
-passes so each pass touches only a small, cache-resident working set. It
-replaced the collapsed Gibbs sampler in version 0.1.0 and is multithreaded, with
-results that do not depend on the number of threads.
+Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al.,
+2016), a Metropolis-Hastings sampler that alternates document-ordered
+and word-ordered passes so each pass touches only a small,
+cache-resident working set. It replaced the collapsed Gibbs sampler in
+version 0.1.0 and is multithreaded, with results that do not depend on
+the number of threads.
 
 ## Installation
 
@@ -156,12 +155,12 @@ lda <- tidylda(
 qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line") + 
     ggtitle("Checking model convergence")
 #> Warning: `qplot()` was deprecated in ggplot2 3.4.0.
-#> This warning is displayed once every 8 hours.
+#> This warning is displayed once per session.
 #> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
 #> generated.
 ```
 
-<img src="man/figures/README-example-1.png" width="100%" />
+<img src="man/figures/README-example-1.png" alt="" width="100%" />
 
 ``` r
 
@@ -178,27 +177,27 @@ print(lda)
 #>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 
-#> The model's R-squared is  0.2503 
+#> The model's R-squared is  0.2374 
 #> The  5  most prevalent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     4       12.5    0.0527 cdk5, cns, develop, based, lsds, ...               
-#> 2     3       11.5    0.170  cells, cell, sleep, specific, memory, ...          
-#> 3     1       11.4    0.114  effects, v4, signaling, stiffening, wall, ...      
-#> 4     6       10.9    0.348  diabetes, numeracy, redox, extinction, health, ... 
-#> 5     8       10.7    0.337  cmybp, function, mitochondrial, injury, fragment, …
+#> 1     7       12.7     0.198 cancer, dcis, breast, imaging, clinical, ...       
+#> 2     8       12.0     0.276 mitochondrial, function, cmybp, sleep, studies, ...
+#> 3     5       11.7     0.222 research, cancer, disparities, program, mhirt, ... 
+#> 4     1       11.4     0.124 effects, imaging, v4, stiffening, wall, ...        
+#> 5     6       10.3     0.14  risk, diabetes, sud, numeracy, redox, ...          
 #> # ℹ 5 more rows
 #> 
 #> The  5  most coherent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     6      10.9      0.348 diabetes, numeracy, redox, extinction, health, ... 
-#> 2     8      10.7      0.337 cmybp, function, mitochondrial, injury, fragment, …
-#> 3     7      10.3      0.210 cancer, imaging, cells, rb, tumor, ...             
-#> 4     5       9.13     0.206 program, dcis, cancer, research, disparities, ...  
-#> 5    10       8.53     0.19  sud, plasticity, risk, factors, brain, ...         
+#> 1     4       8.17     0.466 cdk5, nmdar, nmdars, adhesion, calpain, ...        
+#> 2     8      12.0      0.276 mitochondrial, function, cmybp, sleep, studies, ...
+#> 3     5      11.7      0.222 research, cancer, disparities, program, mhirt, ... 
+#> 4     7      12.7      0.198 cancer, dcis, breast, imaging, clinical, ...       
+#> 5     3       8.43     0.142 cells, cell, specific, infection, lung, ...        
 #> # ℹ 5 more rows
 
 # it comes with its own summary matrix that's printed out with print(), above
@@ -206,16 +205,16 @@ lda$summary
 #> # A tibble: 10 × 4
 #>    topic prevalence coherence top_terms                                         
 #>    <dbl>      <dbl>     <dbl> <chr>                                             
-#>  1     1      11.4     0.114  effects, v4, signaling, stiffening, wall, ...     
-#>  2     2       7.01    0.0779 research, natural, antibodies, hiv, core, ...     
-#>  3     3      11.5     0.170  cells, cell, sleep, specific, memory, ...         
-#>  4     4      12.5     0.0527 cdk5, cns, develop, based, lsds, ...              
-#>  5     5       9.13    0.206  program, dcis, cancer, research, disparities, ... 
-#>  6     6      10.9     0.348  diabetes, numeracy, redox, extinction, health, ...
-#>  7     7      10.3     0.210  cancer, imaging, cells, rb, tumor, ...            
-#>  8     8      10.7     0.337  cmybp, function, mitochondrial, injury, fragment,…
-#>  9     9       8       0.184  ppg, core, pd, data, imaging, ...                 
-#> 10    10       8.53    0.19   sud, plasticity, risk, factors, brain, ...
+#>  1     1      11.4     0.124  effects, imaging, v4, stiffening, wall, ...       
+#>  2     2       8.62    0.111  cns, research, extinction, lsds, drug, ...        
+#>  3     3       8.43    0.142  cells, cell, specific, infection, lung, ...       
+#>  4     4       8.17    0.466  cdk5, nmdar, nmdars, adhesion, calpain, ...       
+#>  5     5      11.7     0.222  research, cancer, disparities, program, mhirt, ...
+#>  6     6      10.3     0.14   risk, diabetes, sud, numeracy, redox, ...         
+#>  7     7      12.7     0.198  cancer, dcis, breast, imaging, clinical, ...      
+#>  8     8      12.0     0.276  mitochondrial, function, cmybp, sleep, studies, .…
+#>  9     9       7.34    0.022  disease, data, ppg, pd, behavior, ...             
+#> 10    10       9.36    0.0913 brain, plasticity, mechanisms, study, repair, ...
 
 
 # inspect the individual matrices
@@ -226,15 +225,15 @@ tidy_theta
 #>    document topic   theta
 #>    <chr>    <dbl>   <dbl>
 #>  1 8574224      1 0.00238
-#>  2 8574224      2 0.00524
+#>  2 8574224      2 0.00238
 #>  3 8574224      3 0.00238
-#>  4 8574224      4 0.00429
+#>  4 8574224      4 0.00238
 #>  5 8574224      5 0.00238
-#>  6 8574224      6 0.00238
+#>  6 8574224      6 0.148  
 #>  7 8574224      7 0.00238
 #>  8 8574224      8 0.00238
 #>  9 8574224      9 0.00238
-#> 10 8574224     10 0.974  
+#> 10 8574224     10 0.833  
 #> # ℹ 490 more rows
 
 tidy_beta <- tidy(lda, matrix = "beta")
@@ -243,16 +242,16 @@ tidy_beta
 #> # A tibble: 15,240 × 3
 #>    topic token             beta
 #>    <dbl> <chr>            <dbl>
-#>  1     1 adolescence  0.00250  
-#>  2     1 age          0.0000648
-#>  3     1 application  0.0000648
-#>  4     1 depressive   0.0000648
-#>  5     1 disorder     0.0000648
-#>  6     1 emotionality 0.0000648
-#>  7     1 information  0.00250  
-#>  8     1 mdd          0.0000648
-#>  9     1 onset        0.0000648
-#> 10     1 onset mdd    0.0000648
+#>  1     1 adolescence  0.0000652
+#>  2     1 age          0.0000652
+#>  3     1 application  0.0000652
+#>  4     1 depressive   0.0000652
+#>  5     1 disorder     0.0000652
+#>  6     1 emotionality 0.0000652
+#>  7     1 information  0.00246  
+#>  8     1 mdd          0.0000652
+#>  9     1 onset        0.0000652
+#> 10     1 onset mdd    0.0000652
 #> # ℹ 15,230 more rows
 
 tidy_lambda <- tidy(lda, matrix = "lambda")
@@ -261,16 +260,16 @@ tidy_lambda
 #> # A tibble: 15,240 × 3
 #>    topic token         lambda
 #>    <dbl> <chr>          <dbl>
-#>  1     1 adolescence  0.304  
-#>  2     1 age          0.00938
-#>  3     1 application  0.00794
-#>  4     1 depressive   0.0206 
-#>  5     1 disorder     0.0206 
-#>  6     1 emotionality 0.0206 
-#>  7     1 information  0.259  
-#>  8     1 mdd          0.0115 
-#>  9     1 onset        0.00795
-#> 10     1 onset mdd    0.0206 
+#>  1     1 adolescence  0.00777
+#>  2     1 age          0.00929
+#>  3     1 application  0.00784
+#>  4     1 depressive   0.0204 
+#>  5     1 disorder     0.0204 
+#>  6     1 emotionality 0.0204 
+#>  7     1 information  0.254  
+#>  8     1 mdd          0.0114 
+#>  9     1 onset        0.00789
+#> 10     1 onset mdd    0.0204 
 #> # ℹ 15,230 more rows
 
 # append observation-level data
@@ -281,16 +280,16 @@ augmented_docs
 #> # A tibble: 4,566 × 4
 #>    document term            n topic
 #>    <chr>    <chr>       <int> <int>
-#>  1 8574224  adolescence     1    10
-#>  2 8646901  adolescence     1    10
-#>  3 8689019  adolescence     1    10
-#>  4 8705323  adolescence     1    10
+#>  1 8574224  adolescence     1     6
+#>  2 8646901  adolescence     1     6
+#>  3 8689019  adolescence     1     6
+#>  4 8705323  adolescence     1     6
 #>  5 8574224  age             1    10
 #>  6 8705323  age             1    10
 #>  7 8757072  age             1    10
 #>  8 8823186  age             1    10
-#>  9 8574224  application     1    10
-#> 10 8605875  application     1    10
+#>  9 8574224  application     1     6
+#> 10 8605875  application     1     6
 #> # ℹ 4,556 more rows
 
 ### predictions on held out data ---
@@ -311,7 +310,7 @@ tibble(topic = 1:ncol(p_mh), mh = p_mh[1,], dot = p_dot[1, ]) %>%
   ggtitle("Metropolis-Hastings predictions vs. dot product predictions")
 ```
 
-<img src="man/figures/README-example-2.png" width="100%" />
+<img src="man/figures/README-example-2.png" alt="" width="100%" />
 
 ``` r
 
@@ -352,7 +351,7 @@ ggplot(compare_mat) +
   labs(title = "Prediction using 'augment' vs 'predict(..., method = \"dot\")'")
 ```
 
-<img src="man/figures/README-example-3.png" width="100%" />
+<img src="man/figures/README-example-3.png" alt="" width="100%" />
 
 ``` r
 
@@ -375,7 +374,7 @@ qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "lin
   ggtitle("Checking model convergence")
 ```
 
-<img src="man/figures/README-example-4.png" width="100%" />
+<img src="man/figures/README-example-4.png" alt="" width="100%" />
 
 ``` r
 
@@ -391,27 +390,27 @@ print(lda2)
 #> refit.tidylda(object = lda, new_data = d, iterations = 200, burnin = 175, 
 #>     calc_likelihood = TRUE, calc_r2 = TRUE)
 #> 
-#> The model's R-squared is  0.1398 
+#> The model's R-squared is  0.1318 
 #> The  5  most prevalent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     5      16.0     0.108  research, program, health, cancer, disparities, ...
-#> 2     3      12.7     0.141  cell, cells, lung, sleep, specific, ...            
-#> 3     1      12.1     0.0616 effects, muscle, wall, v4, signaling, ...          
-#> 4    10      10.4     0.0499 risk, brain, factors, sud, plasticity, ...         
-#> 5     7       9.84    0.138  cancer, tumor, clinical, cells, imaging, ...       
+#> 1     5      14.1     0.172  research, cancer, program, disparities, dr, ...    
+#> 2     3      13.4     0.129  cell, cells, lung, hiv, inflammation, ...          
+#> 3    10      12.0     0.0980 microbiome, brain, plasticity, response, immune, .…
+#> 4     7      11.0     0.118  cancer, tumor, clinical, cells, dcis, ...          
+#> 5     9       9.67    0.0386 data, disease, study, develop, core, ...           
 #> # ℹ 5 more rows
 #> 
 #> The  5  most coherent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     8       7.36     0.326 cmybp, function, mitochondrial, injury, fragment, …
-#> 2     6       9.8      0.148 diabetes, cells, numeracy, health, redox, ...      
-#> 3     3      12.7      0.141 cell, cells, lung, sleep, specific, ...            
-#> 4     7       9.84     0.138 cancer, tumor, clinical, cells, imaging, ...       
-#> 5     5      16.0      0.108 research, program, health, cancer, disparities, ...
+#> 1     4       4.06     0.483 cdk5, nmdar, nmdars, adhesion, calpain, ...        
+#> 2     8       8.88     0.286 mitochondrial, function, cmybp, sleep, studies, ...
+#> 3     5      14.1      0.172 research, cancer, program, disparities, dr, ...    
+#> 4     6       8.72     0.144 health, risk, diabetes, sud, factors, ...          
+#> 5     3      13.4      0.129 cell, cells, lung, hiv, inflammation, ...          
 #> # ℹ 5 more rows
 
 
@@ -422,27 +421,27 @@ print(lda)
 #>     eta = 0.05, optimize_alpha = FALSE, calc_likelihood = TRUE, 
 #>     calc_r2 = TRUE, return_data = FALSE)
 #> 
-#> The model's R-squared is  0.2503 
+#> The model's R-squared is  0.2374 
 #> The  5  most prevalent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     4       12.5    0.0527 cdk5, cns, develop, based, lsds, ...               
-#> 2     3       11.5    0.170  cells, cell, sleep, specific, memory, ...          
-#> 3     1       11.4    0.114  effects, v4, signaling, stiffening, wall, ...      
-#> 4     6       10.9    0.348  diabetes, numeracy, redox, extinction, health, ... 
-#> 5     8       10.7    0.337  cmybp, function, mitochondrial, injury, fragment, …
+#> 1     7       12.7     0.198 cancer, dcis, breast, imaging, clinical, ...       
+#> 2     8       12.0     0.276 mitochondrial, function, cmybp, sleep, studies, ...
+#> 3     5       11.7     0.222 research, cancer, disparities, program, mhirt, ... 
+#> 4     1       11.4     0.124 effects, imaging, v4, stiffening, wall, ...        
+#> 5     6       10.3     0.14  risk, diabetes, sud, numeracy, redox, ...          
 #> # ℹ 5 more rows
 #> 
 #> The  5  most coherent topics are:
 #> # A tibble: 10 × 4
 #>   topic prevalence coherence top_terms                                          
 #>   <dbl>      <dbl>     <dbl> <chr>                                              
-#> 1     6      10.9      0.348 diabetes, numeracy, redox, extinction, health, ... 
-#> 2     8      10.7      0.337 cmybp, function, mitochondrial, injury, fragment, …
-#> 3     7      10.3      0.210 cancer, imaging, cells, rb, tumor, ...             
-#> 4     5       9.13     0.206 program, dcis, cancer, research, disparities, ...  
-#> 5    10       8.53     0.19  sud, plasticity, risk, factors, brain, ...         
+#> 1     4       8.17     0.466 cdk5, nmdar, nmdars, adhesion, calpain, ...        
+#> 2     8      12.0      0.276 mitochondrial, function, cmybp, sleep, studies, ...
+#> 3     5      11.7      0.222 research, cancer, disparities, program, mhirt, ... 
+#> 4     7      12.7      0.198 cancer, dcis, breast, imaging, clinical, ...       
+#> 5     3       8.43     0.142 cells, cell, specific, infection, lung, ...        
 #> # ℹ 5 more rows
 ```
 

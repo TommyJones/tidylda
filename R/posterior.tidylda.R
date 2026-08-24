@@ -14,7 +14,8 @@
 #' \code{posterior} returns a tibble with one row per parameter per sample.
 #' @references 
 #' Heinrich, G. (2005) Parameter estimation for text analysis. Technical report. 
-#' \href{http://www.arbylon.net/publications/text-est.pdf}{http://www.arbylon.net/publications/text-est.pdf}
+#' \href{https://web.archive.org/web/2020id_/http://www.arbylon.net/publications/text-est.pdf}{Archived copy}
+#' (arbylon.net no longer resolves; this is the Internet Archive's copy.)
 #' @return Returns a data frame where each row is a single sample from the posterior. 
 #' Each column is the distribution over a single parameter. The variable \code{var}
 #' is a facet for subsetting by document (for theta) or topic (for beta).

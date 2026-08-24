@@ -34,24 +34,64 @@
     normalizing constants and which, being a density rather than a probability,
     was unbounded above and routinely positive.
 
-## Breaking changes
+## Breaking change
 
-* **The `counts` slot changed orientation and class.** `counts$Cv` is now
-    tokens by topics, where it was topics by tokens; `counts$Cd` is unchanged at
-    documents by topics. Both are now sparse matrices of class `dgCMatrix`
-    rather than dense matrices. Code that reads `counts$Cv` needs a transpose;
-    code that reads `counts$Cd` does not change. Models saved by earlier
-    versions are still read correctly by `posterior()` and `refit()`.
-* **`predict(method = "gibbs")` is renamed to `method = "mh"`.** `"gibbs"`
-    still works and behaves identically, but warns once per session and will be
-    removed in a future release. `method = "dot"` is unaffected. The default is
-    now `"mh"`.
-* **`optimize_alpha` is deprecated and ignored** in `tidylda()` and
-    `refit.tidylda()`. It rescaled `alpha` by topic size each iteration,
-    standing in for fixed-point estimation that was never written; `alpha` is
-    now fixed for the whole run. Passing `TRUE` warns once per session.
-* **`recover_counts_from_probs()` is removed.** It was unexported, had no live
-    call site, and was recorded by its author as returning wrong counts.
+There is exactly one, and it fails silently rather than erroring, so it is worth
+a moment even if you do not think you use `counts`.
+
+* **`counts$Cv` changed orientation.** It was topics by tokens and is now tokens
+    by topics; both `counts$Cd` and `counts$Cv` are also now sparse
+    (`dgCMatrix`) rather than dense. `counts$Cd` was already documents by topics
+    and is unaffected.
+
+    This means `model$counts$Cv[k, ]` used to give topic `k`'s counts over words
+    and now gives word `k`'s counts over topics. It will not error and the
+    numbers will look plausible. If you index `counts$Cv` by topic, transpose it:
+
+    ```r
+    # before 0.1.0
+    model$counts$Cv[k, ]
+
+    # 0.1.0 and after
+    t(model$counts$Cv)[k, ]     # or: model$counts$Cv[, k]
+    ```
+
+    Models saved by earlier versions are still read correctly by `posterior()`
+    and `refit()` — tidylda detects the old orientation internally. That
+    protection does not extend to your own code reading a newly fitted model.
+
+## Deprecated, but still working
+
+Both of these keep running and warn once per session. No code needs to change
+today.
+
+* **`predict(method = "gibbs")` is now `method = "mh"`.** `"gibbs"` still works
+    and behaves identically; only the name was wrong, since the sampler is no
+    longer Gibbs. `"dot"` is unaffected. The default is now `"mh"`.
+* **`optimize_alpha` is ignored** in `tidylda()` and `refit.tidylda()`. Note
+    that this *does* change the model you get: it used to rescale `alpha` by
+    topic size every iteration, standing in for fixed-point estimation that was
+    never written. `alpha` is now fixed for the whole run. Passing `TRUE` warns
+    rather than erroring.
+* **`recover_counts_from_probs()` was removed.** It was never exported and had
+    no live call site, and its author had recorded that it returned wrong
+    counts. Only `:::` callers are affected.
+
+## Results change, even though the API does not
+
+Every call you could make against 0.0.7 still runs. The numbers it returns will
+differ.
+
+* **A given `set.seed()` no longer reproduces a 0.0.7 model.** The sampler is
+    different, so the chain is different. Fit quality was validated as
+    statistically equivalent across a grid of corpus sizes and topic counts
+    under both scalar and matrix priors, but individual models are not identical
+    and should not be expected to match.
+* **`theta` changed when `alpha` is a vector**, as a consequence of the bug fix
+    below. Models fitted with a scalar `alpha` are unaffected.
+* **Reported log likelihood values changed**, also from a bug fix below, and the
+    `log_likelihood` tibble gained a third column. Code selecting columns by
+    name is unaffected; code selecting by position is not.
 
 ## Bug fixes
 

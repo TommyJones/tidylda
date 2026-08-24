@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06800/status.svg)](https://doi.org/10.21105/joss.06800)
-[![Codecov test coverage](https://codecov.io/gh/TommyJones/tidylda/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tommyjones/tidylda/branch/main)
 [![R-CMD-check](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml/badge.svg)](https://GitHub.com/TommyJones/tidylda/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![Codecov test coverage](https://codecov.io/gh/TommyJones/tidylda/graph/badge.svg)](https://app.codecov.io/gh/TommyJones/tidylda)
@@ -34,12 +33,6 @@ In addition this implementation of LDA allows you to:
 * use a matrix prior parameter, eta, to seed topics into a model
 * use a previously-trained model as a prior for a new model
 * apply LDA in a transfer-learning paradigm, updating a model's parameters with additional data (or additional iterations)
-
-Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al., 2016), a
-Metropolis-Hastings sampler that alternates document-ordered and word-ordered
-passes so each pass touches only a small, cache-resident working set. It
-replaced the collapsed Gibbs sampler in version 0.1.0 and is multithreaded, with
-results that do not depend on the number of threads.
 
 Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al., 2016), a
 Metropolis-Hastings sampler that alternates document-ordered and word-ordered

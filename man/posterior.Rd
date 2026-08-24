@@ -67,5 +67,6 @@ d5 <- posterior(
 }
 \references{
 Heinrich, G. (2005) Parameter estimation for text analysis. Technical report. 
-\href{http://www.arbylon.net/publications/text-est.pdf}{http://www.arbylon.net/publications/text-est.pdf}
+\href{https://web.archive.org/web/2020id_/http://www.arbylon.net/publications/text-est.pdf}{Archived copy}
+(arbylon.net no longer resolves; this is the Internet Archive's copy.)
 }

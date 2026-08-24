@@ -39,23 +39,41 @@ test_that("counts are stored major-by-topics, beta and theta unchanged", {
 
 
 test_that("posterior() draws associate tokens with the right topic", {
-  # The check that matters: a transposed Cv would still give valid probability
-  # vectors, just attached to the wrong topics.
+  # WHAT THIS DOES AND DOES NOT GUARD. An earlier version of this comment said it
+  # caught a transposed Cv. It cannot, and checking showed why: every read goes
+  # through counts_cv(), which detects orientation and corrects it, so handing
+  # posterior() a transposed Cv produces correct output rather than wrong output.
+  # The shim and this test were written in the same phase and cancel each other.
   #
-  # SEEDED, AND WITH ENOUGH DRAWS TO MEAN SOMETHING. This compares a Monte Carlo
-  # mean against the exact one, so `times` sets its resolution. At the original
-  # times = 10 the comparison was finer than the estimate: ranks 5 and 6 of beta
-  # differ by about 11% here (0.0081 against 0.0072), which 10 draws reorder
-  # easily. It passed only because the RNG happened to be in a favourable state
-  # at this point in the file, and Phase 7's changed draw sequence exposed that.
+  # The real orientation guard is the marginals assertion in the test above ---
+  # rowSums(Cv) against colSums(dtm) --- which fails on a K x V Cv because the
+  # lengths no longer match. Verified.
   #
-  # 200 draws resolve the gap, and the seed stops the result depending on
-  # whatever ran before. The assertion is unchanged.
+  # What this test is still worth: an end-to-end check that posterior() attaches
+  # its draws to the topic they were asked for, across the whole path from the
+  # stored counts through the Dirichlet draw to the returned tibble.
+  #
+  # TESTED BY CORRELATION, NOT BY RANKING. Two earlier versions of this compared
+  # the top 5 tokens of the posterior mean against the top 5 of beta, and both
+  # were fragile for the same reason: adjacent ranks are often nearly tied --
+  # ranks 5 and 6 here differ by about 11% -- so the comparison is finer than
+  # anything it is comparing. The first version failed once the RNG state at this
+  # point in the file changed. Seeding it and raising the draw count fixed that
+  # and still failed on macOS, because the FITTED MODEL differs by platform:
+  # floating-point differences flip individual MH accept decisions and the chain
+  # diverges from there. That is expected of MCMC and is not a defect --- D12
+  # promises reproducibility across THREAD COUNTS, not across platforms.
+  #
+  # Correlation tests the association directly and is indifferent to near-ties.
+  # A transposed Cv would drop same-topic correlation to cross-topic levels, and
+  # the gap is enormous: about 0.9995 against 0.01-0.08. The argmax assertion
+  # needs no threshold at all.
   set.seed(9001)
-  p <- posterior(m, matrix = "beta", which = c(1, 3), times = 200)
+  times <- 100
+  p <- posterior(m, matrix = "beta", which = c(1, 3), times = times)
 
   expect_setequal(unique(p$topic), c(1, 3))
-  expect_equal(nrow(p), 2 * 200 * ncol(d))
+  expect_equal(nrow(p), 2 * times * ncol(d))
 
   totals <- tapply(p$beta, list(p$topic, p$sample), sum)
   expect_equal(as.numeric(totals), rep(1, length(totals)))
@@ -63,9 +81,20 @@ test_that("posterior() draws associate tokens with the right topic", {
   for (k in c(1, 3)) {
     from_post <- p[p$topic == k, ]
     from_post <- tapply(from_post$beta, from_post$token, mean)
-    top_post <- names(sort(from_post, decreasing = TRUE))[1:5]
-    top_beta <- names(sort(m$beta[k, ], decreasing = TRUE))[1:5]
-    expect_setequal(top_post, top_beta)
+    from_post <- as.numeric(from_post[colnames(m$beta)])
+
+    # Correlation against every topic of beta, not just its own.
+    cors <- vapply(
+      seq_len(nrow(m$beta)),
+      function(j) stats::cor(from_post, m$beta[j, ]),
+      numeric(1)
+    )
+
+    # The draws must look most like the topic they came from. Threshold-free.
+    expect_equal(which.max(cors), k)
+
+    # And the resemblance must be strong, not merely strongest.
+    expect_gt(cors[k], 0.9)
   }
 })
 

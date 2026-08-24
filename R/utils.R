@@ -426,9 +426,17 @@ counts_cv <- function(object) {
     return(t(cv))
   }
 
-  # Square, so the shape cannot disambiguate. Every version has stored Cv with
-  # one row per word after D17 and one row per topic before it; fall back on
-  # matching against the vocabulary instead.
+  # Square, so shape cannot disambiguate: k == nrow(cv) == ncol(cv). Fall back on
+  # the vocabulary labels instead.
+  #
+  # This is reachable only when the topic count exactly equals the vocabulary
+  # size, which is near-impossible in real use and easy to hit in a toy example.
+  # It was also broken until 0.1.0: Cv carried no dimnames, so the identity test
+  # below could never succeed and every square Cv was transposed, corrupting a
+  # correctly-oriented model rather than repairing a stale one. Models fitted by
+  # 0.1.0 and later are labelled (see new_tidylda), so they take the first
+  # branch; anything unlabelled is necessarily pre-0.1.0 and needs the
+  # transpose.
   if (!is.null(colnames(object$beta)) && !is.null(rownames(cv)) &&
       identical(rownames(cv), colnames(object$beta))) {
     return(cv)
@@ -484,12 +492,12 @@ counts_cv <- function(object) {
 #'     when calling \code{\link[tidylda]{tidylda}}: a numeric scalar stays a
 #'     scalar, and a matrix prior is a \code{k} by \code{ncol(dtm)} matrix.
 #'
-#'   \code{counts} is a list of two sparse matrices of class
-#'     \code{\link[Matrix]{dgCMatrix-class}} holding the token-topic counts the
+#'   \code{counts} is a list of two matrices holding the token-topic counts the
 #'     sampler ended on. \code{Cd} is documents by topics; \code{Cv} is tokens
 #'     by topics. Both are topics-in-columns, so \code{Cd} aligns with
-#'     \code{theta} and \code{Cv} with \code{t(beta)}. If burn-in iterations
-#'     were used these are averages over the post-burn-in iterations, and are
+#'     \code{theta} and \code{Cv} with \code{t(beta)}. \code{Cv} is labelled
+#'     with the model's vocabulary and topic names. If burn-in iterations were
+#'     used these are averages over the post-burn-in iterations, and are
 #'     therefore not integers. NOTE: as of version 0.1.0 \code{Cv} is tokens by
 #'     topics; it was topics by tokens previously.
 #'
@@ -573,6 +581,25 @@ new_tidylda <- function(
     } else { # if you didn't use burnin use standard counts (Cd etc.)
       Cv <- lda$Cv
     }
+
+    # NAME THE AXES. Two reasons, and the second is load-bearing.
+    #
+    # The obvious one: `beta` and `theta` are labelled, so `counts` should be
+    # too. A user indexing Cv by token had no way to do it by name.
+    #
+    # The other: it is what makes a 0.1.0-or-later model self-identifying to
+    # counts_cv(). That helper distinguishes the current words-by-topics layout
+    # from the pre-0.1.0 topics-by-words one by shape, which cannot work when
+    # k == ncol(dtm). Its tiebreaker compares rownames(Cv) against
+    # colnames(beta) -- and before this, Cv carried no dimnames at all, so the
+    # comparison could never succeed and the square case always transposed.
+    #
+    # The vocabulary here is the MODEL's, which is not always the data's: after
+    # refit() adds vocabulary, ncol(dtm) < nrow(Cv). colnames(beta) is assigned
+    # from colnames(dtm) further down for the same reason, and both are correct
+    # because `dtm` at this point is the aligned matrix the sampler actually saw.
+    rownames(Cv) <- colnames(dtm)
+    colnames(Cv) <- colnames(theta)
 
     # A scalar prior arrives back as a 1 x 1 matrix (D20), so test length rather
     # than class; recycling then handles it.

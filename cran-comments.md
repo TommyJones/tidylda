@@ -24,7 +24,6 @@ User-visible changes:
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release,
     oldrel-1)
 * win-builder: devel, release, oldrelease
-* macOS builder: release
 
 ## R CMD check results
 

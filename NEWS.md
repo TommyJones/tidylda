@@ -40,9 +40,9 @@ There is exactly one, and it fails silently rather than raising an error, so it 
 a moment even if you do not think you use `counts`.
 
 * **`counts$Cv` changed orientation.** It was topics by tokens and is now tokens
-    by topics; both `counts$Cd` and `counts$Cv` are also now sparse
-    (`dgCMatrix`) rather than dense. `counts$Cd` was already documents by topics
-    and is unaffected.
+    by topics. `counts$Cd` was already documents by topics and is unaffected.
+    Both are now labelled: `counts$Cv` has tokens as rownames and topics as
+    colnames, matching `beta` and `theta`.
 
     This means `model$counts$Cv[k, ]` used to give topic `k`'s counts over words
     and now gives word `k`'s counts over topics. It will not error and the

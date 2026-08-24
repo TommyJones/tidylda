@@ -120,3 +120,61 @@ test_that("models saved with the old counts orientation still work", {
   expect_equal(nrow(posterior(old, matrix = "beta", which = 2, times = 5)),
                5 * ncol(d))
 })
+
+
+test_that("Cv is labelled with the model's vocabulary and topics", {
+  expect_equal(rownames(m$counts$Cv), colnames(m$beta))
+  expect_equal(colnames(m$counts$Cv), rownames(m$beta))
+})
+
+
+test_that("counts_cv() gets the square case right in both directions", {
+  # k == nrow(Cv) == ncol(Cv) is the one shape that cannot disambiguate itself,
+  # so counts_cv() falls back on the labels. Before 0.1.0 gave Cv dimnames that
+  # fallback could never succeed, and a correctly-oriented square Cv was
+  # transposed into a wrong one.
+  vocab <- paste0("w", 1:4)
+
+  fake <- list(
+    beta = matrix(0, nrow = 4, ncol = 4, dimnames = list(paste0("t", 1:4), vocab))
+  )
+
+  # Current layout: tokens by topics, labelled. Must come back untouched.
+  current <- matrix(1:16, nrow = 4, dimnames = list(vocab, paste0("t", 1:4)))
+  fake$counts <- list(Cv = current)
+  expect_equal(counts_cv(fake), current)
+
+  # Pre-0.1.0 layout: topics by tokens, unlabelled. Must be transposed.
+  old <- matrix(1:16, nrow = 4)
+  fake$counts <- list(Cv = old)
+  expect_equal(counts_cv(fake), t(old))
+})
+
+
+test_that("counts survive a vocabulary mismatch between model and data", {
+  # Transfer learning means the model's vocabulary is the union of the base
+  # model's and the new data's, so nrow(Cv) exceeds ncol(new_data). Nothing may
+  # key off the data's vocabulary size.
+  d1 <- nih_sample_dtm[1:30, ]
+  d1 <- d1[, Matrix::colSums(d1) > 0]
+  d2 <- nih_sample_dtm[31:60, ]
+  d2 <- d2[, Matrix::colSums(d2) > 0]
+
+  skip_if(ncol(d1) == ncol(d2), "corpora happen to share a vocabulary size")
+
+  set.seed(1)
+  base <- tidylda(d1, k = 5, iterations = 20, burnin = 5,
+                  calc_r2 = FALSE, verbose = FALSE)
+  moved <- refit(base, new_data = d2, iterations = 20, burnin = 5,
+                 verbose = FALSE)
+
+  # The model's vocabulary is the union, and larger than either input.
+  expect_gt(nrow(moved$counts$Cv), ncol(d2))
+  expect_equal(nrow(moved$counts$Cv), ncol(moved$beta))
+  expect_equal(rownames(moved$counts$Cv), colnames(moved$beta))
+
+  # And the downstream consumers still work against it.
+  expect_equal(nrow(counts_cv(moved)), ncol(moved$beta))
+  p <- posterior(moved, matrix = "beta", which = 1, times = 5)
+  expect_true(all(is.finite(p$beta)))
+})

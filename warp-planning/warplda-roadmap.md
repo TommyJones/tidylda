@@ -80,14 +80,13 @@ repository root.
 | **Branch** | `warp` |
 | **Base commit** | `5abaa96` (Phase 0 fixes, merged from `main`) |
 | **Current phase** | None. All scheduled phases are done. |
-| **Last completed** | **Phase 6.6: the collapsed joint.** Replaces a sign-buggy plug-in density; surfaced as `log_joint`. §6.6. |
+| **Last completed** | **Phase 7: the $O(N)$ word proposal.** Built, measured at 3-4x slower, reverted. §6.7. |
 | **In flight** | Nothing. |
 
-**Next action:** **Phase 7** (§6.7), the $O(N)$ word proposal -- which ships in
-0.1.0 too, so its `NEWS.md` entry costs nothing extra. Profile at high $K$ first;
-the phase needs a measurement before it needs an implementation.
+**Next action:** release prep for 0.1.0. All scheduled phases are done, and
+Phase 7 closed as measured-and-declined without touching `src/`.
 
-Then release prep for 0.1.0: `cran-comments.md`, a reverse-dependency check, and
+Release prep: `cran-comments.md`, a reverse-dependency check, and
 submission. **Phase 7** (the $O(N)$ word proposal, §6.7) and **Phase 8** (memory
 surgery, §6.8) are both unscheduled; Phase 7 is the cheaper of the two and should
 land first.
@@ -210,7 +209,7 @@ Settled. See §1 rule 3 before changing any of these.
 | **6** | Cleanup: D17 sparse column-major `counts` and its four consumers; D20 scalar $\boldsymbol\eta$ fast path; documentation, NEWS, CRAN preparation | **Done.** Old engine deleted and its tests rewritten against an independent R reference sampler; D17 and D20 landed; documentation, `NEWS.md` and `DESCRIPTION` rewritten at version 0.1.0; `devtools::check()` clean apart from the local compiler-flag NOTE. §6.4 |
 | **6.5** | Triage the open GitHub issues against the 0.1.0 code; close what this project fixed or made moot — see §6.5 | **Done.** Ten issues read; 70 and 77 closed, six commented with status, 8/28/51 untouched. One open question surfaced: whether to surface the log posterior density (issue 30) |
 | **6.6** | Replace the plug-in prior-inclusive likelihood with the collapsed joint; delete the sign-buggy row 3 — see §6.6 | **Done.** Agrees with an independent R implementation to 6e-10 (scalar) and 8e-12 (matrix); negative in every case; surfaced as a `log_joint` column. No gate run |
-| **7** | *Unscheduled.* The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.7 | Non-breaking, but it moves results, so the full gate applies. Profile at high $K$ first |
+| **7** | The $O(N)$ word proposal — sparse count part plus a precomputed table over the prior — see §6.7 | **Built, measured, reverted.** 3-4x slower at every $K$; the term it targeted is flat in $K$ at `-O2`. No gate run needed — it never got that far |
 | **8** | *Unscheduled.* Memory surgery for large corpora — see §6.8 | A separate project. Breaking, broadly |
 
 **The `counts` documentation gap is closed.** `new_tidylda()`'s `@return` now
@@ -1134,62 +1133,93 @@ avoid it, which has infinite variance and is worse.
 
 ---
 
-### 6.7 Phase 7 sketch -- the $O(N)$ word proposal
+### 6.7 Phase 7 results -- the $O(N)$ word proposal, built and declined
 
-**Unscheduled but wanted, and cheaper than the design notes suggest.** The word
-pass builds a dense $K$-length proposal vector and alias table for every word
-type, every iteration (`warp_lda.cpp:572-581`). That is the $O(VK)$ formulation
-D15 accepted. The paper's $O(N)$ alternative splits $q_w$ into a sparse count
-part and a dense prior part:
+**Implemented, measured, and reverted.** The change made the sampler **3-4x
+slower at every $K$ tested**, and the premise it rested on did not survive being
+measured on an optimized build. `src/` is unchanged; the corpus and both
+benchmark scripts are kept.
 
-$$q_w(k) \;\propto\; \underbrace{C^v_{wk}}_{\text{at most } \min(n_w, K) \text{ nonzeros}} \;+\; \underbrace{\eta_{kw}}_{\text{fixed for the whole run}}$$
+**What was built.** The word pass built a dense $K$-length weight vector and a
+Vose alias table per word type per iteration. Phase 7 replaced that with the
+mixture the doc pass has always used (`warp_lda.cpp:481-495`): with probability
+$n_w/(n_w + \sum_k \eta_{kw})$ copy a uniformly chosen token of $w$, otherwise
+draw from the prior -- uniform under a scalar prior, a per-word table built once
+under a matrix prior. The mixture reproduces $q_w$ exactly, so this changed the
+mechanism and not the distribution.
 
-Draw from the mixture: with probability proportional to $\sum_k C^v_{wk}$ take
-the sparse part in $O(\mathrm{nnz})$, otherwise take one alias draw from a
-precomputed table over the prior part. The count part is rebuilt per word per
-iteration but only over its nonzeros; the prior part is built once, because
-$\boldsymbol\eta$ is fixed.
+**The result**, both builds installed with `R CMD INSTALL` at `-O2` and timed
+across $K$ (seconds per iteration, 12 threads):
 
-**Why this is worth reopening now.** The design notes rejected it on memory: the
-prior part is $\boldsymbol\eta$'s column for $w$, which is word-specific, so
-$V$ alias tables at roughly $2\times$ the size of $\boldsymbol\eta$ -- about
-400 MB at $V = 10^5$, $K = 500$. **That reasoning was written before D20.** With a
-scalar $\boldsymbol\eta$ the prior part is identical for every word, so it needs
-**exactly one shared table of length $K$** -- which is what the paper actually
-does. The memory objection applies only to the tLDA matrix prior, and D20 already
-established that most models are not transfer models.
+| $K$ | large: before | after | | medium: before | after |
+|---|---|---|---|---|---|
+| 10 | 0.503 | 1.551 | | 0.0011 | 0.0048 |
+| 50 | 0.415 | 1.571 | | 0.0014 | 0.0052 |
+| 200 | 0.496 | 1.577 | | 0.0013 | 0.0048 |
+| 500 | 0.361 | 1.564 | | | |
+| 1000 | 0.524 | 1.487 | | | |
 
-So the phase splits along the prior, which the engine already knows at
-construction (`eta.is_scalar()`):
+Runs interleaved before/after/before/after, so this is not thermal drift.
 
-| Prior | Prior part | Extra memory | Verdict |
-|---|---|---|---|
-| Scalar | one shared table over $\eta \mathbf{1}_K$ | $O(K)$ | Take it |
-| Matrix (tLDA) | $V$ tables, one per $\boldsymbol\eta$ column | $\approx 2\lvert\boldsymbol\eta\rvert$ | Keep the $O(VK)$ path, or gate on a threshold |
+**Why it lost, and it is the same reason warpLDA is fast in the first place.**
+The alias table is built immediately before it is used, so it sits in L1 for
+every one of that word's draws. The mixture trades that cache-hot lookup for
+`old_z(word_token(begin + random))` -- a scattered read into an $N$-element array,
+once per token. At 14.7M tokens that is a cache miss per draw. The replacement
+measured **flat in $K$ at about 1.56 s**, which is the signature of pure memory
+latency: it does not care how much arithmetic it skipped.
 
-That is a real fork in the hot loop, but it is the same shape as D9's
-`freeze_topics` flag: loop-invariant, chosen once per run, and D9 measured that
-branch as free at R's actual optimization flags.
+The doc pass gets away with the same trick because a document's tokens are
+**contiguous** in the doc-ordered array, so its random index is a local read. A
+word's tokens are not contiguous -- they are reached through the CSC indirection.
+The design notes already observed that this indirection is cheap *because it
+ascends*; a random draw does not ascend, and that footnote turns out to be the
+whole story.
 
-**When it pays.** The $VK$ term bites when $VK \gtrsim N$ -- design notes' table
-puts that at roughly $V = 2\times10^5$, $K = 1000$, $N = 10^7$, where the current
-formulation is about $20\times$ off ideal. At the benchmark corpora's scale it
-buys little, so **this phase needs a profile at high $K$ before it needs an
-implementation.** Measure first; the design notes' "revisit only if profiling at
-high $K$ shows it dominating" still governs.
+**The premise was also wrong.** At `-O2`, per-iteration cost is **flat in $K$**:
+0.503, 0.415, 0.496, 0.361, 0.524 from $K{=}10$ to $K{=}1000$. There is no
+$O(VK)$ bottleneck to remove.
 
-**It is not free of verification.** It changes what the sampler draws and in what
-order, so results move and the **full gate applies** -- both the scalar and the
-matrix arm, exactly as Phases 2 through 5 ran it. It is non-breaking at the
-*API*, which is what distinguishes it from Phase 8; it is not verifiable by diff,
-which is what distinguished Phase 6.
+An earlier profile in this same phase found the opposite -- cost rising 1.4 to
+2.5 s with $R^2 = 0.96$, $p = 0.004$ -- and it was wrong because it was built at
+`-O0`. `pkgbuild::compile_dll()` defaults to `debug = TRUE` and
+`devtools::load_all()` inherits it, so every timing taken that way describes
+unoptimized code. That matters disproportionately here: `-O2` vectorizes the
+dense $K$-loops the phase targeted, while the memory-bound MH accept work barely
+benefits, so `-O0` inflates exactly the term under test. **Benchmark installed
+builds, never `load_all()`.**
 
-**Prerequisite.** None. It is independent of Phase 8 and should land first, since
-Phase 8 changes what is stored and this changes only how a draw is made. Note
-though that the two pull against each other under a matrix prior: Phase 7 would
-*add* permanent memory proportional to $\boldsymbol\eta$ in exactly the case
-Phase 8 is trying to shrink. Another reason to take the scalar path only, absent
-a profile that argues otherwise.
+**D15 stands, now on evidence.** Its instruction was "revisit only if profiling
+at high $K$ shows it dominating." Profiling at high $K$ shows it does not
+dominate. The decision log entry needs no change; §4's amendment about D20
+making the scalar case cheap is still true and still irrelevant, because the
+scalar case is the one that got 3x slower.
+
+**Kept from the phase:**
+
+- `large` corpus (D=68,306, V=81,131, N=14.7M), gitignored but reproducible
+  from `build-corpora.R`.
+- `profile-vk.R` and `bench-phase7.R`, both carrying their methodology failures
+  in the header so they are not repeated.
+- A test robustness fix: `test-counts-contract.R` compared a 10-draw Monte Carlo
+  posterior mean against the exact mean and demanded exact top-5 agreement,
+  where ranks 5 and 6 differ by 11%. It passed only because the RNG happened to
+  be in a favourable state at that point in the file; Phase 7's changed draw
+  sequence exposed it. Now seeded, with 200 draws.
+
+**Three measurement failures happened here, all mine**, and they are recorded
+because each was invisible in its output:
+
+1. Differencing `tidylda()` end to end at 3 and 8 iterations -- a 3 s difference
+   between two 220 s runs. Produced a negative slope at $p = 0.39$.
+2. Widening to a 20-iteration spread on the engine alone. Still put two of the
+   five terms at *negative* cost.
+3. Building at `-O0` throughout. Produced a strong, clean, entirely spurious
+   $O(VK)$ signal.
+
+The common thread: every one produced plausible-looking numbers. A wrong
+measurement does not announce itself, and the only defenses that worked were an
+independent second method and a physically impossible value showing up.
 
 ---
 

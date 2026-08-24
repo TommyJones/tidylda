@@ -41,10 +41,21 @@ test_that("counts are stored major-by-topics, beta and theta unchanged", {
 test_that("posterior() draws associate tokens with the right topic", {
   # The check that matters: a transposed Cv would still give valid probability
   # vectors, just attached to the wrong topics.
-  p <- posterior(m, matrix = "beta", which = c(1, 3), times = 10)
+  #
+  # SEEDED, AND WITH ENOUGH DRAWS TO MEAN SOMETHING. This compares a Monte Carlo
+  # mean against the exact one, so `times` sets its resolution. At the original
+  # times = 10 the comparison was finer than the estimate: ranks 5 and 6 of beta
+  # differ by about 11% here (0.0081 against 0.0072), which 10 draws reorder
+  # easily. It passed only because the RNG happened to be in a favourable state
+  # at this point in the file, and Phase 7's changed draw sequence exposed that.
+  #
+  # 200 draws resolve the gap, and the seed stops the result depending on
+  # whatever ran before. The assertion is unchanged.
+  set.seed(9001)
+  p <- posterior(m, matrix = "beta", which = c(1, 3), times = 200)
 
   expect_setequal(unique(p$topic), c(1, 3))
-  expect_equal(nrow(p), 2 * 10 * ncol(d))
+  expect_equal(nrow(p), 2 * 200 * ncol(d))
 
   totals <- tapply(p$beta, list(p$topic, p$sample), sum)
   expect_equal(as.numeric(totals), rep(1, length(totals)))

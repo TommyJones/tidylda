@@ -581,19 +581,27 @@ Rcpp::List fit_lda_warp(
       // min(n_w, K) nonzeros) plus a dense prior part served by a precomputed
       // table, built once because eta is fixed.
       //
-      // What that table costs depends entirely on the prior, and the two cases
-      // are not close:
+      // THAT ALTERNATIVE WAS BUILT AND MEASURED IN PHASE 7, AND IT IS SLOWER.
+      // Do not try it again without reading roadmap 6.7 first.
       //
-      //   scalar eta -- the prior part is the same for every word, so it is ONE
-      //     shared table of length K. This is what the paper does, and it is
-      //     essentially free.
-      //   matrix eta (tLDA) -- the prior part is eta's column for w, so it is V
-      //     tables, roughly 2x the size of eta in permanent memory: about 400MB
-      //     at V = 1e5, K = 500, on top of eta itself.
+      // The mixture draw is what the doc pass uses (step 2 there), and porting
+      // it here made the sampler 3-4x SLOWER at every K from 10 to 1000, on both
+      // the medium and large benchmark corpora. The reason is the thing this
+      // build gets right by accident: the table below is constructed immediately
+      // before it is used, so it is in L1 for every one of the word's draws. The
+      // mixture replaces that cache-hot lookup with old_z(word_token(begin +
+      // random)) -- a scattered read into an N-element array, once per token.
+      // At 14.7M tokens that is a miss per draw, and no amount of saved setup
+      // pays for it. The new code was flat in K at ~1.56 s per iteration, which
+      // is the signature of a cost that is pure memory latency.
       //
-      // Accepted as-is for now, in both cases. Roadmap 6.6 schedules the split
-      // as Phase 7 and wants a profile at high K before an implementation --
-      // the V*K term only bites when V*K >~ N.
+      // The premise was wrong too. Profiling at -O2 shows per-iteration cost is
+      // FLAT in K (0.36-0.52 s from K=10 to K=1000 on the large corpus), so the
+      // O(V*K) term this was meant to remove is not a bottleneck at all. An
+      // earlier profile that found it growing had been built at -O0, where these
+      // dense K-loops do not vectorize and look far more expensive than they are.
+      //
+      // D15 stands, now on evidence rather than estimate.
       if (!freeze_topics) {
         for (std::size_t k = 0; k < K; k++)
           sc.prob[k] = Cv_w[k] + static_cast<double>(eta_w[k]);

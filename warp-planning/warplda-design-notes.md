@@ -290,16 +290,39 @@ shows it dominating.**
 *Amended after D20.* The memory objection above assumes a matrix
 $\boldsymbol\eta$, and so assumes $V$ word-specific tables. With a **scalar**
 $\boldsymbol\eta$ the dense prior part is the same for every word, so the
-$O(N)$ split needs exactly one shared table of length $K$ -- which is what the
-paper does, and costs nothing. The rejection therefore holds only for the tLDA
-prior, and D20 established that most models are not transfer models. Roadmap
-§6.6 schedules this as Phase 7, splitting on `eta.is_scalar()`.
+$O(N)$ split needs no table at all -- the prior is flat across topics and a
+uniform draw serves it.
+
+*Settled in Phase 7: the split was built and it is 3-4x SLOWER.* Roadmap §6.7
+has the numbers. Two things came out of it, and both belong here because they
+are properties of the algorithm rather than of that attempt:
+
+**The dense $O(VK)$ loop is not the bottleneck it looks like.** Measured on an
+optimized build, per-iteration cost is *flat* in $K$ -- 0.36 to 0.52 s from
+$K{=}10$ to $K{=}1000$ on a corpus of 14.7M tokens. The operation-count table
+above is right about operation counts and misleading about time: a $VK$
+operation is a sequential, vectorizable read-add-write, while an $O(N)$ operation
+is an MH accept with two divides and scattered loads. They differ by an order of
+magnitude per element, so counting them together conflates quantities that are
+not comparable.
+
+**The dense build is cache-hot, and that is the point.** The table is
+constructed immediately before it is consumed, so every draw for that word hits
+L1. The $O(N)$ mixture replaces that with a scattered read into the token array,
+once per token -- and measured *flat in $K$ at 1.56 s*, the signature of pure
+memory latency. Skipping arithmetic to add a cache miss is a bad trade at every
+$K$.
+
+The doc pass uses the same mixture successfully because a document's tokens are
+**contiguous** in the doc-ordered array. A word's are not: they are reached
+through the CSC indirection, which section 4.2 notes is cheap *because it
+ascends*. A random draw does not ascend. That caveat is the whole difference.
 
 > **Implementation requirement.** The word-proposal construction must carry a
 > comment recording that this is the $O(VK)$ formulation, that the $O(N)$
-> alternative exists via the sparse/dense split with precomputed per-column
-> alias tables, and what that alternative costs in memory. This optimization is
-> wanted downstream; the comment is how we avoid re-deriving it.
+> alternative exists via the sparse/dense split, and **that it was built in
+> Phase 7 and measured 3-4x slower**. The comment was originally there to stop
+> the alternative being re-derived; it is now there to stop it being re-tried.
 
 ## Allocation in the hot path
 

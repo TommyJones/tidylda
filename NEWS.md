@@ -36,7 +36,7 @@
 
 ## Breaking change
 
-There is exactly one, and it fails silently rather than erroring, so it is worth
+There is exactly one, and it fails silently rather than raising an error, so it is worth
 a moment even if you do not think you use `counts`.
 
 * **`counts$Cv` changed orientation.** It was topics by tokens and is now tokens
@@ -72,7 +72,7 @@ today.
     that this *does* change the model you get: it used to rescale `alpha` by
     topic size every iteration, standing in for fixed-point estimation that was
     never written. `alpha` is now fixed for the whole run. Passing `TRUE` warns
-    rather than erroring.
+    instead of raising an error.
 * **`recover_counts_from_probs()` was removed.** It was never exported and had
     no live call site, and its author had recorded that it returned wrong
     counts. Only `:::` callers are affected.

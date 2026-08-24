@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{format_eta}
 \alias{format_eta}
-\title{Format \code{eta} For Input into \code{fit_lda_c}}
+\title{Format \code{eta} for input into the sampler}
 \usage{
 format_eta(eta, k, Nv)
 }
@@ -23,8 +23,8 @@ Returns a list with two elements: \code{eta} and \code{eta_class}.
   "vector", or "matrix".
 }
 \description{
-There are a bunch of ways users could format \code{eta} but the C++ Gibbs
-  sampler in \code{\link[tidylda]{fit_lda_c}} only takes it one way. This function does the
+There are a bunch of ways users could format \code{eta} but the C++
+  sampler in \code{\link[tidylda]{fit_lda_warp}} only takes it one way. This function does the
   appropriate formatting. It also returns errors if the user input a malformatted
   \code{eta}.
 }

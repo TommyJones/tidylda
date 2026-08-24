@@ -30,7 +30,7 @@ test_that("can make predictions without error", {
   p <- predict(
     object = lda, 
     new_data = d2[1, ], 
-    method = "gibbs", 
+    method = "mh", 
     iterations = 20, 
     burnin = 10,
     verbose = FALSE
@@ -46,7 +46,7 @@ test_that("can make predictions without error", {
   p <- predict(
     object = lda, 
     new_data = d2, 
-    method = "gibbs", 
+    method = "mh", 
     iterations = 20, 
     burnin = 10,
     verbose = FALSE
@@ -81,7 +81,7 @@ test_that("can make predictions without error", {
   p <- predict(
     object = lda, 
     new_data = d2, 
-    method = "gibbs", 
+    method = "mh", 
     iterations = 20, 
     burnin = 10,
     threads = 2,
@@ -119,7 +119,7 @@ test_that("can make predictions without error", {
     object = lda, 
     new_data = d2[1, ],
     type = "distribution",
-    method = "gibbs", 
+    method = "mh", 
     iterations = 20, 
     burnin = 10,
     times = 10,
@@ -150,7 +150,7 @@ test_that("malformed args in predict throw errors", {
     predict(
       object = lda, 
       new_data = d2, 
-      method = "gibbs", 
+      method = "mh", 
       iterations = 20, 
       burnin = 10,
       threads = nrow(d2) + 2,
@@ -159,12 +159,12 @@ test_that("malformed args in predict throw errors", {
   )
   # no iterations specified
   expect_error(
-    predict(object = lda, new_data = d2, method = "gibbs")
+    predict(object = lda, new_data = d2, method = "mh")
   )
   
   # burnin >= iterations
   expect_error(
-    predict(object = lda, new_data = d2, method = "gibbs", iterations = 5, burnin = 6)
+    predict(object = lda, new_data = d2, method = "mh", iterations = 5, burnin = 6)
   )
   
   # incorrect method
@@ -233,3 +233,21 @@ test_that("malformed args in predict throw errors", {
   
 })
 
+
+
+test_that('method = "gibbs" still works but is deprecated', {
+  # The sampler stopped being collapsed Gibbs in 0.1.0. The string is public API
+  # so it keeps working, but it names something that no longer exists. Warned
+  # once per session, so this test asserts the mapping rather than the warning --
+  # which may already have fired elsewhere in the run.
+  p_old <- predict(lda, d2[1:3, ], method = "gibbs", iterations = 20, burnin = 5,
+                   verbose = FALSE)
+  p_new <- predict(lda, d2[1:3, ], method = "mh", iterations = 20, burnin = 5,
+                   verbose = FALSE)
+
+  expect_equal(dim(p_old), dim(p_new))
+  expect_equal(unname(rowSums(p_old)), rep(1, 3))
+
+  # And "mh" is the default, so ordinary callers never trip the deprecation.
+  expect_equal(formals(tidylda:::predict.tidylda)$method[[2]], "mh")
+})

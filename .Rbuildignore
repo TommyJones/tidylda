@@ -18,6 +18,8 @@
 ^src/nuclear_option$
 
 ^ignore$
+^warp-planning$
+^CLAUDE\.md$
 ^\.github$
 ^CRAN-RELEASE$
 

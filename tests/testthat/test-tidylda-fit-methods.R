@@ -36,9 +36,39 @@ test_that("can fit lda models without error", {
   # make sure that likelihood is correct since calc_likelihood = TRUE
   expect_s3_class(lda$log_likelihood, "tbl_df")
   
-  expect_equal(ncol(lda$log_likelihood), 2)
+  # Three columns as of 0.1.0: the plug-in likelihood gained the collapsed
+  # joint alongside it.
+  expect_named(
+    lda$log_likelihood, c("iteration", "log_likelihood", "log_joint")
+  )
   
-  expect_equal(nrow(lda$log_likelihood), tail(lda$log_likelihood$iteration, 1) + 1)
+  # The likelihood is evaluated every likelihood_every-th iteration (roadmap
+  # D11), so the old assertion -- nrow == tail(iteration, 1) + 1 -- no longer
+  # holds; it assumed every iteration is recorded. This is NOT thinning: the
+  # chain advances every iteration and every post-burnin iteration still
+  # contributes to the count sums. Only the read-only diagnostic runs less often.
+  #
+  # What must still hold: iterations are 0-indexed, strictly increasing, spaced
+  # by the interval, and the final iteration is always recorded so the curve
+  # ends where the run does.
+  expect_true(all(diff(lda$log_likelihood$iteration) > 0))
+  expect_equal(lda$log_likelihood$iteration[1], 0)
+  expect_equal(tail(lda$log_likelihood$iteration, 1), 20 - 1)
+
+  # With the default interval of 10 over 20 iterations: 0, 10, and the forced
+  # final 19.
+  expect_equal(lda$log_likelihood$iteration, c(0, 10, 19))
+
+  # An interval of 1 records every iteration, recovering the old expectation.
+  lda_every <- tidylda(
+    data = d1, k = 4, iterations = 20, burnin = 10,
+    alpha = 0.1, eta = 0.05, calc_likelihood = TRUE,
+    verbose = FALSE, likelihood_every = 1
+  )
+  expect_equal(
+    nrow(lda_every$log_likelihood),
+    tail(lda_every$log_likelihood$iteration, 1) + 1
+  )
   
   # while we're here... check dimensions and names of objects
   expect_s3_class(lda, "tidylda")
@@ -80,9 +110,9 @@ test_that("can fit lda models without error", {
   lda <- tidylda(
     data = d1,
     k = 4,
-    iterations = 20, 
+    iterations = 20,
     burnin = 10,
-    alpha = rep(0.1, 4), 
+    alpha = rep(0.1, 4),
     eta = rep(0.05, ncol(d1)),
     optimize_alpha = TRUE,
     calc_likelihood = TRUE,
@@ -244,30 +274,36 @@ test_that("errors hit for malformed parameters", {
     return_data = "FALSE"
   ))
   
-  expect_error(tidylda(
+  # These two used to assert that `threads` above nrow(dtm) is an error and that
+  # fewer than 100 documents per thread warns of "a poor fit". Both described the
+  # abandoned batched Gibbs implementation, where the partition genuinely changed
+  # the model. The warpLDA engine seeds every work item from its own index
+  # (D12), so the result does not depend on the thread count at all, and the word
+  # pass parallelizes over the vocabulary rather than over documents. Neither
+  # condition is a problem now, and neither should complain.
+  expect_no_error(tidylda(
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, eta = 0.05,
-    optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE,
-    threads = nrow(d1) + 1
-  ), label = "threads > nrow(dtm)")
-  
-  expect_warning(tidylda(
+    threads = nrow(d1) + 1,
+    verbose = FALSE
+  ))
+
+  expect_no_warning(tidylda(
     data = d1,
     k = 4,
     iterations = 20, burnin = 10,
     alpha = 0.1, eta = 0.05,
-    optimize_alpha = FALSE,
     calc_likelihood = FALSE,
     calc_r2 = FALSE,
     return_data = FALSE,
     threads = 2,
     verbose = FALSE
-  ), label = "nrow(dtm) / threads < 100")
+  ))
   
   # data doesn't have column names
   d3 <- d1

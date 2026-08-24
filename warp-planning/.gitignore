@@ -1,0 +1,16 @@
+# Rendered output of the design notes; the .md source is the tracked original
+*.pdf
+*.html
+*.tex
+*.log
+
+# Per-fit benchmark scratch. Each fit writes one file here so a run is
+# crash-resumable; the tracked artifact is the assembled baseline-*.rds.
+benchmarks/results/
+
+# The large corpus (28 MB) is derived deterministically from data/nih.rda with
+# no sampling step, so it is reproducible exactly by re-running build-corpora.R
+# and is not worth carrying in the repository. small.rds and nih-1000.rds stay
+# tracked: nih-1000 depends on a seeded sample, so a stored copy is the only
+# guarantee that the Phase 1 baseline remains comparable.
+benchmarks/data/nih-full.rds

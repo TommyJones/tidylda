@@ -1,8 +1,8 @@
 #' Update a Latent Dirichlet Allocation topic model
-#' @description Update an LDA model using collapsed Gibbs sampling.
+#' @description Update an LDA model using warpLDA's Metropolis-Hastings sampler.
 #' @param object a fitted object of class \code{tidylda}.
 #' @param new_data A document term matrix or term co-occurrence matrix of class dgCMatrix.
-#' @param iterations Integer number of iterations for the Gibbs sampler to run.
+#' @param iterations Integer number of sampling iterations to run.
 #' @param burnin Integer number of burnin iterations. If \code{burnin} is greater than -1,
 #'        the resulting "beta" and "theta" matrices are an average over all iterations
 #'        greater than \code{burnin}.
@@ -11,16 +11,21 @@
 #' @param additional_k Integer number of topics to add, defaults to 0.
 #' @param additional_eta_sum Numeric magnitude of prior for additional topics.
 #'        Ignored if \code{additional_k} is 0. Defaults to 250.
-#' @param optimize_alpha Logical. Experimental. Do you want to optimize alpha
-#'        every iteration? Defaults to \code{FALSE}.
+#' @param optimize_alpha Deprecated as of version 0.1.0 and ignored. See
+#'        \code{\link[tidylda]{tidylda}}.
 #' @param calc_likelihood Logical. Do you want to calculate the log likelihood every iteration?
 #'        Useful for assessing convergence. Defaults to \code{FALSE}.
 #' @param calc_r2 Logical. Do you want to calculate R-squared after the model is trained?
 #'        Defaults to \code{FALSE}.
 #' @param return_data Logical. Do you want \code{new_data} returned as part of the model object?
-#' @param threads Number of parallel threads, defaults to 1.
+#' @param threads Number of parallel threads, defaults to 1. Results are
+#'        identical at any thread count; see \code{\link[tidylda]{tidylda}}.
 #' @param verbose Logical. Do you want to print a progress bar out to the console?
 #'        Defaults to \code{TRUE}.
+#' @param likelihood_every Integer. Evaluate the log likelihood every n-th
+#'        iteration. Defaults to 10. See \code{\link[tidylda]{tidylda}}.
+#' @param mh_steps Integer. Metropolis-Hastings proposals per token per pass.
+#'        Defaults to 1. See \code{\link[tidylda]{tidylda}}.
 #' @param ... Additional arguments, currently unused
 #' @return Returns an S3 object of class c("tidylda").
 #' @details
@@ -53,7 +58,7 @@
 #'   for the documents in \code{new_data}. Next, both \code{beta} and \code{theta} are
 #'   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
 #'   which assigns topics to tokens in a manner approximately proportional to 
-#'   the posteriors and executes a single Gibbs iteration.
+#'   the posteriors and executes a single sampling iteration.
 #'
 #'   \code{refit} handles the addition of new vocabulary by adding a flat prior
 #'   over new tokens. Specifically, each entry in the new prior is equal to the
@@ -126,6 +131,8 @@ refit.tidylda <- function(
     return_data = FALSE,
     threads = 1,
     verbose = TRUE,
+    likelihood_every = 10,
+    mh_steps = 1,
     ...
 ) {
   
@@ -220,13 +227,20 @@ refit.tidylda <- function(
   
   # if necessary, re-scale so that new eta has the weight prescribed by prior-weight
   if (! is.na(prior_weight)) {
-    w_star <- rowSums(object$counts$Cv) + rowSums(eta$eta)
+    # Cv is words-by-topics (D17), so the per-topic total is a column sum.
+    # counts_cv() transposes a model saved by an earlier version.
+    w_star <- colSums(counts_cv(object)) +
+      rowSums(eta_matrix(eta, nrow(object$beta), ncol(object$beta)))
     
     eta$eta <- prior_weight * w_star * object$beta
     
     eta$eta_class <- "matrix" # always a matrix for refits using eta as prior
   }
   
+  # Everything below manipulates eta as a matrix -- adding vocabulary, adding
+  # topics -- so materialize a scalar prior here rather than at each site.
+  eta$eta <- eta_matrix(eta, nrow(object$beta), ncol(object$beta))
+
   dimnames(eta$eta) <- dimnames(object$beta)
   
   # beta_initial and theta_initial
@@ -329,7 +343,7 @@ refit.tidylda <- function(
   }
   
   
-  ### get initial counts to feed to gibbs sampler ----
+  ### get the priors the sampler initializes from ----
   counts <- initialize_topic_counts(
     dtm = dtm,
     k = nrow(beta_initial),
@@ -341,22 +355,20 @@ refit.tidylda <- function(
     threads = threads
   )
   
-  ### run C++ gibbs sampler ----
-  lda <- fit_lda_c(
-    Docs = counts$Docs,
-    Zd_in = counts$Zd,
-    Cd_in = counts$Cd,
-    Cv_in = counts$Cv,
-    Ck_in = counts$Ck,
+  ### run the C++ sampler ----
+  lda <- fit_lda_warp(
+    dtm_in = dtm,
+    Cd_start = counts$Cd_start,
     alpha_in = alpha$alpha,
-    eta_in = eta$eta,
+    eta_in = as.matrix(eta$eta), # 1 x 1 when scalar; the engine detects it (D20)
     iterations = iterations,
     burnin = burnin,
-    optimize_alpha = optimize_alpha,
     calc_likelihood = calc_likelihood,
-    Beta_in = object$beta, # ignored for updates as freeze_topics = FALSE
+    Beta_in = counts$beta_initial,
     freeze_topics = FALSE,
-    threads = threads,
+    likelihood_every = as.integer(likelihood_every),
+    mh_steps = as.integer(mh_steps),
+    threads = as.integer(threads),
     verbose = verbose
   )
   

@@ -18,15 +18,30 @@ tidylda_bridge(
   return_data,
   verbose,
   mc,
+  likelihood_every = 10,
+  mh_steps = 1,
   ...
 )
+}
+\arguments{
+\item{likelihood_every}{integer. Evaluate the log likelihood every n-th
+iteration. Defaults to 10. The log likelihood costs
+\eqn{O(nnz \cdot K + VK)} and would otherwise dominate an
+\eqn{O(VK + N)} sampler. This is not thinning: the chain advances every
+iteration and every post-burn-in iteration still contributes to the count
+sums. Only the read-only diagnostic runs less often.}
+
+\item{mh_steps}{integer. Number of Metropolis-Hastings proposals made per
+token per pass. Defaults to 1. Larger values mix further per iteration at
+a cost of \code{mh_steps * 2} bytes per token.}
 }
 \value{
 Returns a \code{tidylda} S3 object as documented in \code{\link[tidylda]{new_tidylda}}.
 }
 \description{
 Takes in arguments from various \code{tidylda} S3 methods and fits the
-  resulting topic model. The arguments to this function are documented in
-  \code{\link[tidylda]{tidylda}}.
+  resulting topic model. Most arguments to this function are documented in
+  \code{\link[tidylda]{tidylda}}; the two below are specific to the warpLDA
+  engine and reach this function through \code{tidylda}'s \code{...}.
 }
 \keyword{internal}

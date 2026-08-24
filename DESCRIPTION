@@ -1,7 +1,7 @@
 Type: Package
 Package: tidylda
 Title: Latent Dirichlet Allocation Using 'tidyverse' Conventions
-Version: 0.0.7.999
+Version: 0.1.0
 Authors@R: 
     c(
     person(given = "Tommy",
@@ -26,7 +26,8 @@ Description: Implements an algorithm for Latent Dirichlet
     using style conventions from the 'tidyverse',
     Wickham et al. (2019)<doi:10.21105/joss.01686>,
     and 'tidymodels', Kuhn et al.<https://tidymodels.github.io/model-implementation-principles/>.
-    Fitting is done via collapsed Gibbs sampling.
+    Fitting is done via warpLDA, a Metropolis-Hastings sampler,
+    Chen et al. (2016) <doi:10.48550/arXiv.1510.08628>.
     Also implements several novel features for LDA such as guided models and
     transfer learning.
 License: MIT + file LICENSE
@@ -64,7 +65,7 @@ LinkingTo:
     RcppProgress,
     RcppThread
 Encoding: UTF-8
-RoxygenNote: 7.3.3
 Language: en-US
 LazyData: true
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

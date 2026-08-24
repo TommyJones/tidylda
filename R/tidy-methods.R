@@ -16,8 +16,8 @@ utils::globalVariables(c("topic", "lambda", "idx1"))
 #'   \code{num_topics}: the number of topics in the model
 #'   \code{num_documents}: the number of documents used for fitting
 #'   \code{num_tokens}: the number of tokens covered by the model
-#'   \code{iterations}: number of total Gibbs iterations run
-#'   \code{burnin}: number of burn-in Gibbs iterations run
+#'   \code{iterations}: number of total sampling iterations run
+#'   \code{burnin}: number of burn-in iterations run
 #' @examples
 #' \donttest{
 #' dtm <- nih_sample_dtm

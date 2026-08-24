@@ -18,6 +18,8 @@
   return_data = FALSE,
   threads = 1,
   verbose = TRUE,
+  likelihood_every = 10,
+  mh_steps = 1,
   ...
 )
 }
@@ -26,7 +28,7 @@
 
 \item{new_data}{A document term matrix or term co-occurrence matrix of class dgCMatrix.}
 
-\item{iterations}{Integer number of iterations for the Gibbs sampler to run.}
+\item{iterations}{Integer number of sampling iterations to run.}
 
 \item{burnin}{Integer number of burnin iterations. If \code{burnin} is greater than -1,
 the resulting "beta" and "theta" matrices are an average over all iterations
@@ -40,8 +42,8 @@ greater than \code{burnin}.}
 \item{additional_eta_sum}{Numeric magnitude of prior for additional topics.
 Ignored if \code{additional_k} is 0. Defaults to 250.}
 
-\item{optimize_alpha}{Logical. Experimental. Do you want to optimize alpha
-every iteration? Defaults to \code{FALSE}.}
+\item{optimize_alpha}{Deprecated as of version 0.1.0 and ignored. See
+\code{\link[tidylda]{tidylda}}.}
 
 \item{calc_likelihood}{Logical. Do you want to calculate the log likelihood every iteration?
 Useful for assessing convergence. Defaults to \code{FALSE}.}
@@ -51,10 +53,17 @@ Defaults to \code{FALSE}.}
 
 \item{return_data}{Logical. Do you want \code{new_data} returned as part of the model object?}
 
-\item{threads}{Number of parallel threads, defaults to 1.}
+\item{threads}{Number of parallel threads, defaults to 1. Results are
+identical at any thread count; see \code{\link[tidylda]{tidylda}}.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Defaults to \code{TRUE}.}
+
+\item{likelihood_every}{Integer. Evaluate the log likelihood every n-th
+iteration. Defaults to 10. See \code{\link[tidylda]{tidylda}}.}
+
+\item{mh_steps}{Integer. Metropolis-Hastings proposals per token per pass.
+Defaults to 1. See \code{\link[tidylda]{tidylda}}.}
 
 \item{...}{Additional arguments, currently unused}
 }
@@ -62,7 +71,7 @@ Defaults to \code{TRUE}.}
 Returns an S3 object of class c("tidylda").
 }
 \description{
-Update an LDA model using collapsed Gibbs sampling.
+Update an LDA model using warpLDA's Metropolis-Hastings sampler.
 }
 \details{
 \code{refit} allows you to (a) update the probabilities (i.e. weights) of
@@ -94,7 +103,7 @@ Update an LDA model using collapsed Gibbs sampling.
   for the documents in \code{new_data}. Next, both \code{beta} and \code{theta} are
   passed to an internal function, \code{\link[tidylda]{initialize_topic_counts}},
   which assigns topics to tokens in a manner approximately proportional to 
-  the posteriors and executes a single Gibbs iteration.
+  the posteriors and executes a single sampling iteration.
 
   \code{refit} handles the addition of new vocabulary by adding a flat prior
   over new tokens. Specifically, each entry in the new prior is equal to the

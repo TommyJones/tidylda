@@ -105,8 +105,13 @@ BENCH_ALPHA       <- 0.05
 #' Prune a document-term matrix to a fixed vocabulary
 #'
 #' Removes `tidytext::stop_words`, then drops terms appearing in fewer than
-#' `min_df` documents. Applied identically to both corpora so that V --- which
-#' the whole O(VK) question depends on --- is fixed and recorded.
+#' `min_df` documents. V --- which the whole O(VK) question depends on --- is
+#' fixed by this and recorded in the manifest.
+#'
+#' `small` and `medium` use the default min_df = 5. `large` uses 2, which
+#' roughly doubles V at the same N; see build-corpora.R for why. That makes
+#' `large` not directly comparable to the other two, which is fine: it exists
+#' to profile the VK term, never to run the gate.
 #'
 #' @param dtm a dgCMatrix with colnames
 #' @param min_df minimum document frequency for a term to be retained

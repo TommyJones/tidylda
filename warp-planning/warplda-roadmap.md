@@ -174,7 +174,7 @@ Settled. See §1 rule 3 before changing any of these.
 | D14 | Benchmark for **non-inferiority**, not model quality: $R^2$ and mean probabilistic coherence, across multiple seeds, no held-out data. **Unpaired** one-sided test, margin 5% | The question is whether MH is *no worse than* Gibbs on the same model and data, not whether either is good in the abstract. Both metrics ship with tidylda. Pass/fail criterion in §6.1 | §10 |
 | D15 | Accept the $O(VK)$ word-proposal construction for now | The $O(N)$ alternative needs $V$ precomputed alias tables over $\boldsymbol\eta$ columns, costing ~2x $\boldsymbol\eta$ in permanent memory. **The code must carry a comment recording this alternative** — it is wanted downstream | §4.2 |
 | D16 | The new engine subsumes **both** `create_lexicon()` and `fit_lda_c()`. **Done in Phase 4** | Building the CSR/CSC token structure *is* what `create_lexicon` does; fusing them eliminates the R/C++ round trip and the 16-bytes-per-token marshalling. `create_lexicon()` is now uncalled by the package and survives only as a reference for one test; it goes with `fit_lda_c()` in Phase 6 | §11 |
-| D17 | Export $C^d$ and $C^v$ in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Orientation done in Phase 6; the sparse half was never implemented and the decision is withdrawn** — see the invariant in §5 | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
+| D17 | Export $C^d$ and $C^v$ in the engine's own orientation — $C^d$ as $D \times K$, $C^v$ as $V \times K$ — with **no transpose on output**. Rewrite the R consumers to match. **Orientation done in Phase 6; the sparse half was never implemented and is deferred to Phase 8** — see §6.8, which is where it belongs, and the invariant in §5 | Supersedes an earlier plan to transpose $C^v$ to topic-major on every fit. Sparse storage shrinks the largest part of the returned object, and keeping the engine's orientation avoids transposing a $V \times K$ matrix on every run. Deferred because it touches the R surface rather than the sampler, and doing it early would churn code the engine work has not stabilised yet. Caveats and the consumer list are in §6.7 | §6.7 |
 | D18 | MH steps configurable, default 1 | Default reproduces the reference exactly and costs nothing; the parameter is what allows experimentation with mixing under tLDA's sharper priors. Costs `mh_steps x 2` bytes per token above the default. Built in **Phase 2** | §11.1 |
 | D19 | Alias table over $\boldsymbol\alpha$ in the doc-proposal draw — **binding**, Phase 2 | The reference's uniform-draw branch is only proportional to $\alpha_k$ when $\boldsymbol\alpha$ is symmetric; tidylda permits a vector. Omitting it yields code that runs fine and samples from the wrong prior. Costs one $O(K)$ setup, since D7 makes $\boldsymbol\alpha$ fixed | §3.5 |
 | D20 | Scalar fast path for $\boldsymbol\eta$ — **done in Phase 6** | A memory win in the common non-transfer case, but an optimization rather than a correctness requirement. *Corrected 2026-08-23: this row previously said Phase 4, contradicting the §6 table. Phase 6 is right — a scalar path computes with a `double` $\eta$ where the matrix path uses the `float`-rounded value (D5), so it moves results and cannot ride along with a refactor whose whole value is being verifiable without a benchmark run.* In the event it was verified by diff after all: `Eta`'s scalar constructor rounds through `float` and *accumulates* $\bar\eta$ over $V$ additions rather than multiplying, which reproduces the matrix path bit for bit | §5.5 |
@@ -185,7 +185,7 @@ Settled. See §1 rule 3 before changing any of these.
 
 | Invariant | Enforced by / at risk in |
 |---|---|
-| `counts$Cd` and `counts$Cv` remain usable as Dirichlet parameters and may hold fractional post-burnin means. **As of 0.1.0** (D17) both are topics-in-columns: $C^d$ is $D \times K$, $C^v$ is $V \times K$. Both are **dense base matrices** — D17 also called for sparse storage and that half was never built; the claim that it had been survived into `NEWS.md` and `new_tidylda()`'s `@return` until release prep caught it. $C^v$ carries dimnames, which is what lets `counts_cv()` identify a post-0.1.0 model when $k$ equals the vocabulary size. Every read goes through `counts_cv()`, which transposes pre-0.1.0 saved models | `posterior.tidylda.R:100-133`, `refit.tidylda.R:223` |
+| `counts$Cd` and `counts$Cv` remain usable as Dirichlet parameters and may hold fractional post-burnin means. **As of 0.1.0** (D17) both are topics-in-columns: $C^d$ is $D \times K$, $C^v$ is $V \times K$. Both are **dense base matrices** — D17 also called for sparse storage and that half was never built; the claim that it had been survived into `NEWS.md` and `new_tidylda()`'s `@return` until release prep caught it. Deferred to Phase 8, and **only $C^v$ should get it** (§6.8). $C^v$ carries dimnames, which is what lets `counts_cv()` identify a post-0.1.0 model when $k$ equals the vocabulary size. Every read goes through `counts_cv()`, which transposes pre-0.1.0 saved models | `posterior.tidylda.R:100-133`, `refit.tidylda.R:223` |
 | `set.seed()` reproducibility, including under parallelism — a CRAN requirement | D12, D13 |
 | Public API unchanged: `tidylda()`, `refit()`, `predict()`, `posterior()`, `tidy`/`augment`/`glance` | all of `R/` |
 | `refit`'s R-side vocabulary alignment and topic addition stay in R, untouched | `refit.tidylda.R:249-329` |
@@ -1239,9 +1239,30 @@ $O(KV + DK)$ dense, and the $DK$ term grows with the corpus:
 | `beta`, `lambda`, `eta`, `counts$Cv` | $8KV$ each | 400 MB each | 400 MB each |
 | `theta`, `counts$Cd` | $8DK$ each | 40 MB each | **4 GB each** |
 
-D17 is a constant-factor improvement against this — it sparsifies two of the six
-slots. It does not change the asymptotics, because `beta`, `lambda` and `theta`
-stay dense.
+D17's sparse half was **not built** (its orientation half was), so it is folded
+into this phase rather than assumed done. It is also less of a win than it looks,
+and the measurement matters because it changes what to build.
+
+Density of the count matrices, measured at $K{=}20$ over 200 iterations on the
+`nih_sample_dtm` corpus:
+
+| | storage | $C^v$ | $C^d$ | sparse pays off below |
+|---|---|---|---|---|
+| `burnin = -1` | integer | **7.7%** | 38.4% | 33% |
+| `burnin = 150` | double | **23.2%** | 81.3% | 67% |
+
+`dgCMatrix` stores a double value plus an `int` row index per nonzero, so the
+break-even against a dense matrix is 33% for integer counts and 67% for the
+post-burn-in doubles.
+
+**So sparsify $C^v$ and leave $C^d$ dense.** $C^v$ wins in both configurations,
+by roughly 4x and 3x. $C^d$ loses in both --- marginally as integers, and clearly
+as post-burn-in means, where at 81% density the sparse form is *larger* than the
+dense one. D17 prescribed both; only one of them is a good idea, which is the
+kind of thing that only shows up when it is measured rather than reasoned about.
+
+Even done right this is a constant-factor improvement and does not change the
+asymptotics, because `beta`, `lambda` and `theta` stay dense.
 
 **The design.** Store only what cannot be recomputed: the sparse counts, dense
 $\boldsymbol\eta$, and $\boldsymbol\alpha$. Drop `beta`, `theta` and `lambda`

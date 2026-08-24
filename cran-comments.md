@@ -9,9 +9,10 @@ topic counts, under both scalar and matrix priors, before the change was made.
 User-visible changes:
 
 * One breaking change: the `counts$Cv` element of a fitted model is now tokens
-    by topics rather than topics by tokens, and both count matrices are now
-    sparse. This is documented in NEWS.md with the one-line fix. Models saved by
-    earlier versions are detected and read correctly.
+    by topics rather than topics by tokens, and is stored sparsely as a
+    `dgCMatrix`. `counts$Cd` is unchanged: still documents by topics, still a
+    dense matrix. This is documented in NEWS.md with the one-line fix. Models
+    saved by earlier versions are detected and read correctly.
 * Two deprecations, both backward compatible and warning once per session:
     `predict(method = "gibbs")` is now `method = "mh"`, and `optimize_alpha` is
     accepted but ignored.

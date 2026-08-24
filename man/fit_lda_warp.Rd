@@ -52,9 +52,11 @@ thread count (D12), so this trades wall clock for cores and nothing else}
 \item{verbose}{bool, show a progress bar?}
 }
 \value{
-Returns a list of counts and diagnostics. \code{Cd}, \code{Cd_mean}
-  and \code{Cd_sum} are documents by topics; \code{Cv}, \code{Cv_mean} and
-  \code{Cv_sum} are words by topics (D17).
+Returns a list of counts and diagnostics. \code{Cd} and
+  \code{Cd_mean} are documents by topics; \code{Cv} and \code{Cv_mean} are
+  words by topics (D17). Only the pair the caller can use is materialized:
+  \code{Cd}/\code{Cv} when \code{burnin} is -1, \code{Cd_mean}/
+  \code{Cv_mean} otherwise. The other pair comes back 0 x 0.
 }
 \description{
 Metropolis-Hastings replacement for \code{fit_lda_c}. Phase 2:

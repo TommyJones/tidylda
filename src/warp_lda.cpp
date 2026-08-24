@@ -107,9 +107,11 @@ uint64_t draw_master_seed() {
 //' @param threads int, number of worker threads. Results are identical at any
 //'   thread count (D12), so this trades wall clock for cores and nothing else
 //' @param verbose bool, show a progress bar?
-//' @return Returns a list of counts and diagnostics. \code{Cd}, \code{Cd_mean}
-//'   and \code{Cd_sum} are documents by topics; \code{Cv}, \code{Cv_mean} and
-//'   \code{Cv_sum} are words by topics (D17).
+//' @return Returns a list of counts and diagnostics. \code{Cd} and
+//'   \code{Cd_mean} are documents by topics; \code{Cv} and \code{Cv_mean} are
+//'   words by topics (D17). Only the pair the caller can use is materialized:
+//'   \code{Cd}/\code{Cv} when \code{burnin} is -1, \code{Cd_mean}/
+//'   \code{Cv_mean} otherwise. The other pair comes back 0 x 0.
 // [[Rcpp::export]]
 Rcpp::List fit_lda_warp(
     const arma::sp_mat&                           dtm_in,
@@ -750,57 +752,65 @@ Rcpp::List fit_lda_warp(
   // Assemble the return value, matching fit_lda_c's contract exactly
   // =========================================================================
 
+  // EXPORT ONLY WHAT new_tidylda() CAN READ. It takes Cd_mean/Cv_mean when
+  // burnin > -1 and Cd/Cv otherwise, so exactly one of those pairs is reachable
+  // on any given run. Copying out the other pair costs a full D*K and V*K R
+  // allocation for nothing: at V = 81k, K = 1000 that is about 1.2 GB of peak
+  // memory freed the moment the call returns.
+  //
+  // The averaging side was already gated this way; the raw side was not, which
+  // is the whole of the asymmetry. Both are now.
+  //
+  // Cd_sum and Cv_sum used to be exported too. No R code has ever read them --
+  // Cd_mean and Cv_mean are computed here from the same accumulators -- so they
+  // are gone rather than gated.
+  const bool raw_out = !averaging;                       // Cd/Cv reachable
+  const bool cv_raw  = raw_out && !freeze_topics;
+  const bool cv_mean = averaging && !freeze_topics;
+
   // C_word is current -- the word pass rebuilt and maintained every column and
   // nothing has moved since. C_doc is not: the word pass reassigned tokens after
   // the doc pass last touched it. The likelihood block above happens to leave a
   // fresh C_doc behind, but only when calc_likelihood is TRUE, so rebuild it
-  // here unconditionally. new_tidylda() reads Cd directly whenever burnin == -1.
-  std::fill(Cd.begin(), Cd.end(), 0);
-  for (std::size_t d = 0; d < D; d++) {
-    for (token_t i = corpus.doc_begin(d); i < corpus.doc_end(d); i++) {
-      Cd[d * K + corpus.old_z(i)]++;
+  // here. Only needed when Cd is actually going out.
+  IntegerMatrix Cd_out(raw_out ? D : 0, raw_out ? K : 0);
+  if (raw_out) {
+    std::fill(Cd.begin(), Cd.end(), 0);
+    for (std::size_t d = 0; d < D; d++) {
+      for (token_t i = corpus.doc_begin(d); i < corpus.doc_end(d); i++) {
+        Cd[d * K + corpus.old_z(i)]++;
+      }
     }
+    for (std::size_t d = 0; d < D; d++)
+      for (std::size_t k = 0; k < K; k++) Cd_out(d, k) = Cd[d * K + k];
   }
-
-  // Cd is already D x K. Cv is word-major internally and must go out as K x V.
-  IntegerMatrix Cd_out(D, K);
-  for (std::size_t d = 0; d < D; d++)
-    for (std::size_t k = 0; k < K; k++) Cd_out(d, k) = Cd[d * K + k];
 
   // D17: C^v goes out as V x K, the orientation the engine already holds it in.
   // The K x V transpose this used to do was a stopgap for the old R contract;
-  // R's consumers were rewritten in Phase 6 to match instead. dgCMatrix is
-  // compressed-sparse-column, so V x K stores each word's topic counts
-  // contiguously -- which is what Phase 7's on-demand beta would want.
+  // R's consumers were rewritten in Phase 6 to match instead. new_tidylda()
+  // stores it as a dgCMatrix, and V x K is the orientation that makes each
+  // word's topic counts one contiguous column of it.
   //
   // Frozen topics never build C^v, so it goes out empty rather than as a zero
   // matrix that could be mistaken for a real count.
-  IntegerMatrix Cv_out(freeze_topics ? 0 : V, freeze_topics ? 0 : K);
-  if (!freeze_topics)
+  IntegerMatrix Cv_out(cv_raw ? V : 0, cv_raw ? K : 0);
+  if (cv_raw)
     for (std::size_t v = 0; v < V; v++)
       for (std::size_t k = 0; k < K; k++) Cv_out(v, k) = Cv[v * K + k];
 
   NumericMatrix Cd_mean(averaging ? D : 0, averaging ? K : 0);
-  const bool cv_out = averaging && !freeze_topics;
-  NumericMatrix Cv_mean(cv_out ? V : 0, cv_out ? K : 0);
-  IntegerMatrix Cd_sum_out(averaging ? D : 0, averaging ? K : 0);
-  IntegerMatrix Cv_sum_out(cv_out ? V : 0, cv_out ? K : 0);
+  NumericMatrix Cv_mean(cv_mean ? V : 0, cv_mean ? K : 0);
 
   if (averaging) {
     const double n_post = static_cast<double>(iterations - burnin);
-    for (std::size_t d = 0; d < D; d++) {
-      for (std::size_t k = 0; k < K; k++) {
-        Cd_mean(d, k)    = static_cast<double>(Cd_sum[d * K + k]) / n_post;
-        Cd_sum_out(d, k) = static_cast<int>(Cd_sum[d * K + k]);
-      }
-    }
-    if (cv_out) {
-      for (std::size_t v = 0; v < V; v++) {
-        for (std::size_t k = 0; k < K; k++) {
-          Cv_mean(v, k)    = static_cast<double>(Cv_sum[v * K + k]) / n_post;
-          Cv_sum_out(v, k) = static_cast<int>(Cv_sum[v * K + k]);
-        }
-      }
+    for (std::size_t d = 0; d < D; d++)
+      for (std::size_t k = 0; k < K; k++)
+        Cd_mean(d, k) = static_cast<double>(Cd_sum[d * K + k]) / n_post;
+
+    if (cv_mean) {
+      for (std::size_t v = 0; v < V; v++)
+        for (std::size_t k = 0; k < K; k++)
+          Cv_mean(v, k) = static_cast<double>(Cv_sum[v * K + k]) / n_post;
     }
   }
 
@@ -818,8 +828,6 @@ Rcpp::List fit_lda_warp(
     _["Ck"]             = Ck,
     _["Cd_mean"]        = Cd_mean,
     _["Cv_mean"]        = Cv_mean,
-    _["Cd_sum"]         = Cd_sum_out,
-    _["Cv_sum"]         = Cv_sum_out,
     _["log_likelihood"] = ll_out,
     _["alpha"]          = alpha,
     _["eta"]            = eta_in

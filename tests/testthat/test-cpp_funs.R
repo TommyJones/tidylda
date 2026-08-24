@@ -43,26 +43,60 @@ m <- fit_lda_warp(
   verbose = FALSE
 )
 
+# The same fit without burn-in. The engine materializes only the pair the caller
+# can read --- Cd/Cv when burnin is -1, Cd_mean/Cv_mean otherwise --- so covering
+# the checksums properly means running both configurations.
+set.seed(90210)
+
+m_raw <- fit_lda_warp(
+  dtm_in = dtm,
+  Cd_start = priors$Cd_start,
+  alpha_in = alpha,
+  eta_in = eta,
+  iterations = 20,
+  burnin = -1,
+  calc_likelihood = TRUE,
+  Beta_in = priors$beta_initial,
+  freeze_topics = FALSE,
+  likelihood_every = 1,
+  mh_steps = 1L,
+  threads = 1L,
+  verbose = FALSE
+)
+
 sum_tokens <- sum(dtm)
 
 
 test_that("checksums match expectation", {
 
-  # Every token is assigned to exactly one topic, so all four views of the count
-  # structure total N. Cd_mean and Cv_mean are post-burn-in averages, and an
+  # Every token is assigned to exactly one topic, so every view of the count
+  # structure totals N. Cd_mean and Cv_mean are post-burn-in averages, and an
   # average of quantities that each sum to N sums to N as well.
-  expect_equal(sum(m$Cd), sum_tokens)
-
-  expect_equal(sum(m$Cv), sum_tokens)
-
   expect_equal(sum(m$Cd_mean), sum_tokens)
-
   expect_equal(sum(m$Cv_mean), sum_tokens)
 
-  # Ck is the topic marginal of both matrices.
-  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
+  expect_equal(sum(m_raw$Cd), sum_tokens)
+  expect_equal(sum(m_raw$Cv), sum_tokens)
 
-  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cv)))
+  # Ck is the topic marginal of both matrices.
+  expect_equal(as.numeric(m_raw$Ck), unname(colSums(m_raw$Cd)))
+  expect_equal(as.numeric(m_raw$Ck), unname(colSums(m_raw$Cv)))
+})
+
+
+test_that("only the reachable pair of count matrices is materialized", {
+  # Exporting the unreachable pair cost a full D*K and V*K allocation for
+  # nothing --- about 1.2 GB of transient peak at V = 81k, K = 1000. Nothing
+  # user-facing changes; new_tidylda() reads the same matrix it always did.
+  expect_equal(dim(m$Cd), c(0L, 0L))
+  expect_equal(dim(m$Cv), c(0L, 0L))
+  expect_gt(nrow(m$Cd_mean), 0L)
+  expect_gt(nrow(m$Cv_mean), 0L)
+
+  expect_equal(dim(m_raw$Cd_mean), c(0L, 0L))
+  expect_equal(dim(m_raw$Cv_mean), c(0L, 0L))
+  expect_gt(nrow(m_raw$Cd), 0L)
+  expect_gt(nrow(m_raw$Cv), 0L)
 })
 
 

@@ -35,7 +35,7 @@ test_that("the output contract is what new_tidylda expects", {
 
   expect_setequal(
     names(m),
-    c("Cd", "Cv", "Ck", "Cd_mean", "Cv_mean", "Cd_sum", "Cv_sum",
+    c("Cd", "Cv", "Ck", "Cd_mean", "Cv_mean",
       "log_likelihood", "alpha", "eta")
   )
 
@@ -46,27 +46,40 @@ test_that("the output contract is what new_tidylda expects", {
   # Both are <major> by topics since D17: Cd documents-by-topics, Cv
   # words-by-topics. The engine no longer transposes Cv on output; new_tidylda()
   # does it once when forming the public, topics-by-words `beta`.
-  expect_equal(dim(m$Cd), c(nrow(dtm), s$k))
-  expect_equal(dim(m$Cv), c(s$v, s$k))
+  #
+  # Only the pair new_tidylda() will read is materialized. run_warp() uses
+  # burnin = 10, so that is the averaged pair; the raw pair comes back 0 x 0.
   expect_equal(dim(m$Cd_mean), c(nrow(dtm), s$k))
   expect_equal(dim(m$Cv_mean), c(s$v, s$k))
+  expect_equal(dim(m$Cd), c(0L, 0L))
+  expect_equal(dim(m$Cv), c(0L, 0L))
+
+  # And the other way round without burn-in.
+  m_raw <- run_warp(s, burnin = -1)
+  expect_equal(dim(m_raw$Cd), c(nrow(dtm), s$k))
+  expect_equal(dim(m_raw$Cv), c(s$v, s$k))
+  expect_equal(dim(m_raw$Cd_mean), c(0L, 0L))
+  expect_equal(dim(m_raw$Cv_mean), c(0L, 0L))
+
   expect_equal(nrow(m$log_likelihood), 3)
 })
 
 
 test_that("token counts are conserved and the marginals agree", {
   s <- setup()
-  m <- run_warp(s)
+  m     <- run_warp(s)                 # burnin = 10: averaged pair
+  m_raw <- run_warp(s, burnin = -1)    # raw pair
 
-  # Every token is assigned to exactly one topic, so all three views of the
-  # count structure must total N.
-  expect_equal(sum(m$Cd), s$n)
-  expect_equal(sum(m$Cv), s$n)
+  # Every token is assigned to exactly one topic, so every view of the count
+  # structure must total N, averaged or not.
+  expect_equal(sum(m_raw$Cd), s$n)
+  expect_equal(sum(m_raw$Cv), s$n)
+  expect_equal(sum(m_raw$Ck), s$n)
   expect_equal(sum(m$Ck), s$n)
 
   # Ck is the topic marginal of both matrices.
-  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
-  expect_equal(as.numeric(m$Ck), unname(colSums(m$Cv)))
+  expect_equal(as.numeric(m_raw$Ck), unname(colSums(m_raw$Cd)))
+  expect_equal(as.numeric(m_raw$Ck), unname(colSums(m_raw$Cv)))
 
   # Document lengths are fixed, so the posterior mean over topics recovers them.
   expect_equal(unname(rowSums(m$Cd_mean)), unname(Matrix::rowSums(dtm)))
@@ -89,20 +102,24 @@ test_that("Cd is current on return even without the likelihood", {
 
 test_that("set.seed makes fits reproducible", {
   s <- setup()
-  a <- run_warp(s, seed = 7)
-  b <- run_warp(s, seed = 7)
-  d <- run_warp(s, seed = 8)
+  # burnin = -1 so the raw counts are the pair that gets materialized. Comparing
+  # Cd under the default burnin would compare two 0 x 0 matrices, which are
+  # identical no matter what the sampler did.
+  a <- run_warp(s, seed = 7, burnin = -1)
+  b <- run_warp(s, seed = 7, burnin = -1)
+  d <- run_warp(s, seed = 8, burnin = -1)
 
   expect_identical(a$Cd, b$Cd)
   expect_identical(a$Cv, b$Cv)
   expect_false(identical(a$Cd, d$Cd))
+  expect_false(identical(a$Cv, d$Cv))
 })
 
 
 test_that("mh_steps runs at values above the default", {
   s <- setup()
   for (steps in c(1, 2, 4)) {
-    m <- run_warp(s, mh_steps = steps)
+    m <- run_warp(s, mh_steps = steps, burnin = -1)
     expect_equal(sum(m$Cd), s$n)
     expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))
   }
@@ -195,8 +212,10 @@ test_that("frozen topics leave the word side untouched", {
   expect_equal(length(m$Cv), 0)
   expect_equal(length(m$Cv_mean), 0)
 
-  # The document side still has to be a valid assignment of every token.
-  expect_equal(sum(m$Cd), s$n)
+  # The document side still has to be a valid assignment of every token. This
+  # run uses the default burnin = 10, so the averaged pair is the one that
+  # exists; Cd itself is 0 x 0.
+  expect_equal(sum(m$Cd_mean), s$n)
   expect_equal(unname(rowSums(m$Cd_mean)), unname(Matrix::rowSums(dtm)))
 })
 
@@ -398,19 +417,39 @@ test_that("results are identical at any thread count (D12)", {
                  threads = as.integer(th), verbose = FALSE)
   }
 
+  # run() uses burnin = 15, so the averaged pair is what gets materialized and
+  # Cd/Cv come back 0 x 0. Comparing those would pass no matter what the sampler
+  # did, so compare the matrices that actually carry the chain's result.
   ref <- run(1)
   for (th in c(2, 4, 8)) {
     m <- run(th)
-    expect_identical(ref$Cd, m$Cd, info = paste("threads =", th))
-    expect_identical(ref$Cv, m$Cv, info = paste("threads =", th))
-    expect_identical(ref$Ck, m$Ck, info = paste("threads =", th))
     expect_identical(ref$Cd_mean, m$Cd_mean, info = paste("threads =", th))
+    expect_identical(ref$Cv_mean, m$Cv_mean, info = paste("threads =", th))
+    expect_identical(ref$Ck, m$Ck, info = paste("threads =", th))
     expect_identical(ref$log_likelihood, m$log_likelihood,
                      info = paste("threads =", th))
   }
 
+  # The raw counts are a stronger fingerprint still --- one integer per cell, no
+  # averaging to blur a difference --- so check them too, on a run configured to
+  # produce them.
+  run_raw <- function(th) {
+    set.seed(77)
+    fit_lda_warp(dtm_in = d, Cd_start = p$Cd_start, alpha_in = al$alpha,
+                 eta_in = as.matrix(et$eta), iterations = 40, burnin = -1,
+                 calc_likelihood = TRUE, Beta_in = p$beta_initial,
+                 freeze_topics = FALSE, likelihood_every = 5, mh_steps = 1L,
+                 threads = as.integer(th), verbose = FALSE)
+  }
+  ref_raw <- run_raw(1)
+  for (th in c(2, 8)) {
+    m <- run_raw(th)
+    expect_identical(ref_raw$Cd, m$Cd, info = paste("raw, threads =", th))
+    expect_identical(ref_raw$Cv, m$Cv, info = paste("raw, threads =", th))
+  }
+
   # And the invariants must still hold when threaded.
-  m <- run(8)
+  m <- run_raw(8)
   expect_equal(sum(m$Cd), sum(d))
   expect_equal(sum(m$Cv), sum(d))
   expect_equal(as.numeric(m$Ck), unname(colSums(m$Cd)))

@@ -22,9 +22,11 @@
 #' @param threads int, number of worker threads. Results are identical at any
 #'   thread count (D12), so this trades wall clock for cores and nothing else
 #' @param verbose bool, show a progress bar?
-#' @return Returns a list of counts and diagnostics. \code{Cd}, \code{Cd_mean}
-#'   and \code{Cd_sum} are documents by topics; \code{Cv}, \code{Cv_mean} and
-#'   \code{Cv_sum} are words by topics (D17).
+#' @return Returns a list of counts and diagnostics. \code{Cd} and
+#'   \code{Cd_mean} are documents by topics; \code{Cv} and \code{Cv_mean} are
+#'   words by topics (D17). Only the pair the caller can use is materialized:
+#'   \code{Cd}/\code{Cv} when \code{burnin} is -1, \code{Cd_mean}/
+#'   \code{Cv_mean} otherwise. The other pair comes back 0 x 0.
 fit_lda_warp <- function(dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics = FALSE, likelihood_every = 10L, mh_steps = 1L, threads = 1L, verbose = TRUE) {
     .Call(`_tidylda_fit_lda_warp`, dtm_in, Cd_start, alpha_in, eta_in, iterations, burnin, calc_likelihood, Beta_in, freeze_topics, likelihood_every, mh_steps, threads, verbose)
 }

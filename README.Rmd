@@ -37,8 +37,8 @@ In addition this implementation of LDA allows you to:
 Fitting uses [warpLDA](https://arxiv.org/abs/1510.08628) (Chen et al., 2016), a
 Metropolis-Hastings sampler that alternates document-ordered and word-ordered
 passes so each pass touches only a small, cache-resident working set. It
-replaced the collapsed Gibbs sampler in version 0.1.0 and is multithreaded, with
-results that do not depend on the number of threads.
+replaced the collapsed Gibbs sampler in version 0.1.0 and is multithreaded,
+while still being reproducible via `set.seed()`.
 
 
 ## Installation
@@ -62,7 +62,7 @@ For a list of dependencies see the DESCRIPTION file.
 
 # Getting started
 
-This package is still in its early stages of development. However, some basic functionality is below. Here, we will use the `tidytext` package to create a document term matrix, fit a topic model, predict topics of unseen documents, and update the model with those new documents.
+Some basic functionality is below. Here, we will use the `tidytext` package to create a document term matrix, fit a topic model, predict topics of unseen documents, and update the model with those new documents.
 
 `tidylda` uses the following naming conventions for topic models:
 

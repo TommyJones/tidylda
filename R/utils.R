@@ -159,6 +159,65 @@ eta_matrix <- function(eta, k, Nv) {
   matrix(eta$eta, nrow = k, ncol = Nv)
 }
 
+#' Row sums of \code{eta} without materializing it
+#' @keywords internal
+#' @description
+#'   \code{rowSums(eta_matrix(...))} allocates a dense \code{k} by \code{Nv}
+#'   matrix only to collapse it immediately. That is 8 GB at \code{k = 1000},
+#'   \code{Nv = 1e6}. A scalar prior gives every row the same sum, so it needs
+#'   no matrix at all; a matrix prior is summed directly, since
+#'   \code{eta_matrix()} would have returned it unchanged anyway.
+#'
+#'   NOT BIT-IDENTICAL to the materialized form, and deliberately so.
+#'   \code{rowSums()} accumulates in long double, so it returns
+#'   1500.0000000000002274 where \code{Nv * eta} returns exactly 1500 --- a
+#'   relative difference of 1.5e-16. The engine stores \code{eta} as
+#'   \code{float} (D5), whose resolution is nine orders of magnitude coarser,
+#'   so the difference is erased before the sampler sees it. The only trace is
+#'   the 16th significant digit of a refitted model's \code{eta} slot.
+#' @param eta a list as returned by \code{\link[tidylda]{format_eta}}
+#' @param k the number of topics
+#' @param Nv the size of the vocabulary
+#' @return a numeric vector of length \code{k}.
+eta_row_sums <- function(eta, k, Nv) {
+  if (is.matrix(eta$eta)) {
+    return(rowSums(eta$eta))
+  }
+  rep(Nv * eta$eta, k)
+}
+
+#' Pad a document term matrix with empty columns for missing vocabulary
+#' @keywords internal
+#' @description
+#'   Both \code{\link[tidylda]{refit.tidylda}} and
+#'   \code{\link[tidylda]{predict.tidylda}} align a new DTM against a model's
+#'   vocabulary by appending all-zero columns for terms the data lacks. This is
+#'   that operation, in one place.
+#'
+#'   THE FILLER MUST BE SPARSE. Until 0.1.0 \code{refit()} built it with
+#'   \code{matrix(0, ...)}, a dense allocation of \code{nrow(dtm)} by
+#'   \code{length(add)} doubles --- 5.4 GB on a 48,508-document corpus with
+#'   15,000 model-only terms, enough to exhaust a 32 GB session before sampling
+#'   began. The waste was total, since \code{cbind()} of a sparse and a dense
+#'   matrix returns a \code{dgCMatrix} regardless: the dense block existed only
+#'   as an argument. \code{predict()} always did this correctly, which is why
+#'   the two are now one function.
+#' @param dtm a document term matrix of class \code{dgCMatrix}
+#' @param add character vector of column names to append, possibly empty
+#' @return \code{dtm} with one all-zero column per entry of \code{add},
+#'   appended in order, with row and column names preserved.
+pad_vocabulary <- function(dtm, add) {
+  if (length(add) == 0) {
+    return(dtm)
+  }
+
+  filler <- Matrix::Matrix(0, nrow = nrow(dtm), ncol = length(add))
+
+  colnames(filler) <- add
+
+  Matrix::cbind2(dtm, filler)
+}
+
 #' Format \code{alpha} for input into the sampler
 #' @keywords internal
 #' @description
@@ -434,8 +493,8 @@ counts_cv <- function(object) {
   # It was also broken until 0.1.0: Cv carried no dimnames, so the identity test
   # below could never succeed and every square Cv was transposed, corrupting a
   # correctly-oriented model rather than repairing a stale one. Models fitted by
-  # 0.1.0 and later are labelled (see new_tidylda), so they take the first
-  # branch; anything unlabelled is necessarily pre-0.1.0 and needs the
+  # 0.1.0 and later are labeled (see new_tidylda), so they take the first
+  # branch; anything unlabeled is necessarily pre-0.1.0 and needs the
   # transpose.
   if (!is.null(colnames(object$beta)) && !is.null(rownames(cv)) &&
       identical(rownames(cv), colnames(object$beta))) {
@@ -498,7 +557,7 @@ counts_cv <- function(object) {
 #'   \code{counts} is a list of two matrices holding the token-topic counts the
 #'     sampler ended on. \code{Cd} is a dense matrix of documents by topics.
 #'     \code{Cv} is a sparse \code{\link[Matrix]{dgCMatrix-class}} of tokens by
-#'     topics, labelled with the model's vocabulary and topic names. Both are
+#'     topics, labeled with the model's vocabulary and topic names. Both are
 #'     topics-in-columns, so \code{Cd} aligns with \code{theta} and \code{Cv}
 #'     with \code{t(beta)}. If burn-in iterations were used these are averages
 #'     over the post-burn-in iterations, and are therefore not integers.
@@ -591,9 +650,9 @@ new_tidylda <- function(
       Cv <- lda$Cv
     }
 
-    # NAME THE AXES. Two reasons, and the second is load-bearing.
+    # NAME THE AXES. Two reasons
     #
-    # The obvious one: `beta` and `theta` are labelled, so `counts` should be
+    # The obvious one: `beta` and `theta` are labeled, so `counts` should be
     # too. A user indexing Cv by token had no way to do it by name.
     #
     # The other: it is what makes a 0.1.0-or-later model self-identifying to

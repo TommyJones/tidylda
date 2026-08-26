@@ -193,8 +193,59 @@ test_that("counts survive a vocabulary mismatch between model and data", {
   expect_equal(nrow(moved$counts$Cv), ncol(moved$beta))
   expect_equal(rownames(moved$counts$Cv), colnames(moved$beta))
 
+  # The padded DTM must stay SPARSE. Until 0.1.0 refit() aligned vocabulary with
+  # a dense matrix(0, ...) filler --- 5.4 GB on a 48,508-document corpus with
+  # 15,000 model-only terms, enough to exhaust a 32 GB session before sampling
+  # started. Nothing about the result's dimensions or values would reveal that,
+  # since cbind() returns a dgCMatrix either way; only the transient allocation
+  # differed. This asserts the property directly.
+  expect_s4_class(pad_vocabulary(d2, setdiff(colnames(base$beta), colnames(d2))),
+                  "dgCMatrix")
+
   # And the downstream consumers still work against it.
   expect_equal(nrow(counts_cv(moved)), ncol(moved$beta))
   p <- posterior(moved, matrix = "beta", which = 1, times = 5)
   expect_true(all(is.finite(p$beta)))
+})
+
+
+test_that("pad_vocabulary appends sparse zero columns and keeps names", {
+  d <- nih_sample_dtm[1:10, 1:6]
+  add <- c("zzz1", "zzz2", "zzz3")
+
+  p <- pad_vocabulary(d, add)
+
+  expect_s4_class(p, "dgCMatrix")
+  expect_equal(ncol(p), ncol(d) + length(add))
+  expect_equal(colnames(p), c(colnames(d), add))
+  expect_equal(rownames(p), rownames(d))
+
+  # The appended block is empty, and the original data is untouched.
+  expect_equal(sum(p[, add]), 0)
+  expect_equal(sum(p), sum(d))
+
+  # Indexing the result by name is what the callers do next.
+  expect_equal(colnames(p[, c("zzz2", colnames(d)[1])]), c("zzz2", colnames(d)[1]))
+
+  # Nothing to add is a no-op rather than an error.
+  expect_identical(pad_vocabulary(d, character(0)), d)
+})
+
+
+test_that("eta_row_sums matches the materialized form", {
+  k <- 4
+  Nv <- 500
+
+  # Matrix prior: summed directly, so exactly rowSums().
+  em <- list(eta = matrix(runif(k * Nv), nrow = k, ncol = Nv))
+  expect_identical(eta_row_sums(em, k, Nv), rowSums(eta_matrix(em, k, Nv)))
+
+  # Scalar prior: agrees with the materialized form, and returns one value per
+  # topic. Not asserted bit-identical --- rowSums() accumulates in long double,
+  # so the two diverge around 1e-16 once Nv passes a few thousand. The engine
+  # stores eta as float (D5), which is nine orders of magnitude coarser, so the
+  # difference cannot reach the sampler.
+  es <- list(eta = 0.05)
+  expect_length(eta_row_sums(es, k, Nv), k)
+  expect_equal(eta_row_sums(es, k, Nv), rowSums(eta_matrix(es, k, Nv)))
 })

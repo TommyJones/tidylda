@@ -190,11 +190,7 @@ predict.tidylda <- function(
 
   vocab_add <- setdiff(vocab_original, vocab_intersect)
 
-  add_mat <- Matrix::Matrix(0, nrow = nrow(dtm_new_data), ncol = length(vocab_add))
-
-  colnames(add_mat) <- vocab_add
-
-  dtm_new_data <- Matrix::cbind2(dtm_new_data, add_mat)
+  dtm_new_data <- pad_vocabulary(dtm_new_data, vocab_add)
 
   if (nrow(dtm_new_data) == 1) {
     dtm_new_data <- Matrix::Matrix(dtm_new_data[, vocab_original], nrow = 1, sparse = TRUE)
@@ -265,9 +261,15 @@ predict.tidylda <- function(
       no_common_tokens = "uniform"
     )
 
-    # make sure priors are formatted correctly
-    eta <- format_eta(object$eta, k = nrow(object$beta), Nv = ncol(dtm_new_data))
-
+    # NO eta HERE, DELIBERATELY. Prediction holds topics fixed, and nothing in
+    # this path reads the prior: initialize_topic_counts() is handed both
+    # beta_initial and theta_initial, so every branch that would touch eta is
+    # skipped, and the engine builds an empty Eta when freeze_topics is set
+    # (warp_lda.cpp:281) without looking at eta_in at all.
+    #
+    # format_eta() used to be called here regardless. For a vector prior it
+    # expands to a dense k by Nv matrix --- 8 GB at k = 1000, Nv = 1e6 --- to
+    # produce a value that is then discarded.
     alpha <- format_alpha(object$alpha, k = nrow(object$beta))
 
     # get initial counts
@@ -275,7 +277,7 @@ predict.tidylda <- function(
       dtm = dtm_new_data,
       k = nrow(object$beta),
       alpha = alpha$alpha,
-      eta = eta$eta,
+      eta = NULL, # unused: beta_initial and theta_initial are both supplied
       beta_initial = object$beta,
       theta_initial = theta_initial,
       freeze_topics = TRUE,
@@ -287,7 +289,9 @@ predict.tidylda <- function(
       dtm_in = dtm_new_data,
       Cd_start = counts$Cd_start,
       alpha_in = alpha$alpha,
-      eta_in = as.matrix(eta$eta), # ignored: freeze_topics = TRUE
+      # Placeholder. freeze_topics is checked before the 1x1 scalar test, so
+      # the engine discards this without inspecting it (warp_lda.cpp:280-283).
+      eta_in = matrix(0, 1, 1),
       iterations = iterations,
       burnin = burnin,
       calc_likelihood = FALSE,

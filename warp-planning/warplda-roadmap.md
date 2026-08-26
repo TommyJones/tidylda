@@ -1303,6 +1303,19 @@ the change non-breaking at the call site. The cost is that a user writing
 argues for memoisation, which reintroduces the memory. Not resolved; just worth
 not rediscovering from scratch.
 
+**One more slot, found during release prep: the tLDA prior itself.** Under tLDA
+$\boldsymbol\eta = w^* \cdot \hat\beta$, and $\hat\beta$ is dense by
+construction, so there is no sparsity to exploit (D3). At $K = 1000$,
+$V = 10^6$ that is 8 GB in R plus 4 GB of `float` in the engine.
+
+The way out is not to compress it but **not to build it in R at all**. The
+engine already downcasts $\boldsymbol\eta$ to `float`. If `refit()` passed
+$\hat\beta$ --- which the engine already receives as `Beta_in` --- together with
+the $w^*$ vector, the engine could form $\boldsymbol\eta$ itself directly in
+`float`. That removes the R-side matrix entirely and halves what C++ holds.
+Deferred deliberately: it moves a modelling decision into the sampler and needs
+its own verification.
+
 **Prerequisites.** D17 (sparse counts) and D20 (scalar $\boldsymbol\eta$ fast
 path) both point this direction and landed in Phase 6. Phase 7 (§6.7) should also
 go first: it is independent, cheaper, and under a matrix prior the two pull in

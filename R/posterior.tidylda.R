@@ -143,6 +143,19 @@ posterior.tidylda <- function(
   }
   
   # sample
+  # length(which) * times draws of nrow(dir_par) parameters, one row each. At
+  # k = 1000, V = 1e6 and the default times = 100 that is 1e11 rows.
+  check_result_size(
+    n_rows = as.numeric(nrow(dir_par)) * ncol(dir_par) * times,
+    n_cols = 4,
+    what = paste0("posterior(matrix = \"", matrix[1], "\")"),
+    suggestion = paste0(
+      "Lower `times`, or pass fewer values in `which` and reduce each result ",
+      "before requesting the next -- taking slices only bounds memory if you ",
+      "do not keep them all."
+    )
+  )
+
   result <- generate_sample(
     dir_par = dir_par,
     matrix = matrix,
@@ -168,38 +181,35 @@ generate_sample <- function(
   times
 ) {
   
+  # The long frame is built straight from the draw matrix. This used to go
+  # rdirichlet -> as.data.frame -> t() -> as.data.frame -> pivot_longer, four
+  # copies of every block: 12.2 MB of draws became a 582 MB peak.
+  #
+  # rdirichlet returns times by n, so as.vector() walks it column-major --- all
+  # samples of the first parameter, then all samples of the second. That is
+  # exactly the order pivot_longer produced, which is why idx1 repeats `each =
+  # times` and sample cycles fastest. `sample` is built as character because the
+  # caller below converts it with as.numeric(), as it did when pivot_longer
+  # supplied the column names.
+  #
+  # RNG order is unchanged: one rdirichlet(n = times, .) per column of dir_par,
+  # in column order.
   result <- lapply(
-    X = as.data.frame(dir_par),
-    FUN = function(y) {
-      samp <- gtools::rdirichlet(n = times, alpha = y)
+    seq_len(ncol(dir_par)),
+    function(j) {
+      samp <- gtools::rdirichlet(n = times, alpha = dir_par[, j])
       
-      samp <- as.data.frame(samp, stringsAsFactors = FALSE)
-      
-      colnames(samp) <- rownames(dir_par)
-      
-      out <- as.data.frame(t(samp))
-      
-      colnames(out) <- 1:ncol(out)
-      
-      out$idx1 <- rownames(dir_par)
-      
-      out <- tidyr::pivot_longer(
-        out,
-        -idx1,
-        names_to = "sample"
+      data.frame(
+        idx1   = rep(rownames(dir_par), each = times),
+        sample = rep(as.character(seq_len(times)), times = nrow(dir_par)),
+        value  = as.vector(samp),
+        idx2   = colnames(dir_par)[j],
+        stringsAsFactors = FALSE
       )
-      
-      out
     }
   )
   
-  
-  # prepare and return result so it's tidy
-  for (j in seq_along(result)) {
-    result[[j]]$idx2 <- colnames(dir_par)[j]
-  }
-  
-  result <- do.call(rbind, result)
+  result <- dplyr::bind_rows(result)
   
   result <- tibble::as_tibble(result)
   

@@ -139,7 +139,7 @@ predict.tidylda <- function(
       paste0(
         'predict(method = "gibbs") is deprecated; use method = "mh".\n',
         "  The sampler is warpLDA's Metropolis-Hastings scheme as of 0.1.0, not\n",
-        "  collapsed Gibbs. The behaviour is unchanged -- only the name is."
+        "  collapsed Gibbs. The behavior is unchanged -- only the name is."
       ),
       .frequency = "once",
       .frequency_id = "tidylda_predict_method_gibbs"
@@ -316,7 +316,17 @@ predict.tidylda <- function(
   # If type is "class" or "distribution", format further
   if (type[1] == "class") {
     
-    result <- apply(result, 1, function(x) which.max(x)[1])
+    # max.col() rather than apply(., 1, which.max), which copies the whole
+    # D by k matrix before iterating. ties.method = "first" matches which.max().
+    #
+    # apply() carried the rownames through and max.col() does not, so they are
+    # restored explicitly: the document labels are how a caller tells which
+    # prediction belongs to which document.
+    doc_names <- rownames(result)
+    
+    result <- max.col(result, ties.method = "first")
+    
+    names(result) <- doc_names
     
   } else if (type[1] == "distribution") {
     

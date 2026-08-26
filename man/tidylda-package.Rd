@@ -17,6 +17,18 @@ Implements an algorithm for Latent Dirichlet Allocation (LDA)
   collapsed Gibbs sampler in version 0.1.0. Sampling is multithreaded via the
   \code{threads} argument and results do not depend on the thread count.
 }
+\section{Options}{
+
+  \code{tidylda.max_result_size} caps the size of the object
+  \code{\link[tidylda]{posterior.tidylda}} and
+  \code{\link[tidylda]{tidy.tidylda}} will build, in bytes. Both return one
+  row per cell of a matrix that grows with topics times vocabulary, so a
+  plausible-looking call can ask for billions of rows; above the cap they
+  raise an error naming the size and a smaller alternative rather than
+  exhausting the session. Defaults to \code{1024^3} (1 GB). Raise it with
+  \code{options(tidylda.max_result_size = 4 * 1024^3)}.
+}
+
 \seealso{
 Useful links:
 \itemize{

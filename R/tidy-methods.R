@@ -125,6 +125,19 @@ tidy.matrix <- function(x, matrix, log = FALSE, ...) {
     stop("log must be logical.")
   }
   
+  # One row per cell. beta and lambda are k by V, so this is k * V rows: 1e9 at
+  # k = 1000, V = 1e6.
+  check_result_size(
+    n_rows = as.numeric(nrow(x)) * ncol(x),
+    n_cols = 3,
+    what = paste0("tidy(matrix = \"", matrix[1], "\")"),
+    suggestion = paste0(
+      "Tidy a slice instead -- tidy() accepts a matrix directly, so ",
+      "tidy(x$", matrix[1], "[1:10, ], \"", matrix[1], "\") keeps the original ",
+      "row labels."
+    )
+  )
+
   out <- as.data.frame(x, stringsAsFactors = FALSE)
   
   out$names_col <- rownames(x)
@@ -270,12 +283,18 @@ augment.tidylda <- function(
     
   }
   
-  tidy_lambda <- tidy(x, "lambda")
+  # lambda is already topics-by-tokens, so what this needs is its transpose with
+  # a token column. Going through tidy() and back explodes it to k * V rows and
+  # collapses it again: 6.6 MB -> 18.7 MB -> 6.6 MB at k = 100, V = 8000, and it
+  # scales as k * V.
+  tidy_lambda <- as.data.frame(t(x$lambda), stringsAsFactors = FALSE)
   
-  tidy_lambda <- tidyr::pivot_wider(
-    tidy_lambda, 
-    names_from = topic, 
-    values_from = lambda
+  colnames(tidy_lambda) <- rownames(x$lambda)
+  
+  tidy_lambda <- cbind(
+    token = colnames(x$lambda),
+    tidy_lambda,
+    stringsAsFactors = FALSE
   )
 
   result <- dplyr::right_join(
@@ -288,14 +307,19 @@ augment.tidylda <- function(
   
   topic_names <- colnames(x$theta)
   
-  result[, topic_names] <- 
-    result[, topic_names] * result$count
+  # One column at a time. Scaling the whole block allocates a second nnz by k
+  # frame; a column allocates nnz by 1. 806 MB -> 340 MB at nnz = 200k, k = 100.
+  for (tn in topic_names) {
+    result[[tn]] <- result[[tn]] * result$count
+  }
   
   # return class or probs based on user input
   if (type[1] == "class") {
-    tmp <- apply(result[, topic_names], 1,function(y) which.max(y)[1])
-    
-    result$topic <- tmp
+    # max.col() rather than apply(., 1, which.max): apply coerces the frame to a
+    # matrix and allocates per row, which is why type = "class" used to peak
+    # HIGHER than type = "prob" while returning a fraction of the data.
+    # ties.method = "first" reproduces which.max()'s choice.
+    result$topic <- max.col(result[, topic_names], ties.method = "first")
     
     result <- result[, c(colnames_data, "topic")]
   } else {

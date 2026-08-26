@@ -72,7 +72,7 @@ Returns an S3 object of class \code{tidylda} with the following slots:
   \code{counts} is a list of two matrices holding the token-topic counts the
     sampler ended on. \code{Cd} is a dense matrix of documents by topics.
     \code{Cv} is a sparse \code{\link[Matrix]{dgCMatrix-class}} of tokens by
-    topics, labelled with the model's vocabulary and topic names. Both are
+    topics, labeled with the model's vocabulary and topic names. Both are
     topics-in-columns, so \code{Cd} aligns with \code{theta} and \code{Cv}
     with \code{t(beta)}. If burn-in iterations were used these are averages
     over the post-burn-in iterations, and are therefore not integers.

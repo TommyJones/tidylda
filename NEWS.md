@@ -41,7 +41,7 @@ a moment even if you do not think you use `counts`.
 
 * **`counts$Cv` changed orientation, and is now sparse.** It was a dense
     topics-by-tokens matrix and is now a tokens-by-topics `dgCMatrix`. It is also
-    labelled, with tokens as rownames and topics as colnames, matching `beta` and
+    labeled, with tokens as rownames and topics as colnames, matching `beta` and
     `theta`. `counts$Cd` is unchanged: still documents by topics, still dense.
 
     Sparse storage shrinks it about 3x, which is roughly 19% off a whole fitted
@@ -104,6 +104,24 @@ differ.
     name is unaffected; code selecting by position is not.
 
 ## Bug fixes
+
+* **`refit()` no longer exhausts memory aligning vocabulary.** When the base
+    model contained terms absent from the new data, `refit()` built a *dense*
+    matrix of zeros to pad the document term matrix — `nrow(new_data)` by the
+    number of missing terms, at 8 bytes a cell. On a 48,500-document corpus with
+    15,000 model-only terms that is 5.4 GB, allocated before sampling began, and
+    discarded immediately: `cbind()` returns a sparse matrix either way. Padding
+    is now sparse. Peak memory on that corpus falls from 8.6 GB to 2.1 GB.
+
+    This affected every `refit()` where the model contributed vocabulary, which
+    is the normal case for transfer learning, and it grew with the size of the
+    new corpus. It was present in 0.0.7.
+
+* **`predict()` no longer materializes a prior it discards.** Prediction holds
+    topics fixed, so the sampler never reads `eta` — but `predict()` expanded it
+    anyway, which for a vector prior meant two dense k-by-vocabulary matrices per
+    call. Also present in 0.0.7.
+
 
 * Fixed the calculation of `theta` when `alpha` is asymmetric. The prior was
     added along the wrong axis of the document-topic count matrix, so instead of

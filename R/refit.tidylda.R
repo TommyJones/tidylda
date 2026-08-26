@@ -230,7 +230,7 @@ refit.tidylda <- function(
     # Cv is words-by-topics (D17), so the per-topic total is a column sum.
     # counts_cv() transposes a model saved by an earlier version.
     w_star <- Matrix::colSums(counts_cv(object)) +
-      rowSums(eta_matrix(eta, nrow(object$beta), ncol(object$beta)))
+      eta_row_sums(eta, nrow(object$beta), ncol(object$beta))
     
     eta$eta <- prior_weight * w_star * object$beta
     
@@ -269,25 +269,38 @@ refit.tidylda <- function(
   
   add_to_model <- setdiff(total_vocabulary, colnames(beta_initial))
   
-  m_add_to_dtm <- matrix(0, nrow = nrow(dtm), ncol = length(add_to_dtm))
+  # Sparse filler: the dense one used to be 5.4 GB on a 48,508-document corpus
+  # with 15,000 model-only terms, for a block of zeros cbind() discards anyway.
+  dtm <- pad_vocabulary(dtm, add_to_dtm)
   
-  colnames(m_add_to_dtm) <- add_to_dtm
-  
-  m_add_to_model <- matrix(0, nrow = nrow(beta_initial), ncol = length(add_to_model))
-  
-  colnames(m_add_to_model) <- add_to_model
-  
-  dtm <- cbind(dtm, m_add_to_dtm)
-  
+  # The model side is padded with a CONSTANT rather than zeros --- a flat prior
+  # over vocabulary the base model never saw --- so it is dense either way.
+  # Built at its final value instead of as zeros that are then added to, which
+  # halves the allocation. 0 + q is exactly q, so this is unchanged numerically.
+  filled <- function(value, k, cols) {
+    m <- matrix(value, nrow = k, ncol = length(cols))
+    colnames(m) <- cols
+    m
+  }
   
   # uniform prior over new words
-  eta$eta <- cbind(eta$eta, m_add_to_model + stats::quantile(eta$eta, 0.1))
+  eta$eta <- cbind(
+    eta$eta,
+    filled(stats::quantile(eta$eta, 0.1), nrow(eta$eta), add_to_model)
+  )
   
   eta$eta <- eta$eta[, colnames(dtm)]
   
-  beta_initial <- cbind(beta_initial, m_add_to_model + stats::quantile(beta_initial, 0.1))
+  beta_initial <- cbind(
+    beta_initial,
+    filled(stats::quantile(beta_initial, 0.1), nrow(beta_initial), add_to_model)
+  )
   
-  beta_initial <- beta_initial[, colnames(dtm)] / rowSums(beta_initial[, colnames(dtm)])
+  # Subset once. This used to compute beta_initial[, colnames(dtm)] twice, which
+  # is two dense k by V temporaries where one will do.
+  beta_initial <- beta_initial[, colnames(dtm)]
+  
+  beta_initial <- beta_initial / rowSums(beta_initial)
   
   
   # add topics to eta and beta_initial

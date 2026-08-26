@@ -17,6 +17,8 @@ tidylda(
   threads = 1,
   return_data = FALSE,
   verbose = TRUE,
+  likelihood_every = 10,
+  mh_steps = 1,
   ...
 )
 }
@@ -59,6 +61,13 @@ Defaults to \code{FALSE}. See \code{\link[tidylda]{calc_lda_r2}}.}
 
 \item{verbose}{Logical. Do you want to print a progress bar out to the console?
 Defaults to \code{TRUE}.}
+
+\item{likelihood_every}{Integer. Evaluate the log likelihood every n-th
+iteration. Defaults to 10. Ignored if \code{calc_likelihood = FALSE}.
+See 'details' below.}
+
+\item{mh_steps}{Integer. Metropolis-Hastings proposals per token per pass.
+Defaults to 1. See 'details' below.}
 
 \item{...}{Additional arguments, currently unused}
 }
@@ -129,6 +138,22 @@ Fitting uses **warpLDA** (Chen et al.,
   Both accept \code{eta} as a scalar, a vector, or a matrix, here and in
   \code{\link[tidylda]{refit.tidylda}} and
   \code{\link[tidylda]{predict.tidylda}}.
+
+  \code{mh_steps} sets how many Metropolis-Hastings proposals each token
+  gets per pass. The default of 1 reproduces the reference implementation.
+  Raising it is cheaper than raising \code{iterations} by the same factor,
+  because the per-pass overhead --- rebuilding the count matrices and the
+  proposal tables --- is paid once per iteration however many proposals each
+  token receives. Measured on this package's medium benchmark corpus at
+  \code{k = 100}, \code{mh_steps = 4} costs about twice a single-step
+  iteration rather than four times.
+
+  That is a statement about cost, not about fit. The proposal distribution is
+  built once per document or word type, so additional steps draw repeatedly
+  from the same proposal, where additional iterations rebuild it from updated
+  counts and alternate the two passes. Whether a short run with several steps
+  matches a long run with one has not been measured; treat \code{mh_steps}
+  as an experimental control rather than a drop-in substitute for iterations.
 
   \code{threads} sets the number of worker threads. Results are identical at
   any thread count, so it trades wall clock for cores and nothing else; a

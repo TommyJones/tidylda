@@ -17,7 +17,7 @@ User-visible changes:
     `predict(method = "gibbs")` is now `method = "mh"`, and `optimize_alpha` is
     accepted but ignored.
 * The parallelism promised by the `threads` argument is now implemented, with
-    results independent of the number of threads.
+    reproducible results independent of the number of threads.
 
 ## Test environments
 
@@ -34,10 +34,6 @@ win-builder reports the usual incoming NOTE identifying the maintainer:
 
 > checking CRAN incoming feasibility ... NOTE
 > Maintainer: 'Tommy Jones <jones.thos.w@gmail.com>'
-
-An earlier submission of this version also flagged 'warpLDA' as a possibly
-misspelled word in DESCRIPTION. It is the name of the sampling algorithm and is
-now single-quoted, alongside 'tidyverse' and 'tidymodels' in the same field.
 
 The local Ubuntu check reports one further NOTE that does not appear on any
 other platform:

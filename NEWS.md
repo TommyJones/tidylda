@@ -13,10 +13,10 @@
     a grid of corpus sizes and topic counts, under both scalar and matrix
     (tLDA) priors; no metric degraded.
 * `threads` is now functional in `tidylda()`, `refit.tidylda()`, and
-    `predict.tidylda()`. Results do not depend on the number of threads: a model
-    fitted under `set.seed()` is reproducible whether it was fitted on one
-    thread or twenty. It still defaults to 1.
-* `tidylda()` and `refit.tidylda()` gain `mh_steps`, the number of
+    `predict.tidylda()`. Reproducibility does not depend on the number of 
+    threads: a model fitted under `set.seed()` is reproducible whether it was 
+    fitted on one thread or twenty. It still defaults to 1.
+* `tidylda()` and `refit.tidylda()` gain `mh_steps` as an argument, the number of
     Metropolis-Hastings proposals per token per pass.
 
 * The `log_likelihood` slot gained a second metric. Alongside the existing
@@ -37,7 +37,7 @@
 ## Breaking change
 
 There is exactly one, and it fails silently rather than raising an error, so it is worth
-a moment even if you do not think you use `counts`.
+a moment even if you do not think you use `counts` in a `tidylda` object.
 
 * **`counts$Cv` changed orientation, and is now sparse.** It was a dense
     topics-by-tokens matrix and is now a tokens-by-topics `dgCMatrix`. It is also
@@ -147,20 +147,16 @@ differ.
     This affected every `refit()` where the model contributed vocabulary, which
     is the normal case for transfer learning, and it grew with the size of the
     new corpus. It was present in 0.0.7.
-
 * **`predict()` no longer materializes a prior it discards.** Prediction holds
     topics fixed, so the sampler never reads `eta` — but `predict()` expanded it
     anyway, which for a vector prior meant two dense k-by-vocabulary matrices per
     call. Also present in 0.0.7.
-
-
 * Fixed the calculation of `theta` when `alpha` is asymmetric. The prior was
     added along the wrong axis of the document-topic count matrix, so instead of
     `alpha[k]` being added to topic `k`, the values were recycled diagonally
     across topics. Models fitted with a scalar `alpha` are unaffected, since
     every entry is then equal; models fitted with a vector `alpha` — including
-    output from `refit.tidylda()` and any model fitted with
-    `optimize_alpha = TRUE` — will now report different, correct values of
+    output from `refit.tidylda()` — will now report different, correct values of
     `theta`.
 * Fixed a miscalculation in the log likelihood reported by `tidylda()` and
     `refit.tidylda()`. A normalizing denominator was accumulated across topics

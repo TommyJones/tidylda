@@ -21,16 +21,26 @@ User-visible changes:
 
 ## Test environments
 
+* local: macOS on Apple silicon, R 4.6.0
 * local: Ubuntu 24.04, R 4.6.0
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release,
     oldrel-1)
-* win-builder: devel, release, oldrelease
+
+win-builder was unavailable while preparing this submission; FTP uploads were
+rejected over a period of days. An earlier commit of this same version passed
+win-builder release and oldrelease. Everything changed since that run is R code
+only -- the compiled sources are byte-for-byte identical to what win-builder
+checked -- and those changes are covered by the five-platform GitHub Actions
+matrix above, which is green.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-win-builder reports the usual incoming NOTE identifying the maintainer:
+on macOS and on the GitHub Actions platforms.
+
+I expect CRAN's incoming check to raise the usual NOTE identifying the
+maintainer:
 
 > checking CRAN incoming feasibility ... NOTE
 > Maintainer: 'Tommy Jones <jones.thos.w@gmail.com>'
@@ -44,8 +54,8 @@ other platform:
 
 This flag is not set by the package. It comes from the Debian/Ubuntu build of R
 itself, where it appears in `/usr/lib/R/etc/Makeconf` and is applied to every
-package compiled on that system. `src/Makevars` sets only
-`$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`.
+package compiled on that system, not just this one. The only compilation flags
+the package adds are `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`.
 
 ## revdepcheck results
 

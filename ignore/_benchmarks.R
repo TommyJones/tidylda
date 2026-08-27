@@ -17,10 +17,11 @@ tcm <- tcm[vocab, vocab]
 tidylda_benchmark <-
 microbenchmark::microbenchmark(
   tidylda::tidylda(
-    dtm = tcm,
+    data = tcm,
     k = 10,
     iterations = 200,
-    burnin = 175
+    burnin = 175,
+    threads = parallel::detectCores() - 1
   ),
   times = 10
 )

@@ -234,3 +234,71 @@ test_that("lambda works as expected",{
   
   
 })
+
+
+context("memory guards and allocation helpers")
+
+test_that("check_result_size fires only above the ceiling", {
+  # Well under the 1 GB default: silent.
+  expect_silent(check_result_size(1e3, 4, "thing", "do something else"))
+
+  # Over it: an error naming the size, the limit and the remedy.
+  expect_error(
+    check_result_size(1e9, 4, "thing", "do something else"),
+    "thing would need about"
+  )
+  expect_error(check_result_size(1e9, 4, "thing", "do something else"), "GB limit")
+  expect_error(check_result_size(1e9, 4, "thing", "try a slice"), "try a slice")
+  expect_error(
+    check_result_size(1e9, 4, "thing", "x"),
+    "tidylda.max_result_size"
+  )
+})
+
+
+test_that("check_result_size respects the option", {
+  on.exit(options(tidylda.max_result_size = NULL), add = TRUE)
+
+  # A request that is fine by default becomes an error under a tiny ceiling.
+  expect_silent(check_result_size(1e5, 4, "thing", "x"))
+
+  options(tidylda.max_result_size = 1000)
+  expect_error(check_result_size(1e5, 4, "thing", "x"), "above the")
+
+  # And raising it lets the same request through.
+  options(tidylda.max_result_size = 1e12)
+  expect_silent(check_result_size(1e5, 4, "thing", "x"))
+})
+
+
+test_that("session_memory_limit returns bytes or NA, never nonsense", {
+  x <- session_memory_limit()
+
+  expect_length(x, 1)
+  expect_true(is.na(x) || (is.numeric(x) && x > 0))
+})
+
+
+test_that("posterior and tidy refuse impossible requests", {
+  on.exit(options(tidylda.max_result_size = NULL), add = TRUE)
+
+  d <- nih_sample_dtm[1:30, ]
+  set.seed(1)
+  m <- tidylda(d, k = 4, iterations = 15, burnin = 5,
+               calc_r2 = FALSE, verbose = FALSE)
+
+  # Both work normally.
+  expect_s3_class(tidy(m, "beta"), "data.frame")
+  expect_s3_class(posterior(m, "beta", which = 1, times = 3), "tbl_df")
+
+  options(tidylda.max_result_size = 1000)
+
+  expect_error(tidy(m, "beta"), "tidy\\(matrix")
+  expect_error(posterior(m, "beta", which = 1, times = 3), "posterior\\(matrix")
+
+  # The remedy each message suggests must actually work. tidy() dispatches on a
+  # matrix, and slicing keeps the original topic labels.
+  options(tidylda.max_result_size = NULL)
+  sliced <- tidy(m$beta[3:4, ], "beta")
+  expect_setequal(unique(sliced$topic), c(3, 4))
+})

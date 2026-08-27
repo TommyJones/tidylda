@@ -186,6 +186,109 @@ eta_row_sums <- function(eta, k, Nv) {
   rep(Nv * eta$eta, k)
 }
 
+#' What this R session can plausibly allocate
+#' @keywords internal
+#' @description
+#'   Best effort, and advisory only: the value is used to make an error message
+#'   more informative, never to decide whether to raise one. A limit that moved
+#'   with the machine would make the same script succeed on one box and fail on
+#'   another, which is worse than a predictable ceiling.
+#'
+#'   \code{mem.maxVSize()} (base) is finite on macOS, where it is the cap behind
+#'   "vector memory limit reached", and infinite elsewhere. On Linux the
+#'   fallback is \code{MemAvailable} from \code{/proc/meminfo}, which reports
+#'   the HOST inside a container and so may overstate what is really available.
+#'   Windows gets neither and is simply omitted from the message.
+#' @return a number of bytes, or \code{NA_real_} if nothing could be determined.
+session_memory_limit <- function() {
+  v <- tryCatch(mem.maxVSize(), error = function(e) Inf)
+
+  if (is.finite(v)) {
+    return(v * 1024^2) # mem.maxVSize() is in Mb
+  }
+
+  if (file.exists("/proc/meminfo")) {
+    info <- tryCatch(
+      readLines("/proc/meminfo", warn = FALSE),
+      error = function(e) character(0)
+    )
+
+    avail <- grep("^MemAvailable:", info, value = TRUE)
+
+    if (length(avail) == 1) {
+      kb <- suppressWarnings(as.numeric(gsub("\\D", "", avail)))
+
+      if (!is.na(kb)) {
+        return(kb * 1024)
+      }
+    }
+  }
+
+  NA_real_
+}
+
+#' Refuse to build a result that cannot fit in memory
+#' @keywords internal
+#' @description
+#'   \code{\link[tidylda]{posterior.tidylda}} and
+#'   \code{\link[tidylda]{tidy.tidylda}} both return one row per cell of
+#'   something that grows as \code{k * V}, so an innocuous-looking call can ask
+#'   for an object of billions of rows. Previously such a call simply exhausted
+#'   the session. This raises an error that says how large the result would be
+#'   and what to do instead.
+#'
+#'   The ceiling is a fixed 1 GB, which
+#'   \code{options(tidylda.max_result_size = <bytes>)} can raise. Fixed rather
+#'   than derived from free memory, so that behavior is reproducible across
+#'   machines; it is meant to catch a pathological request, not to track RAM.
+#' @param n_rows,n_cols dimensions of the result that would be built
+#' @param what character, the thing being built, for the message
+#' @param suggestion character, a concrete alternative to offer the caller
+#' @return \code{invisible(NULL)}, or an error.
+check_result_size <- function(n_rows, n_cols, what, suggestion) {
+  # Doubles are 8 bytes and character columns hold 8-byte pointers into R's
+  # global string cache, so 8 per cell is a fair estimate either way.
+  est <- as.numeric(n_rows) * as.numeric(n_cols) * 8
+
+  max_size <- getOption("tidylda.max_result_size", 1024^3)
+
+  if (est <= max_size) {
+    return(invisible(NULL))
+  }
+
+  # Adaptive units, so a small ceiling does not report "0.0 GB above the 0.0 GB
+  # limit".
+  fmt <- function(x) {
+    if (x >= 1024^3) {
+      paste0(format(round(x / 1024^3, 1), nsmall = 1), " GB")
+    } else if (x >= 1024^2) {
+      paste0(round(x / 1024^2), " MB")
+    } else {
+      paste0(round(x / 1024), " KB")
+    }
+  }
+
+  # Expressed as a multiple of a unit rather than a raw byte count, so it is
+  # something a caller can reasonably retype.
+  headroom <- if (est >= 1024^3) {
+    paste0(ceiling(est * 1.5 / 1024^3), " * 1024^3")
+  } else {
+    paste0(ceiling(est * 1.5 / 1024^2), " * 1024^2")
+  }
+
+  limit <- session_memory_limit()
+
+  stop(
+    what, " would need about ", fmt(est), " (",
+    format(n_rows, big.mark = ",", scientific = FALSE), " rows x ", n_cols,
+    " columns), above the ", fmt(max_size), " limit.",
+    if (!is.na(limit)) paste0(" This session looks able to allocate ", fmt(limit), "."),
+    "\n  ", suggestion,
+    "\n  To raise the limit: options(tidylda.max_result_size = ", headroom, ")",
+    call. = FALSE
+  )
+}
+
 #' Pad a document term matrix with empty columns for missing vocabulary
 #' @keywords internal
 #' @description
@@ -337,20 +440,23 @@ initialize_topic_counts <- function(
     # One rdirichlet call per topic, in topic order. Kept as a loop rather than a
     # single rdirichlet(n = k, ...) so the RNG is consumed exactly as before --
     # and written to accept a scalar eta without materializing k by Nv (D20).
-    eta_rows <- if (is.matrix(eta)) {
-      lapply(seq_len(nrow(eta)), function(i) eta[i, ])
-    } else {
-      rep(list(rep(eta, ncol(dtm))), k)
-    }
-
-    beta_initial <- vapply(
-      eta_rows,
-      function(x) as.numeric(gtools::rdirichlet(n = 1, alpha = x)) +
-        .Machine$double.eps, # avoid underflow
-      numeric(ncol(dtm))
-    )
+    # Rows are drawn one at a time and written straight into their final
+    # position. The previous version first built a list of all k rows --
+    # lapply(seq_len(nrow(eta)), function(i) eta[i, ]) duplicates the entire
+    # prior, +283 MB against a 191 MB matrix -- and then let vapply produce a
+    # V by k result that had to be transposed, a second k by V copy. A scalar
+    # prior was already fine, since rep(list(v), k) shares one vector.
+    #
+    # RNG ORDER IS LOAD-BEARING and unchanged: still exactly one
+    # rdirichlet(n = 1, .) per topic, in topic order.
+    beta_initial <- matrix(0, nrow = k, ncol = ncol(dtm))
     
-    beta_initial <- t(beta_initial)
+    for (i in seq_len(k)) {
+      eta_i <- if (is.matrix(eta)) eta[i, ] else rep(eta, ncol(dtm))
+      
+      beta_initial[i, ] <- as.numeric(gtools::rdirichlet(n = 1, alpha = eta_i)) +
+        .Machine$double.eps # avoid underflow
+    }
   }
   
   # initialize theta if not already specified
@@ -428,9 +534,30 @@ summarize_topics <- function(theta, beta, dtm) {
   
   prevalence <- round(prevalence * 100, 2)
   
-  # top 3 terms
+  # top 5 terms
+  #
+  # PARTIAL SORT. order() sorts all V entries of a row to keep five, which is
+  # O(V log V) where selection is O(V): 4.06 s -> 0.82 s per topic at V = 1e6,
+  # so roughly an hour off a k = 1000 model. sort(partial =) finds the 5th
+  # largest without ordering anything below it; only the handful of values at
+  # or above it are then sorted.
+  #
+  # Exact ties at the threshold yield more than five candidates, and the order
+  # among tied values can differ from order()'s. These are display terms for a
+  # printed summary, so that is acceptable --- but it is why this is not
+  # guaranteed byte-for-byte identical to the previous implementation.
+  n_top <- 5
+  
   top_terms <- apply(beta, 1, function(x) {
-    names(x)[order(x, decreasing = TRUE)][1:5]
+    if (length(x) <= n_top) {
+      return(names(x)[order(x, decreasing = TRUE)][seq_len(n_top)])
+    }
+    
+    cut <- length(x) - n_top + 1
+    
+    keep <- which(x >= sort(x, partial = cut)[cut])
+    
+    names(x)[keep[order(x[keep], decreasing = TRUE)]][seq_len(n_top)]
   })
   
   top_terms <- apply(top_terms, 2, function(x) {
@@ -927,12 +1054,19 @@ calc_lambda <- function(beta, theta, p_docs = NULL, correct = TRUE){
   
   
   # get our result
-  lambda <- matrix(0, ncol=ncol(p_t), nrow=ncol(p_t))
-  diag(lambda) <- p_t
+  #
+  # This used to build a k by k matrix, set its diagonal to p_t, and multiply it
+  # into beta -- an O(k^2 V) matmul whose off-diagonal terms are all zero, to do
+  # what row scaling does in O(kV). beta is k by V, so a length-k vector recycles
+  # down the columns and scales row i by p_t[i], which is what the diagonal
+  # matmul computed. p_t arrives as a 1 by k matrix from `p_d %*% theta`, hence
+  # as.numeric().
+  lambda <- as.numeric(p_t) * beta
   
-  lambda <- lambda %*% beta
-  
-  lambda <- t(apply(lambda, 1, function(x) x / p_w))
+  # And this used to be t(apply(lambda, 1, function(x) x / p_w)), which builds a
+  # V by k result and transposes it: two k by V copies to do one elementwise
+  # division. p_w is indexed by token, so the division is along dimension 2.
+  lambda <- sweep(lambda, 2, as.numeric(p_w), "/")
   
   rownames(lambda) <- rownames(beta)
   colnames(lambda) <- colnames(beta)

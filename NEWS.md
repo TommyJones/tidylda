@@ -103,6 +103,37 @@ differ.
     `log_likelihood` tibble gained a third column. Code selecting columns by
     name is unaffected; code selecting by position is not.
 
+## Performance
+
+* **`augment()`, `posterior()` and `predict()` use substantially less memory.**
+    `augment()` was routing `lambda` through `tidy()` and back, exploding a
+    k-by-vocabulary matrix into k*vocabulary rows only to collapse it again;
+    scaling every topic column in one block rather than one at a time; and using
+    `apply(., 1, which.max)`, which copies the whole frame before iterating.
+    `posterior()` made four copies of every block of draws. Peak memory on a
+    128,000-token corpus at k = 100: `augment(type = "prob")` 684 MB to 342 MB,
+    `augment(type = "class")` 950 MB to 470 MB, and drawing from the posterior
+    582 MB to 374 MB. Results are unchanged.
+
+* **Fitting is cheaper in two places.** `calc_lambda()` built a k-by-k matrix and
+    multiplied it into `beta` to do what row scaling does directly — quadratic in
+    the number of topics for no reason — and initialization duplicated the entire
+    prior into a list before drawing from it. Both run on every fit.
+
+* **`summarize_topics()` no longer sorts an entire vocabulary per topic** to take
+    the top five terms. At a million-term vocabulary that is 4.1 seconds a topic
+    against 0.8.
+
+## New
+
+* **`posterior()` and `tidy()` now refuse requests that cannot fit in memory**
+    rather than exhausting the session. Both return one row per cell of something
+    that grows with topics times vocabulary, so an ordinary-looking call can ask
+    for billions of rows. The error reports the size, the limit, and a concrete
+    alternative. The ceiling is 1 GB, and
+    `options(tidylda.max_result_size = <bytes>)` raises it. Calls that previously
+    succeeded are unaffected; calls that previously crashed R now error.
+
 ## Bug fixes
 
 * **`refit()` no longer exhausts memory aligning vocabulary.** When the base

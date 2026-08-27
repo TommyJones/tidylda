@@ -152,12 +152,10 @@ lda <- tidylda(
 
 # did the model converge?
 # there are actual test stats for this, but should look like "yes"
-qplot(x = iteration, y = log_likelihood, data = lda$log_likelihood, geom = "line") + 
-    ggtitle("Checking model convergence")
-#> Warning: `qplot()` was deprecated in ggplot2 3.4.0.
-#> This warning is displayed once per session.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-#> generated.
+lda$log_likelihood |>
+  ggplot(aes(x = iteration, y = log_joint)) +
+  geom_line() + 
+  ggtitle("Checking model convergence")
 ```
 
 <img src="man/figures/README-example-1.png" alt="" width="100%" />
@@ -370,7 +368,9 @@ lda2 <- refit(
 
 # we can do similar analyses
 # did the model converge?
-qplot(x = iteration, y = log_likelihood, data = lda2$log_likelihood, geom = "line") +
+lda2$log_likelihood |>
+  ggplot(aes(x = iteration, y = log_joint)) +
+  geom_line() + 
   ggtitle("Checking model convergence")
 ```
 

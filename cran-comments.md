@@ -26,12 +26,11 @@ User-visible changes:
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release,
     oldrel-1)
 
-win-builder was unavailable while preparing this submission; FTP uploads were
-rejected over a period of days. An earlier commit of this same version passed
-win-builder release and oldrelease. Everything changed since that run is R code
-only -- the compiled sources are byte-for-byte identical to what win-builder
-checked -- and those changes are covered by the five-platform GitHub Actions
-matrix above, which is green.
+win-builder was unavailable while preparing this submission. An earlier commit 
+of this same version passed win-builder release and oldrelease. Everything 
+changed since that run is R code only -- the compiled sources are byte-for-byte 
+identical to what win-builder checked -- and those changes are covered by the 
+five-platform GitHub Actions matrix above, which is green.
 
 ## R CMD check results
 

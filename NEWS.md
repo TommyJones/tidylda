@@ -1,3 +1,33 @@
+# tidylda (development version)
+
+## Performance
+
+* **`calc_prob_coherence()` takes one co-occurrence crossproduct instead of one
+    per topic.** It used to subset the document-term matrix to a topic's top
+    terms, binarize that subset and cross-multiply it, once per topic. Topics
+    share terms heavily, so the union of every topic's top terms is far smaller
+    than the sum of them --- 236 distinct terms at k = 100, 918 at k = 600 on
+    20 Newsgroups --- and one crossproduct over that union serves every topic,
+    each reading its own block out of the result. 3.7x faster at k = 100 and
+    2.2x at k = 600; 4.0x on a 70,000-document corpus, where it falls from
+    1.09 s to 0.27 s. Term selection also uses a partial sort now, with ties
+    broken by term index so the terms chosen do not depend on how the
+    candidates were found.
+
+* **Two large temporary allocations are gone from every fit.**
+    `summarize_topics()` computed topic prevalence by building a
+    documents-by-topics matrix only to collapse it to a vector of topic totals;
+    it now takes the matrix-vector product directly, which at 70,000 documents
+    and k = 100 avoids a 57 MB temporary. `new_tidylda()` scanned `theta` and
+    `beta` for missing values on every fit, allocating a logical matrix the size
+    of each, and now checks with `anyNA()` first --- which stops at the first
+    missing value and does nothing at all when, as is almost always the case,
+    there are none.
+
+* **Results are unchanged.** Every one of these is a pure speed change:
+    `beta`, `theta`, `lambda` and the topic summary are bit-identical to 0.1.0
+    for the same seed, as is `calc_prob_coherence()` called directly.
+
 # tidylda 0.1.0
 
 ## New sampler

@@ -1,62 +1,52 @@
-## Minor version 0.1.0
+## Patch version 0.1.1
 
-This release replaces the package's sampler. Model fitting now uses warpLDA
-(Chen et al., 2016, <doi:10.48550/arXiv.1510.08628>), a Metropolis-Hastings
-scheme, in place of the collapsed Gibbs sampler used through 0.0.7. Fit quality
-was validated against the previous sampler across a grid of corpus sizes and
-topic counts, under both scalar and matrix priors, before the change was made.
+This release fixes the installation ERROR on
+r-devel-linux-x86_64-debian-clang, reported by Kurt Hornik on 2026-09-08 with
+a correction deadline of 2026-09-29. It is the only change in this version.
 
-User-visible changes:
+The package linked but failed to load on that flavor after its update to the
+LLVM 23 packages from Debian unstable:
 
-* One breaking change: the `counts$Cv` element of a fitted model is now tokens
-    by topics rather than topics by tokens, and is stored sparsely as a
-    `dgCMatrix`. `counts$Cd` is unchanged: still documents by topics, still a
-    dense matrix. This is documented in NEWS.md with the one-line fix. Models
-    saved by earlier versions are detected and read correctly.
-* Two deprecations, both backward compatible and warning once per session:
-    `predict(method = "gibbs")` is now `method = "mh"`, and `optimize_alpha` is
-    accepted but ignored.
-* The parallelism promised by the `threads` argument is now implemented, with
-    reproducible results independent of the number of threads.
+```
+unable to load shared object '.../tidylda.so':
+  .../tidylda.so: undefined symbol: __atomic_compare_exchange
+```
+
+RcppThread's thread pool keeps each worker's loop range in an over-aligned
+`std::atomic` (`alignas(64)` over an eight-byte payload). clang treats an
+over-aligned atomic as not lock-free and emits a call to the size-generic
+`__atomic_compare_exchange`, which lives in libatomic; gcc inlines the same
+construct, which is why the other twelve flavors were unaffected. `-shared`
+does not diagnose undefined symbols, so the failure surfaced at `dyn.load()`
+rather than at link time.
+
+The fix is a `configure` script that compiles and links that exact construct as
+an executable, and adds `-latomic` only when the toolchain needs it. It is
+plain POSIX `sh` rather than autoconf, it never fails the build, and it does
+not add `-latomic` unconditionally, so platforms without libatomic (macOS) and
+the Windows build, which uses `src/Makevars.win` and is unchanged, are
+unaffected.
+
+Nothing else has changed since 0.1.0. There are no changes to R code, to the
+C++ sources, to documentation, or to results. The only other edit is seven
+technical words added to `inst/WORDLIST` for the new NEWS entry.
 
 ## Test environments
 
-* local: macOS on Apple silicon, R 4.6.0
-* local: Ubuntu 24.04, R 4.6.0
-* GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release,
-    oldrel-1)
-
-win-builder was unavailable while preparing this submission. An earlier commit 
-of this same version passed win-builder release and oldrelease. Everything 
-changed since that run is R code only -- the compiled sources are byte-for-byte 
-identical to what win-builder checked -- and those changes are covered by the 
-five-platform GitHub Actions matrix above, which is green.
+* local: Ubuntu 24.04, R 4.6.1
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 1 warning | 1 note
 
-on macOS and on the GitHub Actions platforms.
+Both are properties of this machine rather than of the package:
 
-I expect CRAN's incoming check to raise the usual NOTE identifying the
-maintainer:
-
-> checking CRAN incoming feasibility ... NOTE
-> Maintainer: 'Tommy Jones <jones.thos.w@gmail.com>'
-
-The local Ubuntu check reports one further NOTE that does not appear on any
-other platform:
-
-> checking compilation flags used ... NOTE
->   Compilation used the following non-portable flag(s):
->     '-mno-omit-leaf-frame-pointer'
-
-This flag is not set by the package. It comes from the Debian/Ubuntu build of R
-itself, where it appears in `/usr/lib/R/etc/Makeconf` and is applied to every
-package compiled on that system, not just this one. The only compilation flags
-the package adds are `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`.
-
-## revdepcheck results
-
-There are currently no downstream dependencies for this package, confirmed
-against the CRAN package database with `tools::package_dependencies()`.
+* `checking top-level files ... WARNING: A complete check needs the
+    'checkbashisms' script.` The script is not installed here. `configure` and
+    `cleanup` were checked against the real `checkbashisms` from devscripts
+    separately, and it reports no bashisms in either.
+* `checking compilation flags used ... NOTE: non-portable flag(s):
+    '-mno-omit-leaf-frame-pointer'`. This comes from the Ubuntu R build's
+    default `CXXFLAGS`, not from the package; `src/Makevars.in` sets only
+    `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`. It was present for
+    0.1.0 as well and did not appear on any CRAN flavor.

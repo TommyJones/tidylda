@@ -1,3 +1,14 @@
+# tidylda 0.1.1
+
+* **Links against `libatomic` where the compiler needs it.** RcppThread's
+    thread pool keeps each worker's loop range in an over-aligned
+    `std::atomic`. clang treats an over-aligned atomic as not lock-free and
+    emits a call into libatomic, which was not being linked, so the shared
+    object failed to load on CRAN's r-devel-linux-x86_64-debian-clang after
+    that machine moved to LLVM 23. A new `configure` script probes the
+    construct and adds `-latomic` only on toolchains that require it. This is a
+    build fix: no user-visible change, and no change to results.
+
 # tidylda 0.1.0
 
 ## New sampler

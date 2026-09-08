@@ -37,3 +37,4 @@
 ^tidylda-joss
 
 ^CODE_OF_CONDUCT\.md$
+^src/Makevars$

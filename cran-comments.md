@@ -27,13 +27,30 @@ not add `-latomic` unconditionally, so platforms without libatomic (macOS) and
 the Windows build, which uses `src/Makevars.win` and is unchanged, are
 unaffected.
 
+I reproduced the failure locally against clang 18.1.3 before and after the
+fix. Building 0.1.0 with clang gives exactly the symbol reported on your
+machine:
+
+```
+unable to load shared object '.../tidylda.so':
+  .../tidylda.so: undefined symbol: __atomic_compare_exchange
+```
+
+Building 0.1.1 with the same compiler, `configure` reports "over-aligned
+atomics need libatomic; adding -latomic", `-latomic` appears in the link line,
+the package installs and loads, and the test suite passes (359 passed, 0
+failed). Building with gcc, `configure` reports that libatomic is not needed
+and the link line is unchanged from 0.1.0.
+
 Nothing else has changed since 0.1.0. There are no changes to R code, to the
 C++ sources, to documentation, or to results. The only other edit is seven
 technical words added to `inst/WORDLIST` for the new NEWS entry.
 
 ## Test environments
 
-* local: Ubuntu 24.04, R 4.6.1
+* local: Ubuntu 24.04, R 4.6.1, gcc 13.3.0
+* local: Ubuntu 24.04, R 4.6.1, clang 18.1.3 (the configuration that fails
+    for 0.1.0)
 
 ## R CMD check results
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Decide whether this toolchain needs to link against libatomic.
+# Link against libatomic wherever it is available.
 #
 # RcppThread's work-stealing pool keeps each worker's {pos, end} loop range in
 # an over-aligned atomic -- mem::aligned::relaxed_atomic<State> in
@@ -8,12 +8,14 @@
 # over-aligned std::atomic as not lock-free and emits a call to the
 # size-generic __atomic_compare_exchange, which lives in libatomic. gcc inlines
 # the same construct. So this is a property of the compiler, not of the
-# platform, and it is probed rather than assumed.
+# platform.
 #
-# The probe links an executable, not a shared object: -shared tolerates
-# undefined symbols, which is exactly why the CRAN failure showed up at
-# dyn.load() time rather than at link time, and would make a -shared probe
-# always succeed.
+# Rather than reproduce that construct here -- it lives in a dependency and
+# would drift -- this asks the simpler question: does -latomic link at all?
+# Linkers on the CRAN Linux flavors default to --as-needed, so passing the
+# flag where nothing calls into the library leaves no trace: the linker drops
+# it. On macOS there is no libatomic, the probe fails, the flag is omitted,
+# and the link line is identical to 0.1.0's.
 
 CXX=`"${R_HOME}/bin/R" CMD config CXX`
 CXXFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS`
@@ -23,37 +25,18 @@ LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
 CONFTEST_DIR=`mktemp -d 2>/dev/null || echo ./tools-conftest`
 mkdir -p "${CONFTEST_DIR}"
 
-cat > "${CONFTEST_DIR}/conftest.cpp" <<'EOF'
-#include <atomic>
-struct State { int pos; int end; };
-struct alignas(64) AlignedAtomic : public std::atomic<State> {
-  AlignedAtomic(State s) : std::atomic<State>(s) {}
-};
-int main() {
-  AlignedAtomic a{ State{0, 1} };
-  State expected = a.load(std::memory_order_relaxed);
-  State desired = State{1, 1};
-  a.compare_exchange_strong(expected, desired, std::memory_order_relaxed);
-  return a.load(std::memory_order_relaxed).pos == 1 ? 0 : 1;
-}
-EOF
-
-try_link () {   # $1 = extra libraries
-  ${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} \
-    "${CONFTEST_DIR}/conftest.cpp" -o "${CONFTEST_DIR}/conftest" $1 \
-    > "${CONFTEST_DIR}/conftest.log" 2>&1
-}
+echo 'int main(void) { return 0; }' > "${CONFTEST_DIR}/conftest.cpp"
 
 TIDYLDA_ATOMIC_LIBS=""
-if try_link ""; then
-  echo "configure: over-aligned atomics link without libatomic"
-elif try_link "-latomic"; then
+if ${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} \
+     "${CONFTEST_DIR}/conftest.cpp" -o "${CONFTEST_DIR}/conftest" -latomic \
+     > "${CONFTEST_DIR}/conftest.log" 2>&1
+then
   TIDYLDA_ATOMIC_LIBS="-latomic"
-  echo "configure: over-aligned atomics need libatomic; adding -latomic"
+  echo "configure: libatomic is available; adding -latomic"
 else
-  echo "configure: WARNING: the atomic probe would not link with or without"
-  echo "configure: -latomic; building without it, as in previous versions."
-  cat "${CONFTEST_DIR}/conftest.log"
+  echo "configure: libatomic is not available; building without it, as in"
+  echo "configure: previous versions."
 fi
 
 sed -e "s|@TIDYLDA_ATOMIC_LIBS@|${TIDYLDA_ATOMIC_LIBS}|" \

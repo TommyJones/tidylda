@@ -20,14 +20,21 @@ construct, which is why the other twelve flavors were unaffected. `-shared`
 does not diagnose undefined symbols, so the failure surfaced at `dyn.load()`
 rather than at link time.
 
-The fix is a `configure` script that compiles and links that exact construct as
-an executable, and adds `-latomic` only when the toolchain needs it. It is
-plain POSIX `sh` rather than autoconf, it never fails the build, and it does
-not add `-latomic` unconditionally, so platforms without libatomic (macOS) and
-the Windows build, which uses `src/Makevars.win` and is unchanged, are
-unaffected.
+The fix is a `configure` script that links a trivial program with `-latomic`
+and adds the flag to `PKG_LIBS` wherever that succeeds. It is plain POSIX `sh`
+rather than autoconf and it never fails the build. Where libatomic does not
+exist the link fails, the flag is omitted, and the flags are identical to
+0.1.0's; that covers macOS. The Windows build uses `src/Makevars.win` and is
+unchanged.
 
-I reproduced the failure locally against clang 18.1.3 before and after the
+The flag is not conditioned on the compiler. The Linux linkers on your check
+flavors default to `--as-needed`, which keeps a library only if something
+actually calls into it, so on the gcc flavors `-latomic` is dropped and the
+resulting `.so` has no dependency on libatomic. Probing for the flag rather
+than for the failing construct itself keeps the script from having to
+reproduce, and track, a construct that lives in a dependency's header.
+
+I reproduced the failure locally against clang 18.1.3, before and after the
 fix. Building 0.1.0 with clang gives exactly the symbol reported on your
 machine:
 
@@ -36,11 +43,15 @@ unable to load shared object '.../tidylda.so':
   .../tidylda.so: undefined symbol: __atomic_compare_exchange
 ```
 
-Building 0.1.1 with the same compiler, `configure` reports "over-aligned
-atomics need libatomic; adding -latomic", `-latomic` appears in the link line,
-the package installs and loads, and the test suite passes (359 passed, 0
-failed). Building with gcc, `configure` reports that libatomic is not needed
-and the link line is unchanged from 0.1.0.
+Building 0.1.1 with the same compiler, `configure` reports "libatomic is
+available; adding -latomic", `-latomic` appears in the link line, `readelf -d`
+on the installed `tidylda.so` shows a dependency on `libatomic.so.1`, the
+package loads, and the test suite passes (395 passed, 0 failed).
+
+Building with gcc 13.3.0, `-latomic` is passed as well, but `--as-needed`
+drops it: `readelf -d` shows no libatomic dependency and `nm -D` reports no
+undefined `__atomic_*` symbol, so the installed object is as it was for 0.1.0.
+The test suite passes there too (395 passed, 0 failed).
 
 Nothing else has changed since 0.1.0. There are no changes to R code, to the
 C++ sources, to documentation, or to results. The only other edit is seven
@@ -50,7 +61,7 @@ technical words added to `inst/WORDLIST` for the new NEWS entry.
 
 * local: Ubuntu 24.04, R 4.6.1, gcc 13.3.0
 * local: Ubuntu 24.04, R 4.6.1, clang 18.1.3 (the configuration that fails
-    for 0.1.0)
+    for 0.1.0; verified against both 0.1.0 and 0.1.1)
 
 ## R CMD check results
 

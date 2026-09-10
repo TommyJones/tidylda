@@ -21,7 +21,7 @@ neither version's `.so` depends on libatomic.
 * local: Ubuntu 24.04, R 4.6.1, gcc 13.3.0
 * local: Ubuntu 24.04, R 4.6.1, clang 18.1.3 (the configuration that fails
     for 0.1.0; verified against both 0.1.0 and 0.1.1)
-* local: macOS Sequoia, R 4.6.0, Apple clang
+* local: macOS Sequoia, R 4.6.0, Apple clang (Apple silicon)
 * win-builder: R-devel, R-release, and R-oldrel
 
 ## R CMD check results

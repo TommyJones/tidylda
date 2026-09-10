@@ -1,62 +1,40 @@
-## Minor version 0.1.0
+## Patch version 0.1.1
 
-This release replaces the package's sampler. Model fitting now uses warpLDA
-(Chen et al., 2016, <doi:10.48550/arXiv.1510.08628>), a Metropolis-Hastings
-scheme, in place of the collapsed Gibbs sampler used through 0.0.7. Fit quality
-was validated against the previous sampler across a grid of corpus sizes and
-topic counts, under both scalar and matrix priors, before the change was made.
+This release fixes the installation ERROR on
+r-devel-linux-x86_64-debian-clang, reported by Kurt Hornik on 2026-09-08. It
+is the only change since 0.1.0.
 
-User-visible changes:
+RcppThread's thread pool uses an over-aligned `std::atomic`. clang emits a
+call to `__atomic_compare_exchange` for it and gcc inlines it, so only that
+one flavor failed.
 
-* One breaking change: the `counts$Cv` element of a fitted model is now tokens
-    by topics rather than topics by tokens, and is stored sparsely as a
-    `dgCMatrix`. `counts$Cd` is unchanged: still documents by topics, still a
-    dense matrix. This is documented in NEWS.md with the one-line fix. Models
-    saved by earlier versions are detected and read correctly.
-* Two deprecations, both backward compatible and warning once per session:
-    `predict(method = "gibbs")` is now `method = "mh"`, and `optimize_alpha` is
-    accepted but ignored.
-* The parallelism promised by the `threads` argument is now implemented, with
-    reproducible results independent of the number of threads.
+The fix is a `configure` script that links against libatomic wherever it is
+available. Where nothing calls into the library, `--as-needed` drops the flag
+and the installed object is unchanged.
+
+I reproduced the reported failure locally with clang 18.1.3 against 0.1.0, and
+confirmed it is gone in 0.1.1. Under gcc 13.3.0 the linker drops the flag, and
+neither version's `.so` depends on libatomic.
 
 ## Test environments
 
-* local: macOS on Apple silicon, R 4.6.0
-* local: Ubuntu 24.04, R 4.6.0
-* GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release,
-    oldrel-1)
-
-win-builder was unavailable while preparing this submission. An earlier commit 
-of this same version passed win-builder release and oldrelease. Everything 
-changed since that run is R code only -- the compiled sources are byte-for-byte 
-identical to what win-builder checked -- and those changes are covered by the 
-five-platform GitHub Actions matrix above, which is green.
+* local: Ubuntu 24.04, R 4.6.1, gcc 13.3.0
+* local: Ubuntu 24.04, R 4.6.1, clang 18.1.3 (the configuration that fails
+    for 0.1.0; verified against both 0.1.0 and 0.1.1)
+* local: macOS Sequoia, R 4.6.0, Apple clang (Apple silicon)
+* win-builder: R-devel, R-release, and R-oldrel
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
 
-on macOS and on the GitHub Actions platforms.
+The note appears only on the Ubuntu machines. macOS and all three win-builder
+runs return OK.
 
-I expect CRAN's incoming check to raise the usual NOTE identifying the
-maintainer:
+* `checking compilation flags used ... NOTE: non-portable flag(s):
+    '-mno-omit-leaf-frame-pointer'`. This comes from the Ubuntu R build's
+    default `CXXFLAGS`, not from the package; `src/Makevars.in` sets only
+    `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`. It was present for
+    0.1.0 as well and did not appear on any CRAN flavor.
 
-> checking CRAN incoming feasibility ... NOTE
-> Maintainer: 'Tommy Jones <jones.thos.w@gmail.com>'
-
-The local Ubuntu check reports one further NOTE that does not appear on any
-other platform:
-
-> checking compilation flags used ... NOTE
->   Compilation used the following non-portable flag(s):
->     '-mno-omit-leaf-frame-pointer'
-
-This flag is not set by the package. It comes from the Debian/Ubuntu build of R
-itself, where it appears in `/usr/lib/R/etc/Makeconf` and is applied to every
-package compiled on that system, not just this one. The only compilation flags
-the package adds are `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`.
-
-## revdepcheck results
-
-There are currently no downstream dependencies for this package, confirmed
-against the CRAN package database with `tools::package_dependencies()`.
+`configure` and `cleanup` pass `checkbashisms`.

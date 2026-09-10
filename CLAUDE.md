@@ -34,6 +34,10 @@ routine checks, skip vignettes:
 devtools::check("/home/tommy/tidylda", document = FALSE, vignettes = FALSE)
 ```
 
-Expect one NOTE (a spelling diff flagging `ORCID` and `tidylda's`) plus a
-local-only NOTE about `-mno-omit-leaf-frame-pointer`. Anything else is new.
+Expect a local-only NOTE about `-mno-omit-leaf-frame-pointer` (it comes from
+Ubuntu's R build flags, not from us) and a local-only WARNING that a complete
+check needs `checkbashisms` — that script is not installed here, and CRAN's
+Debian machines do run it against `configure` and `cleanup`. To check those
+yourself, fetch `checkbashisms.pl` from devscripts and run
+`perl checkbashisms -f configure cleanup`. Anything else is new.
 See roadmap §8 for dependencies and CI details.

@@ -1,5 +1,6 @@
 Blei
 CMD
+CRAN's
 Codecov
 Cv
 DTM
@@ -8,6 +9,7 @@ Github
 Hastings
 IntegerMatrix
 IntegerVector
+LLVM
 Lifecycle
 Metropolis
 NaNs
@@ -18,6 +20,7 @@ README
 Rcpp
 RcppExports
 RcppThread
+RcppThread's
 Silge
 TCM
 Tunability
@@ -36,6 +39,7 @@ calcr
 cdot
 changelog
 cpp
+debian
 decile
 dgCMatrix
 doi
@@ -48,7 +52,9 @@ hardcoded
 http
 jones
 joss
+libatomic
 lifecycle
+linux
 malformatted
 mathbb
 md
@@ -71,6 +77,7 @@ tidymodels
 tidytext
 tidyverse
 tidyverse’
+toolchains
 understandability
 warpLDA
 warpLDA's

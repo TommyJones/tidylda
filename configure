@@ -1,0 +1,46 @@
+#!/bin/sh
+# Link against libatomic wherever it is available.
+#
+# RcppThread's work-stealing pool keeps each worker's {pos, end} loop range in
+# an over-aligned atomic -- mem::aligned::relaxed_atomic<State> in
+# quickpool.hpp, whose base is declared alignas(64). The payload is only eight
+# bytes and would be lock-free at its natural alignment, but clang treats an
+# over-aligned std::atomic as not lock-free and emits a call to the
+# size-generic __atomic_compare_exchange, which lives in libatomic. gcc inlines
+# the same construct. So this is a property of the compiler, not of the
+# platform.
+#
+# Rather than reproduce that construct here -- it lives in a dependency and
+# would drift -- this asks the simpler question: does -latomic link at all?
+# Linkers on the CRAN Linux flavors default to --as-needed, so passing the
+# flag where nothing calls into the library leaves no trace: the linker drops
+# it. On macOS there is no libatomic, the probe fails, the flag is omitted,
+# and the link line is identical to 0.1.0's.
+
+CXX=`"${R_HOME}/bin/R" CMD config CXX`
+CXXFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
+LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
+
+CONFTEST_DIR=`mktemp -d 2>/dev/null || echo ./tools-conftest`
+mkdir -p "${CONFTEST_DIR}"
+
+echo 'int main(void) { return 0; }' > "${CONFTEST_DIR}/conftest.cpp"
+
+TIDYLDA_ATOMIC_LIBS=""
+if ${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS} \
+     "${CONFTEST_DIR}/conftest.cpp" -o "${CONFTEST_DIR}/conftest" -latomic \
+     > "${CONFTEST_DIR}/conftest.log" 2>&1
+then
+  TIDYLDA_ATOMIC_LIBS="-latomic"
+  echo "configure: libatomic is available; adding -latomic"
+else
+  echo "configure: libatomic is not available; building without it, as in"
+  echo "configure: previous versions."
+fi
+
+sed -e "s|@TIDYLDA_ATOMIC_LIBS@|${TIDYLDA_ATOMIC_LIBS}|" \
+  src/Makevars.in > src/Makevars
+
+rm -rf "${CONFTEST_DIR}"
+exit 0

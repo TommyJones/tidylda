@@ -21,19 +21,20 @@ neither version's `.so` depends on libatomic.
 * local: Ubuntu 24.04, R 4.6.1, gcc 13.3.0
 * local: Ubuntu 24.04, R 4.6.1, clang 18.1.3 (the configuration that fails
     for 0.1.0; verified against both 0.1.0 and 0.1.1)
+* local: macOS Sequoia, R 4.6.0, Apple clang
+* win-builder: R-devel, R-release, and R-oldrel
 
 ## R CMD check results
 
-0 errors | 1 warning | 1 note
+0 errors | 0 warnings | 1 note
 
-Both are properties of this machine rather than of the package:
+The note appears only on the Ubuntu machines. macOS and all three win-builder
+runs return OK.
 
-* `checking top-level files ... WARNING: A complete check needs the
-    'checkbashisms' script.` The script is not installed here. `configure` and
-    `cleanup` were checked against the real `checkbashisms` from devscripts
-    separately, and it reports no bashisms in either.
 * `checking compilation flags used ... NOTE: non-portable flag(s):
     '-mno-omit-leaf-frame-pointer'`. This comes from the Ubuntu R build's
     default `CXXFLAGS`, not from the package; `src/Makevars.in` sets only
     `$(SHLIB_OPENMP_CXXFLAGS)` and `-DARMA_64BIT_WORD=1`. It was present for
     0.1.0 as well and did not appear on any CRAN flavor.
+
+`configure` and `cleanup` pass `checkbashisms`.

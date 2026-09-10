@@ -29,6 +29,15 @@
     for the same seed, as is `calc_prob_coherence()` called directly.
 
 
+## Build
+
+* **Linker flags for RcppThread now come from `RcppThread::LdFlags()`.** 0.1.1
+    shipped a `configure` script that probed for libatomic itself. RcppThread
+    already supplies that probe, so `src/Makevars` asks for the flags directly
+    and `configure`, `cleanup` and `src/Makevars.in` are gone. This also passes
+    `-lpthread`, which tidylda never had, and requires RcppThread >= 2.1.3.
+    Build-only: no user-visible change and no change to results.
+
 # tidylda 0.1.1
 
 * **Links against `libatomic` where the compiler needs it.** RcppThread's

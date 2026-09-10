@@ -63,7 +63,7 @@ LinkingTo:
     Rcpp,
     RcppArmadillo,
     RcppProgress,
-    RcppThread
+    RcppThread (>= 2.1.3)
 Encoding: UTF-8
 Language: en-US
 LazyData: true

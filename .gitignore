@@ -16,4 +16,3 @@ inst/doc
 # roadmap D2. Pinned to commit 0b31bdd8; every LDA.hpp line number cited in the
 # design notes refers to that commit.
 ignore/text2vec/
-src/Makevars
